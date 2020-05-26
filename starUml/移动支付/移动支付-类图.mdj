@@ -1,0 +1,1173 @@
+{
+	"_type": "Project",
+	"_id": "AAAAAAFF+h6SjaM2Hec=",
+	"name": "Untitled",
+	"ownedElements": [
+		{
+			"_type": "UMLModel",
+			"_id": "AAAAAAFF+qBWK6M3Z8Y=",
+			"_parent": {
+				"$ref": "AAAAAAFF+h6SjaM2Hec="
+			},
+			"name": "移动支付数据结构",
+			"ownedElements": [
+				{
+					"_type": "UMLClassDiagram",
+					"_id": "AAAAAAFF+qBtyKM79qY=",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "Main",
+					"visible": true,
+					"defaultDiagram": true,
+					"ownedViews": [
+						{
+							"_type": "UMLClassView",
+							"_id": "AAAAAAFlaneKMTKT1hs=",
+							"_parent": {
+								"$ref": "AAAAAAFF+qBtyKM79qY="
+							},
+							"model": {
+								"$ref": "AAAAAAFlaneKLzKRWIk="
+							},
+							"subViews": [
+								{
+									"_type": "UMLNameCompartmentView",
+									"_id": "AAAAAAFlaneKMjKUfsA=",
+									"_parent": {
+										"$ref": "AAAAAAFlaneKMTKT1hs="
+									},
+									"model": {
+										"$ref": "AAAAAAFlaneKLzKRWIk="
+									},
+									"subViews": [
+										{
+											"_type": "LabelView",
+											"_id": "AAAAAAFlaneKMjKV12E=",
+											"_parent": {
+												"$ref": "AAAAAAFlaneKMjKUfsA="
+											},
+											"visible": true,
+											"enabled": true,
+											"lineColor": "#000000",
+											"fillColor": "#ffff00",
+											"fontColor": "#000000",
+											"font": "Arial;13;0",
+											"showShadow": true,
+											"containerChangeable": false,
+											"containerExtending": false,
+											"left": 309,
+											"top": 141,
+											"width": 432,
+											"height": 13,
+											"autoResize": false,
+											"underline": false,
+											"text": "«生成支付二维码次数表»",
+											"horizontalAlignment": 2,
+											"verticalAlignment": 5,
+											"wordWrap": false
+										},
+										{
+											"_type": "LabelView",
+											"_id": "AAAAAAFlaneKMjKWsJA=",
+											"_parent": {
+												"$ref": "AAAAAAFlaneKMjKUfsA="
+											},
+											"visible": true,
+											"enabled": true,
+											"lineColor": "#000000",
+											"fillColor": "#ffff00",
+											"fontColor": "#000000",
+											"font": "Arial;13;1",
+											"showShadow": true,
+											"containerChangeable": false,
+											"containerExtending": false,
+											"left": 309,
+											"top": 156,
+											"width": 432,
+											"height": 13,
+											"autoResize": false,
+											"underline": false,
+											"text": "pay_qrcode_num",
+											"horizontalAlignment": 2,
+											"verticalAlignment": 5,
+											"wordWrap": false
+										},
+										{
+											"_type": "LabelView",
+											"_id": "AAAAAAFlaneKMjKXJ40=",
+											"_parent": {
+												"$ref": "AAAAAAFlaneKMjKUfsA="
+											},
+											"visible": false,
+											"enabled": true,
+											"lineColor": "#000000",
+											"fillColor": "#ffff00",
+											"fontColor": "#000000",
+											"font": "Arial;13;0",
+											"showShadow": true,
+											"containerChangeable": false,
+											"containerExtending": false,
+											"left": 320,
+											"top": 32,
+											"width": 141,
+											"height": 13,
+											"autoResize": false,
+											"underline": false,
+											"text": "(from 移动支付数据结构)",
+											"horizontalAlignment": 2,
+											"verticalAlignment": 5,
+											"wordWrap": false
+										},
+										{
+											"_type": "LabelView",
+											"_id": "AAAAAAFlaneKMzKYy8A=",
+											"_parent": {
+												"$ref": "AAAAAAFlaneKMjKUfsA="
+											},
+											"visible": false,
+											"enabled": true,
+											"lineColor": "#000000",
+											"fillColor": "#ffff00",
+											"fontColor": "#000000",
+											"font": "Arial;13;0",
+											"showShadow": true,
+											"containerChangeable": false,
+											"containerExtending": false,
+											"left": 320,
+											"top": 32,
+											"width": 0,
+											"height": 13,
+											"autoResize": false,
+											"underline": false,
+											"horizontalAlignment": 1,
+											"verticalAlignment": 5,
+											"wordWrap": false
+										}
+									],
+									"visible": true,
+									"enabled": true,
+									"lineColor": "#000000",
+									"fillColor": "#ffff00",
+									"fontColor": "#000000",
+									"font": "Arial;13;0",
+									"showShadow": true,
+									"containerChangeable": false,
+									"containerExtending": false,
+									"left": 304,
+									"top": 136,
+									"width": 442,
+									"height": 38,
+									"autoResize": false,
+									"stereotypeLabel": {
+										"$ref": "AAAAAAFlaneKMjKV12E="
+									},
+									"nameLabel": {
+										"$ref": "AAAAAAFlaneKMjKWsJA="
+									},
+									"namespaceLabel": {
+										"$ref": "AAAAAAFlaneKMjKXJ40="
+									},
+									"propertyLabel": {
+										"$ref": "AAAAAAFlaneKMzKYy8A="
+									}
+								},
+								{
+									"_type": "UMLAttributeCompartmentView",
+									"_id": "AAAAAAFlaneKMzKZHi0=",
+									"_parent": {
+										"$ref": "AAAAAAFlaneKMTKT1hs="
+									},
+									"model": {
+										"$ref": "AAAAAAFlaneKLzKRWIk="
+									},
+									"subViews": [
+										{
+											"_type": "UMLAttributeView",
+											"_id": "AAAAAAFlanu/BzNC+CE=",
+											"_parent": {
+												"$ref": "AAAAAAFlaneKMzKZHi0="
+											},
+											"model": {
+												"$ref": "AAAAAAFlanu+4zM/HYo="
+											},
+											"visible": true,
+											"enabled": true,
+											"lineColor": "#000000",
+											"fillColor": "#ffff00",
+											"fontColor": "#000000",
+											"font": "Arial;13;0",
+											"showShadow": true,
+											"containerChangeable": false,
+											"containerExtending": false,
+											"left": 309,
+											"top": 179,
+											"width": 432,
+											"height": 13,
+											"autoResize": false,
+											"underline": false,
+											"text": "«主键»+id: int(11) unsigned",
+											"horizontalAlignment": 0,
+											"verticalAlignment": 5,
+											"wordWrap": false
+										},
+										{
+											"_type": "UMLAttributeView",
+											"_id": "AAAAAAFlan6tlzNY7NE=",
+											"_parent": {
+												"$ref": "AAAAAAFlaneKMzKZHi0="
+											},
+											"model": {
+												"$ref": "AAAAAAFlan6tczNVMNY="
+											},
+											"visible": true,
+											"enabled": true,
+											"lineColor": "#000000",
+											"fillColor": "#ffff00",
+											"fontColor": "#000000",
+											"font": "Arial;13;0",
+											"showShadow": true,
+											"containerChangeable": false,
+											"containerExtending": false,
+											"left": 309,
+											"top": 194,
+											"width": 432,
+											"height": 13,
+											"autoResize": false,
+											"underline": false,
+											"text": "«来源id 订单付款期数主键或爆款商品购买记录主键»+source_id: int(11)",
+											"horizontalAlignment": 0,
+											"verticalAlignment": 5,
+											"wordWrap": false
+										},
+										{
+											"_type": "UMLAttributeView",
+											"_id": "AAAAAAFlanxT1DNNgak=",
+											"_parent": {
+												"$ref": "AAAAAAFlaneKMzKZHi0="
+											},
+											"model": {
+												"$ref": "AAAAAAFlanxTszNKV1E="
+											},
+											"visible": true,
+											"enabled": true,
+											"lineColor": "#000000",
+											"fillColor": "#ffff00",
+											"fontColor": "#000000",
+											"font": "Arial;13;0",
+											"showShadow": true,
+											"containerChangeable": false,
+											"containerExtending": false,
+											"left": 309,
+											"top": 209,
+											"width": 432,
+											"height": 13,
+											"autoResize": false,
+											"underline": false,
+											"text": "«合同号»+pact_number: varchar(100) {unique}",
+											"horizontalAlignment": 0,
+											"verticalAlignment": 5,
+											"wordWrap": false
+										},
+										{
+											"_type": "UMLAttributeView",
+											"_id": "AAAAAAFlapGRhjcoPSY=",
+											"_parent": {
+												"$ref": "AAAAAAFlaneKMzKZHi0="
+											},
+											"model": {
+												"$ref": "AAAAAAFlapGRXzclHyU="
+											},
+											"visible": true,
+											"enabled": true,
+											"lineColor": "#000000",
+											"fillColor": "#ffff00",
+											"fontColor": "#000000",
+											"font": "Arial;13;0",
+											"showShadow": true,
+											"containerChangeable": false,
+											"containerExtending": false,
+											"left": 309,
+											"top": 224,
+											"width": 432,
+											"height": 13,
+											"autoResize": false,
+											"underline": false,
+											"text": "«支付状态 与中信支付订单查询结果一致»+pay_status: varchar(50) {unique}",
+											"horizontalAlignment": 0,
+											"verticalAlignment": 5,
+											"wordWrap": false
+										},
+										{
+											"_type": "UMLAttributeView",
+											"_id": "AAAAAAFlap7MVTgg8yo=",
+											"_parent": {
+												"$ref": "AAAAAAFlaneKMzKZHi0="
+											},
+											"model": {
+												"$ref": "AAAAAAFlap7MLzgdEVg="
+											},
+											"visible": true,
+											"enabled": true,
+											"lineColor": "#000000",
+											"fillColor": "#ffff00",
+											"fontColor": "#000000",
+											"font": "Arial;13;0",
+											"showShadow": true,
+											"containerChangeable": false,
+											"containerExtending": false,
+											"left": 309,
+											"top": 239,
+											"width": 432,
+											"height": 13,
+											"autoResize": false,
+											"underline": false,
+											"text": "«支付类型 1微信 2支付宝  默认0»+pay_type {unique}",
+											"horizontalAlignment": 0,
+											"verticalAlignment": 5,
+											"wordWrap": false
+										},
+										{
+											"_type": "UMLAttributeView",
+											"_id": "AAAAAAFlaye0EiUOdKg=",
+											"_parent": {
+												"$ref": "AAAAAAFlaneKMzKZHi0="
+											},
+											"model": {
+												"$ref": "AAAAAAFlayez2CULwUg="
+											},
+											"visible": true,
+											"enabled": true,
+											"lineColor": "#000000",
+											"fillColor": "#ffff00",
+											"fontColor": "#000000",
+											"font": "Arial;13;0",
+											"showShadow": true,
+											"containerChangeable": false,
+											"containerExtending": false,
+											"left": 309,
+											"top": 254,
+											"width": 432,
+											"height": 13,
+											"autoResize": false,
+											"underline": false,
+											"text": "«商户订单号»+out_trade_no: varchar(100) {unique}",
+											"horizontalAlignment": 0,
+											"verticalAlignment": 5,
+											"wordWrap": false
+										},
+										{
+											"_type": "UMLAttributeView",
+											"_id": "AAAAAAFljg41tiPegeI=",
+											"_parent": {
+												"$ref": "AAAAAAFlaneKMzKZHi0="
+											},
+											"model": {
+												"$ref": "AAAAAAFljg41hCPbpZY="
+											},
+											"visible": true,
+											"enabled": true,
+											"lineColor": "#000000",
+											"fillColor": "#ffff00",
+											"fontColor": "#000000",
+											"font": "Arial;13;0",
+											"showShadow": true,
+											"containerChangeable": false,
+											"containerExtending": false,
+											"left": 309,
+											"top": 269,
+											"width": 432,
+											"height": 13,
+											"autoResize": false,
+											"underline": false,
+											"text": "«支付渠道, order:订单, hot: 爆款商品»+pay_channel",
+											"horizontalAlignment": 0,
+											"verticalAlignment": 5,
+											"wordWrap": false
+										},
+										{
+											"_type": "UMLAttributeView",
+											"_id": "AAAAAAFlan+wWzRM/Ok=",
+											"_parent": {
+												"$ref": "AAAAAAFlaneKMzKZHi0="
+											},
+											"model": {
+												"$ref": "AAAAAAFlan+wMzRJpEs="
+											},
+											"visible": true,
+											"enabled": true,
+											"lineColor": "#000000",
+											"fillColor": "#ffff00",
+											"fontColor": "#000000",
+											"font": "Arial;13;0",
+											"showShadow": true,
+											"containerChangeable": false,
+											"containerExtending": false,
+											"left": 309,
+											"top": 284,
+											"width": 432,
+											"height": 13,
+											"autoResize": false,
+											"underline": false,
+											"text": "«记录生成时间»+add_time: datetime",
+											"horizontalAlignment": 0,
+											"verticalAlignment": 5,
+											"wordWrap": false
+										}
+									],
+									"visible": true,
+									"enabled": true,
+									"lineColor": "#000000",
+									"fillColor": "#ffff00",
+									"fontColor": "#000000",
+									"font": "Arial;13;0",
+									"showShadow": true,
+									"containerChangeable": false,
+									"containerExtending": false,
+									"left": 304,
+									"top": 174,
+									"width": 442,
+									"height": 128,
+									"autoResize": false
+								},
+								{
+									"_type": "UMLOperationCompartmentView",
+									"_id": "AAAAAAFlaneKMzKayaM=",
+									"_parent": {
+										"$ref": "AAAAAAFlaneKMTKT1hs="
+									},
+									"model": {
+										"$ref": "AAAAAAFlaneKLzKRWIk="
+									},
+									"visible": true,
+									"enabled": true,
+									"lineColor": "#000000",
+									"fillColor": "#ffff00",
+									"fontColor": "#000000",
+									"font": "Arial;13;0",
+									"showShadow": true,
+									"containerChangeable": false,
+									"containerExtending": false,
+									"left": 304,
+									"top": 302,
+									"width": 442,
+									"height": 10,
+									"autoResize": false
+								},
+								{
+									"_type": "UMLReceptionCompartmentView",
+									"_id": "AAAAAAFlaneKMzKbwH8=",
+									"_parent": {
+										"$ref": "AAAAAAFlaneKMTKT1hs="
+									},
+									"model": {
+										"$ref": "AAAAAAFlaneKLzKRWIk="
+									},
+									"visible": false,
+									"enabled": true,
+									"lineColor": "#000000",
+									"fillColor": "#ffff00",
+									"fontColor": "#000000",
+									"font": "Arial;13;0",
+									"showShadow": true,
+									"containerChangeable": false,
+									"containerExtending": false,
+									"left": 160,
+									"top": 16,
+									"width": 10,
+									"height": 10,
+									"autoResize": false
+								},
+								{
+									"_type": "UMLTemplateParameterCompartmentView",
+									"_id": "AAAAAAFlaneKMzKcp4c=",
+									"_parent": {
+										"$ref": "AAAAAAFlaneKMTKT1hs="
+									},
+									"model": {
+										"$ref": "AAAAAAFlaneKLzKRWIk="
+									},
+									"visible": false,
+									"enabled": true,
+									"lineColor": "#000000",
+									"fillColor": "#ffff00",
+									"fontColor": "#000000",
+									"font": "Arial;13;0",
+									"showShadow": true,
+									"containerChangeable": false,
+									"containerExtending": false,
+									"left": 160,
+									"top": 16,
+									"width": 10,
+									"height": 10,
+									"autoResize": false
+								}
+							],
+							"visible": true,
+							"enabled": true,
+							"lineColor": "#000000",
+							"fillColor": "#ffff00",
+							"fontColor": "#000000",
+							"font": "Arial;13;0",
+							"showShadow": true,
+							"containerChangeable": true,
+							"containerExtending": false,
+							"left": 304,
+							"top": 136,
+							"width": 442,
+							"height": 176,
+							"autoResize": false,
+							"stereotypeDisplay": "label",
+							"showVisibility": true,
+							"showNamespace": false,
+							"showProperty": true,
+							"showType": true,
+							"nameCompartment": {
+								"$ref": "AAAAAAFlaneKMjKUfsA="
+							},
+							"wordWrap": false,
+							"suppressAttributes": false,
+							"suppressOperations": false,
+							"suppressReceptions": true,
+							"showMultiplicity": true,
+							"showOperationSignature": true,
+							"attributeCompartment": {
+								"$ref": "AAAAAAFlaneKMzKZHi0="
+							},
+							"operationCompartment": {
+								"$ref": "AAAAAAFlaneKMzKayaM="
+							},
+							"receptionCompartment": {
+								"$ref": "AAAAAAFlaneKMzKbwH8="
+							},
+							"templateParameterCompartment": {
+								"$ref": "AAAAAAFlaneKMzKcp4c="
+							}
+						},
+						{
+							"_type": "UMLClassView",
+							"_id": "AAAAAAFlannj2zLxfbY=",
+							"_parent": {
+								"$ref": "AAAAAAFF+qBtyKM79qY="
+							},
+							"model": {
+								"$ref": "AAAAAAFlannj2zLvquo="
+							},
+							"subViews": [
+								{
+									"_type": "UMLNameCompartmentView",
+									"_id": "AAAAAAFlannj2zLyz8Y=",
+									"_parent": {
+										"$ref": "AAAAAAFlannj2zLxfbY="
+									},
+									"model": {
+										"$ref": "AAAAAAFlannj2zLvquo="
+									},
+									"subViews": [
+										{
+											"_type": "LabelView",
+											"_id": "AAAAAAFlannj2zLzrdw=",
+											"_parent": {
+												"$ref": "AAAAAAFlannj2zLyz8Y="
+											},
+											"visible": true,
+											"enabled": true,
+											"lineColor": "#000000",
+											"fillColor": "#ffffff",
+											"fontColor": "#000000",
+											"font": "Arial;13;0",
+											"showShadow": true,
+											"containerChangeable": false,
+											"containerExtending": false,
+											"left": 77,
+											"top": 165,
+											"width": 105,
+											"height": 13,
+											"autoResize": false,
+											"underline": false,
+											"text": "«订单付款期数表»",
+											"horizontalAlignment": 2,
+											"verticalAlignment": 5,
+											"wordWrap": false
+										},
+										{
+											"_type": "LabelView",
+											"_id": "AAAAAAFlannj2zL0yCc=",
+											"_parent": {
+												"$ref": "AAAAAAFlannj2zLyz8Y="
+											},
+											"visible": true,
+											"enabled": true,
+											"lineColor": "#000000",
+											"fillColor": "#ffffff",
+											"fontColor": "#000000",
+											"font": "Arial;13;1",
+											"showShadow": true,
+											"containerChangeable": false,
+											"containerExtending": false,
+											"left": 77,
+											"top": 180,
+											"width": 105,
+											"height": 13,
+											"autoResize": false,
+											"underline": false,
+											"text": "order_payment",
+											"horizontalAlignment": 2,
+											"verticalAlignment": 5,
+											"wordWrap": false
+										},
+										{
+											"_type": "LabelView",
+											"_id": "AAAAAAFlannj2zL1Bms=",
+											"_parent": {
+												"$ref": "AAAAAAFlannj2zLyz8Y="
+											},
+											"visible": false,
+											"enabled": true,
+											"lineColor": "#000000",
+											"fillColor": "#ffffff",
+											"fontColor": "#000000",
+											"font": "Arial;13;0",
+											"showShadow": true,
+											"containerChangeable": false,
+											"containerExtending": false,
+											"left": -144,
+											"top": -416,
+											"width": 141,
+											"height": 13,
+											"autoResize": false,
+											"underline": false,
+											"text": "(from 移动支付数据结构)",
+											"horizontalAlignment": 2,
+											"verticalAlignment": 5,
+											"wordWrap": false
+										},
+										{
+											"_type": "LabelView",
+											"_id": "AAAAAAFlannj2zL2R7E=",
+											"_parent": {
+												"$ref": "AAAAAAFlannj2zLyz8Y="
+											},
+											"visible": false,
+											"enabled": true,
+											"lineColor": "#000000",
+											"fillColor": "#ffffff",
+											"fontColor": "#000000",
+											"font": "Arial;13;0",
+											"showShadow": true,
+											"containerChangeable": false,
+											"containerExtending": false,
+											"left": -144,
+											"top": -416,
+											"width": 0,
+											"height": 13,
+											"autoResize": false,
+											"underline": false,
+											"horizontalAlignment": 1,
+											"verticalAlignment": 5,
+											"wordWrap": false
+										}
+									],
+									"visible": true,
+									"enabled": true,
+									"lineColor": "#000000",
+									"fillColor": "#ffffff",
+									"fontColor": "#000000",
+									"font": "Arial;13;0",
+									"showShadow": true,
+									"containerChangeable": false,
+									"containerExtending": false,
+									"left": 72,
+									"top": 160,
+									"width": 115,
+									"height": 38,
+									"autoResize": false,
+									"stereotypeLabel": {
+										"$ref": "AAAAAAFlannj2zLzrdw="
+									},
+									"nameLabel": {
+										"$ref": "AAAAAAFlannj2zL0yCc="
+									},
+									"namespaceLabel": {
+										"$ref": "AAAAAAFlannj2zL1Bms="
+									},
+									"propertyLabel": {
+										"$ref": "AAAAAAFlannj2zL2R7E="
+									}
+								},
+								{
+									"_type": "UMLAttributeCompartmentView",
+									"_id": "AAAAAAFlannj2zL3LLg=",
+									"_parent": {
+										"$ref": "AAAAAAFlannj2zLxfbY="
+									},
+									"model": {
+										"$ref": "AAAAAAFlannj2zLvquo="
+									},
+									"subViews": [
+										{
+											"_type": "UMLAttributeView",
+											"_id": "AAAAAAFlansemTMfkAE=",
+											"_parent": {
+												"$ref": "AAAAAAFlannj2zL3LLg="
+											},
+											"model": {
+												"$ref": "AAAAAAFlansebzMcik4="
+											},
+											"visible": true,
+											"enabled": true,
+											"lineColor": "#000000",
+											"fillColor": "#ffffff",
+											"fontColor": "#000000",
+											"font": "Arial;13;0",
+											"showShadow": true,
+											"containerChangeable": false,
+											"containerExtending": false,
+											"left": 77,
+											"top": 203,
+											"width": 105,
+											"height": 13,
+											"autoResize": false,
+											"underline": false,
+											"text": "«主键»+id",
+											"horizontalAlignment": 0,
+											"verticalAlignment": 5,
+											"wordWrap": false
+										}
+									],
+									"visible": true,
+									"enabled": true,
+									"lineColor": "#000000",
+									"fillColor": "#ffffff",
+									"fontColor": "#000000",
+									"font": "Arial;13;0",
+									"showShadow": true,
+									"containerChangeable": false,
+									"containerExtending": false,
+									"left": 72,
+									"top": 198,
+									"width": 115,
+									"height": 23,
+									"autoResize": false
+								},
+								{
+									"_type": "UMLOperationCompartmentView",
+									"_id": "AAAAAAFlannj2zL4xlY=",
+									"_parent": {
+										"$ref": "AAAAAAFlannj2zLxfbY="
+									},
+									"model": {
+										"$ref": "AAAAAAFlannj2zLvquo="
+									},
+									"visible": true,
+									"enabled": true,
+									"lineColor": "#000000",
+									"fillColor": "#ffffff",
+									"fontColor": "#000000",
+									"font": "Arial;13;0",
+									"showShadow": true,
+									"containerChangeable": false,
+									"containerExtending": false,
+									"left": 72,
+									"top": 221,
+									"width": 115,
+									"height": 10,
+									"autoResize": false
+								},
+								{
+									"_type": "UMLReceptionCompartmentView",
+									"_id": "AAAAAAFlannj3DL5iMY=",
+									"_parent": {
+										"$ref": "AAAAAAFlannj2zLxfbY="
+									},
+									"model": {
+										"$ref": "AAAAAAFlannj2zLvquo="
+									},
+									"visible": false,
+									"enabled": true,
+									"lineColor": "#000000",
+									"fillColor": "#ffffff",
+									"fontColor": "#000000",
+									"font": "Arial;13;0",
+									"showShadow": true,
+									"containerChangeable": false,
+									"containerExtending": false,
+									"left": -72,
+									"top": -208,
+									"width": 10,
+									"height": 10,
+									"autoResize": false
+								},
+								{
+									"_type": "UMLTemplateParameterCompartmentView",
+									"_id": "AAAAAAFlannj3DL6aKc=",
+									"_parent": {
+										"$ref": "AAAAAAFlannj2zLxfbY="
+									},
+									"model": {
+										"$ref": "AAAAAAFlannj2zLvquo="
+									},
+									"visible": false,
+									"enabled": true,
+									"lineColor": "#000000",
+									"fillColor": "#ffffff",
+									"fontColor": "#000000",
+									"font": "Arial;13;0",
+									"showShadow": true,
+									"containerChangeable": false,
+									"containerExtending": false,
+									"left": -72,
+									"top": -208,
+									"width": 10,
+									"height": 10,
+									"autoResize": false
+								}
+							],
+							"visible": true,
+							"enabled": true,
+							"lineColor": "#000000",
+							"fillColor": "#ffffff",
+							"fontColor": "#000000",
+							"font": "Arial;13;0",
+							"showShadow": true,
+							"containerChangeable": true,
+							"containerExtending": false,
+							"left": 72,
+							"top": 160,
+							"width": 115,
+							"height": 71,
+							"autoResize": false,
+							"stereotypeDisplay": "label",
+							"showVisibility": true,
+							"showNamespace": false,
+							"showProperty": true,
+							"showType": true,
+							"nameCompartment": {
+								"$ref": "AAAAAAFlannj2zLyz8Y="
+							},
+							"wordWrap": false,
+							"suppressAttributes": false,
+							"suppressOperations": false,
+							"suppressReceptions": true,
+							"showMultiplicity": true,
+							"showOperationSignature": true,
+							"attributeCompartment": {
+								"$ref": "AAAAAAFlannj2zL3LLg="
+							},
+							"operationCompartment": {
+								"$ref": "AAAAAAFlannj2zL4xlY="
+							},
+							"receptionCompartment": {
+								"$ref": "AAAAAAFlannj3DL5iMY="
+							},
+							"templateParameterCompartment": {
+								"$ref": "AAAAAAFlannj3DL6aKc="
+							}
+						},
+						{
+							"_type": "UMLTextView",
+							"_id": "AAAAAAFlaopJWTVHRIc=",
+							"_parent": {
+								"$ref": "AAAAAAFF+qBtyKM79qY="
+							},
+							"visible": true,
+							"enabled": true,
+							"lineColor": "#000000",
+							"fillColor": "#ffffff",
+							"fontColor": "#000000",
+							"font": "Arial;13;0",
+							"showShadow": true,
+							"containerChangeable": false,
+							"containerExtending": false,
+							"left": 320,
+							"top": 64,
+							"width": 108,
+							"height": 25,
+							"autoResize": false,
+							"text": "数据库名:db_pay",
+							"wordWrap": true
+						},
+						{
+							"_type": "UMLTextView",
+							"_id": "AAAAAAFlaowv5DYj4WE=",
+							"_parent": {
+								"$ref": "AAAAAAFF+qBtyKM79qY="
+							},
+							"visible": true,
+							"enabled": true,
+							"lineColor": "#000000",
+							"fillColor": "#ffffff",
+							"fontColor": "#000000",
+							"font": "Arial;18;0",
+							"showShadow": true,
+							"containerChangeable": false,
+							"containerExtending": false,
+							"left": 312,
+							"top": 32,
+							"width": 124,
+							"height": 30,
+							"autoResize": false,
+							"text": "移动支付-类图",
+							"wordWrap": true
+						},
+						{
+							"_type": "UMLNoteView",
+							"_id": "AAAAAAFlaoy8lDai6po=",
+							"_parent": {
+								"$ref": "AAAAAAFF+qBtyKM79qY="
+							},
+							"visible": true,
+							"enabled": true,
+							"lineColor": "#000000",
+							"fillColor": "#ffffff",
+							"fontColor": "#000000",
+							"font": "Arial;13;0",
+							"showShadow": true,
+							"containerChangeable": false,
+							"containerExtending": false,
+							"left": 72,
+							"top": 272,
+							"width": 102,
+							"height": 25,
+							"autoResize": false,
+							"text": "老表,无需新建",
+							"wordWrap": true
+						}
+					]
+				},
+				{
+					"_type": "UMLClass",
+					"_id": "AAAAAAFlaneKLzKRWIk=",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "pay_qrcode_num",
+					"stereotype": "生成支付二维码次数表",
+					"visibility": "public",
+					"attributes": [
+						{
+							"_type": "UMLAttribute",
+							"_id": "AAAAAAFlanu+4zM/HYo=",
+							"_parent": {
+								"$ref": "AAAAAAFlaneKLzKRWIk="
+							},
+							"name": "id",
+							"stereotype": "主键",
+							"visibility": "public",
+							"isStatic": false,
+							"isLeaf": false,
+							"type": "int(11) unsigned",
+							"isReadOnly": false,
+							"isOrdered": false,
+							"isUnique": false,
+							"isDerived": false,
+							"aggregation": "none",
+							"isID": false
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "AAAAAAFlan6tczNVMNY=",
+							"_parent": {
+								"$ref": "AAAAAAFlaneKLzKRWIk="
+							},
+							"name": "source_id",
+							"stereotype": "来源id 订单付款期数主键或爆款商品购买记录主键",
+							"visibility": "public",
+							"isStatic": false,
+							"isLeaf": false,
+							"type": "int(11)",
+							"isReadOnly": false,
+							"isOrdered": false,
+							"isUnique": false,
+							"isDerived": false,
+							"aggregation": "none",
+							"isID": false
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "AAAAAAFlanxTszNKV1E=",
+							"_parent": {
+								"$ref": "AAAAAAFlaneKLzKRWIk="
+							},
+							"name": "pact_number",
+							"stereotype": "合同号",
+							"visibility": "public",
+							"isStatic": false,
+							"isLeaf": false,
+							"type": "varchar(100)",
+							"isReadOnly": false,
+							"isOrdered": false,
+							"isUnique": true,
+							"isDerived": false,
+							"aggregation": "none",
+							"isID": false
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "AAAAAAFlapGRXzclHyU=",
+							"_parent": {
+								"$ref": "AAAAAAFlaneKLzKRWIk="
+							},
+							"name": "pay_status",
+							"documentation": "paying: 支付中, paid: 已支付, fail:支付失败\n",
+							"stereotype": "支付状态 与中信支付订单查询结果一致",
+							"visibility": "public",
+							"isStatic": false,
+							"isLeaf": false,
+							"type": "varchar(50)",
+							"isReadOnly": false,
+							"isOrdered": false,
+							"isUnique": true,
+							"isDerived": false,
+							"aggregation": "none",
+							"isID": false
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "AAAAAAFlap7MLzgdEVg=",
+							"_parent": {
+								"$ref": "AAAAAAFlaneKLzKRWIk="
+							},
+							"name": "pay_type",
+							"stereotype": "支付类型 1微信 2支付宝  默认0",
+							"visibility": "public",
+							"isStatic": false,
+							"isLeaf": false,
+							"type": "",
+							"isReadOnly": false,
+							"isOrdered": false,
+							"isUnique": true,
+							"isDerived": false,
+							"aggregation": "none",
+							"isID": false
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "AAAAAAFlayez2CULwUg=",
+							"_parent": {
+								"$ref": "AAAAAAFlaneKLzKRWIk="
+							},
+							"name": "out_trade_no",
+							"stereotype": "商户订单号",
+							"visibility": "public",
+							"isStatic": false,
+							"isLeaf": false,
+							"type": "varchar(100)",
+							"isReadOnly": false,
+							"isOrdered": false,
+							"isUnique": true,
+							"isDerived": false,
+							"aggregation": "none",
+							"isID": false
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "AAAAAAFljg41hCPbpZY=",
+							"_parent": {
+								"$ref": "AAAAAAFlaneKLzKRWIk="
+							},
+							"name": "pay_channel",
+							"stereotype": "支付渠道, order:订单, hot: 爆款商品",
+							"visibility": "public",
+							"isStatic": false,
+							"isLeaf": false,
+							"type": "",
+							"isReadOnly": false,
+							"isOrdered": false,
+							"isUnique": false,
+							"isDerived": false,
+							"aggregation": "none",
+							"isID": false
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "AAAAAAFlan+wMzRJpEs=",
+							"_parent": {
+								"$ref": "AAAAAAFlaneKLzKRWIk="
+							},
+							"name": "add_time",
+							"stereotype": "记录生成时间",
+							"visibility": "public",
+							"isStatic": false,
+							"isLeaf": false,
+							"type": "datetime",
+							"isReadOnly": false,
+							"isOrdered": false,
+							"isUnique": false,
+							"isDerived": false,
+							"aggregation": "none",
+							"isID": false
+						}
+					],
+					"isAbstract": false,
+					"isFinalSpecialization": false,
+					"isLeaf": false,
+					"isActive": false
+				},
+				{
+					"_type": "UMLClass",
+					"_id": "AAAAAAFlanmoUzLEUIg=",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "order_online",
+					"stereotype": "订单表",
+					"visibility": "public",
+					"isAbstract": false,
+					"isFinalSpecialization": false,
+					"isLeaf": false,
+					"isActive": false
+				},
+				{
+					"_type": "UMLClass",
+					"_id": "AAAAAAFlannj2zLvquo=",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "order_payment",
+					"stereotype": "订单付款期数表",
+					"visibility": "public",
+					"attributes": [
+						{
+							"_type": "UMLAttribute",
+							"_id": "AAAAAAFlansebzMcik4=",
+							"_parent": {
+								"$ref": "AAAAAAFlannj2zLvquo="
+							},
+							"name": "id",
+							"stereotype": "主键",
+							"visibility": "public",
+							"isStatic": false,
+							"isLeaf": false,
+							"type": "",
+							"isReadOnly": false,
+							"isOrdered": false,
+							"isUnique": false,
+							"isDerived": false,
+							"aggregation": "none",
+							"isID": false
+						}
+					],
+					"isAbstract": false,
+					"isFinalSpecialization": false,
+					"isLeaf": false,
+					"isActive": false
+				},
+				{
+					"_type": "UMLClass",
+					"_id": "AAAAAAFlaoLanjSOz9E=",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "Class1",
+					"visibility": "public",
+					"isAbstract": false,
+					"isFinalSpecialization": false,
+					"isLeaf": false,
+					"isActive": false
+				}
+			],
+			"visibility": "public"
+		}
+	]
+}
