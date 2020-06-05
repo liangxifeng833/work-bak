@@ -1121,6 +1121,24 @@
 											"height": 13,
 											"text": "«领取日期»+add_date: date {unique}",
 											"horizontalAlignment": 0
+										},
+										{
+											"_type": "UMLAttributeView",
+											"_id": "AAAAAAFyg4cE3luFx88=",
+											"_parent": {
+												"$ref": "AAAAAAFsayDbvyCb2hE="
+											},
+											"model": {
+												"$ref": "AAAAAAFyg4cEw1t/p/k="
+											},
+											"fillColor": "#ffff49",
+											"font": "Arial;13;0",
+											"left": 693,
+											"top": 234,
+											"width": 390,
+											"height": 13,
+											"text": "«记录新增时间»+add_time: datetime",
+											"horizontalAlignment": 0
 										}
 									],
 									"fillColor": "#ffff49",
@@ -1128,7 +1146,7 @@
 									"left": 688,
 									"top": 94,
 									"width": 400,
-									"height": 143
+									"height": 158
 								},
 								{
 									"_type": "UMLOperationCompartmentView",
@@ -1142,7 +1160,7 @@
 									"fillColor": "#ffff49",
 									"font": "Arial;13;0",
 									"left": 688,
-									"top": 237,
+									"top": 252,
 									"width": 400,
 									"height": 10
 								},
@@ -1187,7 +1205,7 @@
 							"left": 688,
 							"top": 56,
 							"width": 400,
-							"height": 191,
+							"height": 206,
 							"nameCompartment": {
 								"$ref": "AAAAAAFsayDbviCWGO8="
 							},
@@ -1487,7 +1505,7 @@
 									"visible": false,
 									"font": "Arial;13;0",
 									"left": 556,
-									"top": 108,
+									"top": 111,
 									"height": 13,
 									"alpha": 1.5707963267948966,
 									"distance": 15,
@@ -1508,7 +1526,7 @@
 									"visible": null,
 									"font": "Arial;13;0",
 									"left": 557,
-									"top": 93,
+									"top": 96,
 									"height": 13,
 									"alpha": 1.5707963267948966,
 									"distance": 30,
@@ -1529,7 +1547,7 @@
 									"visible": false,
 									"font": "Arial;13;0",
 									"left": 553,
-									"top": 137,
+									"top": 140,
 									"height": 13,
 									"alpha": -1.5707963267948966,
 									"distance": 15,
@@ -1549,8 +1567,8 @@
 									},
 									"visible": false,
 									"font": "Arial;13;0",
-									"left": 450,
-									"top": 101,
+									"left": 451,
+									"top": 103,
 									"height": 13,
 									"alpha": 0.5235987755982988,
 									"distance": 30,
@@ -1571,7 +1589,7 @@
 									"visible": false,
 									"font": "Arial;13;0",
 									"left": 454,
-									"top": 88,
+									"top": 90,
 									"height": 13,
 									"alpha": 0.7853981633974483,
 									"distance": 40,
@@ -1591,7 +1609,7 @@
 									},
 									"font": "Arial;13;0",
 									"left": 441,
-									"top": 128,
+									"top": 130,
 									"width": 7.22998046875,
 									"height": 13,
 									"alpha": -0.5235987755982988,
@@ -1614,7 +1632,7 @@
 									"visible": false,
 									"font": "Arial;13;0",
 									"left": 662,
-									"top": 115,
+									"top": 119,
 									"height": 13,
 									"alpha": -0.5235987755982988,
 									"distance": 30,
@@ -1633,8 +1651,8 @@
 									},
 									"visible": false,
 									"font": "Arial;13;0",
-									"left": 660,
-									"top": 101,
+									"left": 661,
+									"top": 106,
 									"height": 13,
 									"alpha": -0.7853981633974483,
 									"distance": 40,
@@ -1653,7 +1671,7 @@
 									},
 									"font": "Arial;13;0",
 									"left": 654,
-									"top": 112,
+									"top": 117,
 									"width": 20,
 									"height": 13,
 									"alpha": -0.6460237473935271,
@@ -1700,7 +1718,7 @@
 								"$ref": "AAAAAAFsaxNIdR9vG3k="
 							},
 							"lineStyle": 1,
-							"points": "424:121;687:138",
+							"points": "424:122;687:143",
 							"showVisibility": true,
 							"nameLabel": {
 								"$ref": "AAAAAAFsazBXRia7rZ8="
@@ -6313,6 +6331,16 @@
 							"stereotype": "领取日期",
 							"type": "date",
 							"isUnique": true
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "AAAAAAFyg4cEw1t/p/k=",
+							"_parent": {
+								"$ref": "AAAAAAFsayDbvCCTLFw="
+							},
+							"name": "add_time",
+							"stereotype": "记录新增时间",
+							"type": "datetime"
 						}
 					]
 				},
@@ -24890,7 +24918,8 @@
 							"_parent": {
 								"$ref": "AAAAAAFyX3/z5xWMHzg="
 							},
-							"name": "YmlConfig"
+							"name": "YmlConfig",
+							"type": ""
 						}
 					],
 					"operations": [
