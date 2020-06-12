@@ -1173,7 +1173,7 @@
 											"top": 180,
 											"width": 387.6134948730469,
 											"height": 13,
-											"text": "«领取年月»+year_month: int(11) {unique}",
+											"text": "«领取年月»+get_year_month: int(11) {unique}",
 											"horizontalAlignment": 0
 										},
 										{
@@ -6410,7 +6410,7 @@
 							"_parent": {
 								"$ref": "AAAAAAFsayDbvCCTLFw="
 							},
-							"name": "year_month",
+							"name": "get_year_month",
 							"stereotype": "领取年月",
 							"type": "int(11)",
 							"isUnique": true
