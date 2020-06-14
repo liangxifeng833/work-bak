@@ -410,8 +410,7 @@
               <elementProp name="" elementType="HTTPArgument">
                 <boolProp name="HTTPArgument.always_encode">false</boolProp>
                 <stringProp name="Argument.value">{&#xd;
-	&quot;carNum&quot;:&quot;京N1LM56&quot;,&#xd;
-	&quot;carNumColor&quot;:&quot;blue&quot;,&#xd;
+	&quot;carNum&quot;:&quot;京Q7W9N7&quot;,&#xd;
 	&quot;freeMins&quot;:&quot;0&quot;&#xd;
 }&#xd;
 </stringProp>
@@ -419,11 +418,11 @@
               </elementProp>
             </collectionProp>
           </elementProp>
-          <stringProp name="HTTPSampler.domain">localhost</stringProp>
+          <stringProp name="HTTPSampler.domain">127.0.0.1</stringProp>
           <stringProp name="HTTPSampler.port">8082</stringProp>
           <stringProp name="HTTPSampler.protocol">http</stringProp>
           <stringProp name="HTTPSampler.contentEncoding">utf-8</stringProp>
-          <stringProp name="HTTPSampler.path">requestTjdApi/getOrder</stringProp>
+          <stringProp name="HTTPSampler.path">/requestTjdApi/getOrder</stringProp>
           <stringProp name="HTTPSampler.method">POST</stringProp>
           <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
           <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
@@ -475,7 +474,7 @@
           <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="用户定义的变量" enabled="true">
             <collectionProp name="Arguments.arguments"/>
           </elementProp>
-          <stringProp name="HTTPSampler.domain">m.ljlj.cc/parkapi</stringProp>
+          <stringProp name="HTTPSampler.domain">m.ljlj.cc/parkapi/</stringProp>
           <stringProp name="HTTPSampler.port"></stringProp>
           <stringProp name="HTTPSampler.protocol">https</stringProp>
           <stringProp name="HTTPSampler.contentEncoding"></stringProp>
