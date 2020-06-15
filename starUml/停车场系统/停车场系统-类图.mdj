@@ -12070,13 +12070,30 @@
 											"height": 13,
 											"text": "«关联请求主键»+request_id: int(11) unsigned",
 											"horizontalAlignment": 0
+										},
+										{
+											"_type": "UMLAttributeView",
+											"_id": "AAAAAAFyt0xDywmJ2S8=",
+											"_parent": {
+												"$ref": "AAAAAAFssyQVc1+F99c="
+											},
+											"model": {
+												"$ref": "AAAAAAFyt0xDowl3uZY="
+											},
+											"font": "Arial;13;0",
+											"left": 541,
+											"top": 1239,
+											"width": 395.5480041503906,
+											"height": 13,
+											"text": "«错误信息»+error_msg: varchar(200)",
+											"horizontalAlignment": 0
 										}
 									],
 									"font": "Arial;13;0",
 									"left": 536,
 									"top": 934,
 									"width": 405.5480041503906,
-									"height": 308
+									"height": 323
 								},
 								{
 									"_type": "UMLOperationCompartmentView",
@@ -12089,7 +12106,7 @@
 									},
 									"font": "Arial;13;0",
 									"left": 536,
-									"top": 1242,
+									"top": 1257,
 									"width": 405.5480041503906,
 									"height": 10
 								},
@@ -12131,7 +12148,7 @@
 							"left": 536,
 							"top": 896,
 							"width": 405.5480041503906,
-							"height": 356,
+							"height": 371,
 							"nameCompartment": {
 								"$ref": "AAAAAAFssyQVc1+AU9c="
 							},
@@ -12170,7 +12187,7 @@
 									"visible": false,
 									"font": "Arial;13;0",
 									"left": 420,
-									"top": 979,
+									"top": 982,
 									"height": 13,
 									"alpha": 1.5707963267948966,
 									"distance": 15,
@@ -12190,8 +12207,8 @@
 									},
 									"visible": null,
 									"font": "Arial;13;0",
-									"left": 423,
-									"top": 964,
+									"left": 424,
+									"top": 967,
 									"height": 13,
 									"alpha": 1.5707963267948966,
 									"distance": 30,
@@ -12212,7 +12229,7 @@
 									"visible": false,
 									"font": "Arial;13;0",
 									"left": 413,
-									"top": 1008,
+									"top": 1011,
 									"height": 13,
 									"alpha": -1.5707963267948966,
 									"distance": 15,
@@ -12233,7 +12250,7 @@
 									"visible": false,
 									"font": "Arial;13;0",
 									"left": 327,
-									"top": 958,
+									"top": 960,
 									"height": 13,
 									"alpha": 0.5235987755982988,
 									"distance": 30,
@@ -12253,8 +12270,8 @@
 									},
 									"visible": false,
 									"font": "Arial;13;0",
-									"left": 332,
-									"top": 945,
+									"left": 333,
+									"top": 948,
 									"height": 13,
 									"alpha": 0.7853981633974483,
 									"distance": 40,
@@ -12275,7 +12292,7 @@
 									"visible": false,
 									"font": "Arial;13;0",
 									"left": 317,
-									"top": 984,
+									"top": 986,
 									"height": 13,
 									"alpha": -0.5235987755982988,
 									"distance": 25,
@@ -12296,7 +12313,7 @@
 									"visible": false,
 									"font": "Arial;13;0",
 									"left": 513,
-									"top": 1000,
+									"top": 1005,
 									"height": 13,
 									"alpha": -0.5235987755982988,
 									"distance": 30,
@@ -12315,8 +12332,8 @@
 									},
 									"visible": false,
 									"font": "Arial;13;0",
-									"left": 513,
-									"top": 987,
+									"left": 514,
+									"top": 991,
 									"height": 13,
 									"alpha": -0.7853981633974483,
 									"distance": 40,
@@ -12336,7 +12353,7 @@
 									"visible": false,
 									"font": "Arial;13;0",
 									"left": 511,
-									"top": 1028,
+									"top": 1033,
 									"height": 13,
 									"alpha": 0.5235987755982988,
 									"distance": 25,
@@ -12385,7 +12402,7 @@
 								"$ref": "AAAAAAFssx/cKFRIEnI="
 							},
 							"lineStyle": 1,
-							"points": "299:973;535:1027",
+							"points": "299:975;535:1032",
 							"showVisibility": true,
 							"nameLabel": {
 								"$ref": "AAAAAAFsszKNk37vw2M="
@@ -17382,6 +17399,16 @@
 							"name": "request_id",
 							"stereotype": "关联请求主键",
 							"type": "int(11) unsigned"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "AAAAAAFyt0xDowl3uZY=",
+							"_parent": {
+								"$ref": "AAAAAAFssyQVcV99ziI="
+							},
+							"name": "error_msg",
+							"stereotype": "错误信息",
+							"type": "varchar(200)"
 						}
 					]
 				},

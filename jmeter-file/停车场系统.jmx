@@ -257,7 +257,9 @@
               <elementProp name="" elementType="HTTPArgument">
                 <boolProp name="HTTPArgument.always_encode">false</boolProp>
                 <stringProp name="Argument.value">{&#xd;
-	&quot;carId&quot;:&quot;1212&quot;	&#xd;
+	&quot;carId&quot;:&quot;1212&quot;,&#xd;
+	&quot;ljsign&quot;:&quot;C76A490F5F2499CE4B9391D71CB4BDCA&quot;,&#xd;
+	&quot;timestamp&quot;:&quot;1592210898&quot;&#xd;
 }&#xd;
 </stringProp>
                 <stringProp name="Argument.metadata">=</stringProp>
@@ -411,7 +413,9 @@
                 <boolProp name="HTTPArgument.always_encode">false</boolProp>
                 <stringProp name="Argument.value">{&#xd;
 	&quot;carNum&quot;:&quot;京Q7W9N7&quot;,&#xd;
-	&quot;freeMins&quot;:&quot;0&quot;&#xd;
+	&quot;freeMins&quot;:&quot;0&quot;,&#xd;
+	&quot;ljsign&quot;:&quot;51A66B931EC8925205A8E7A2900D76AE&quot;,&#xd;
+	&quot;timestamp&quot;:&quot;1592208562&quot;&#xd;
 }&#xd;
 </stringProp>
                 <stringProp name="Argument.metadata">=</stringProp>
