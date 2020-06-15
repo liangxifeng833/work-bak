@@ -12073,12 +12073,12 @@
 										},
 										{
 											"_type": "UMLAttributeView",
-											"_id": "AAAAAAFyt0xDywmJ2S8=",
+											"_id": "AAAAAAFyt1t+tmHSO9A=",
 											"_parent": {
 												"$ref": "AAAAAAFssyQVc1+F99c="
 											},
 											"model": {
-												"$ref": "AAAAAAFyt0xDowl3uZY="
+												"$ref": "AAAAAAFyt1t+mmHAGvA="
 											},
 											"font": "Arial;13;0",
 											"left": 541,
@@ -17402,7 +17402,7 @@
 						},
 						{
 							"_type": "UMLAttribute",
-							"_id": "AAAAAAFyt0xDowl3uZY=",
+							"_id": "AAAAAAFyt1t+mmHAGvA=",
 							"_parent": {
 								"$ref": "AAAAAAFssyQVcV99ziI="
 							},
