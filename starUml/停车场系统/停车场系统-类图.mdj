@@ -12971,13 +12971,30 @@
 											"height": 13,
 											"text": "«关联请求主键»+request_id: int(11) unsigned",
 											"horizontalAlignment": 0
+										},
+										{
+											"_type": "UMLAttributeView",
+											"_id": "AAAAAAFyxW36m80FO0Y=",
+											"_parent": {
+												"$ref": "AAAAAAFsszcmppJfWiQ="
+											},
+											"model": {
+												"$ref": "AAAAAAFyxW36e8zwN/k="
+											},
+											"font": "Arial;13;0",
+											"left": 549,
+											"top": 1443,
+											"width": 260.2476501464844,
+											"height": 13,
+											"text": "«错误信息»+error_msg: varchar(200)",
+											"horizontalAlignment": 0
 										}
 									],
 									"font": "Arial;13;0",
 									"left": 544,
 									"top": 1318,
 									"width": 270.2476501464844,
-									"height": 128
+									"height": 143
 								},
 								{
 									"_type": "UMLOperationCompartmentView",
@@ -12990,7 +13007,7 @@
 									},
 									"font": "Arial;13;0",
 									"left": 544,
-									"top": 1446,
+									"top": 1461,
 									"width": 270.2476501464844,
 									"height": 10
 								},
@@ -13030,7 +13047,7 @@
 							"left": 544,
 							"top": 1280,
 							"width": 270.2476501464844,
-							"height": 176,
+							"height": 191,
 							"nameCompartment": {
 								"$ref": "AAAAAAFsszcmpZJaSzA="
 							},
@@ -13068,8 +13085,8 @@
 									},
 									"visible": false,
 									"font": "Arial;13;0",
-									"left": 507,
-									"top": 1277,
+									"left": 503,
+									"top": 1280,
 									"height": 13,
 									"alpha": 1.5707963267948966,
 									"distance": 15,
@@ -13089,8 +13106,8 @@
 									},
 									"visible": null,
 									"font": "Arial;13;0",
-									"left": 512,
-									"top": 1263,
+									"left": 509,
+									"top": 1266,
 									"height": 13,
 									"alpha": 1.5707963267948966,
 									"distance": 30,
@@ -13110,8 +13127,8 @@
 									},
 									"visible": false,
 									"font": "Arial;13;0",
-									"left": 496,
-									"top": 1304,
+									"left": 492,
+									"top": 1307,
 									"height": 13,
 									"alpha": -1.5707963267948966,
 									"distance": 15,
@@ -13131,8 +13148,8 @@
 									},
 									"visible": false,
 									"font": "Arial;13;0",
-									"left": 491,
-									"top": 1270,
+									"left": 482,
+									"top": 1271,
 									"height": 13,
 									"alpha": 0.5235987755982988,
 									"distance": 30,
@@ -13152,7 +13169,7 @@
 									},
 									"visible": false,
 									"font": "Arial;13;0",
-									"left": 498,
+									"left": 490,
 									"top": 1259,
 									"height": 13,
 									"alpha": 0.7853981633974483,
@@ -13173,7 +13190,7 @@
 									},
 									"visible": false,
 									"font": "Arial;13;0",
-									"left": 477,
+									"left": 468,
 									"top": 1294,
 									"height": 13,
 									"alpha": -0.5235987755982988,
@@ -13195,7 +13212,7 @@
 									"visible": false,
 									"font": "Arial;13;0",
 									"left": 524,
-									"top": 1283,
+									"top": 1289,
 									"height": 13,
 									"alpha": -0.5235987755982988,
 									"distance": 30,
@@ -13215,7 +13232,7 @@
 									"visible": false,
 									"font": "Arial;13;0",
 									"left": 527,
-									"top": 1270,
+									"top": 1275,
 									"height": 13,
 									"alpha": -0.7853981633974483,
 									"distance": 40,
@@ -13235,7 +13252,7 @@
 									"visible": false,
 									"font": "Arial;13;0",
 									"left": 518,
-									"top": 1310,
+									"top": 1316,
 									"height": 13,
 									"alpha": 0.5235987755982988,
 									"distance": 25,
@@ -13282,7 +13299,7 @@
 								"$ref": "AAAAAAFsszMF7oSeM74="
 							},
 							"lineStyle": 1,
-							"points": "462:1281;543:1313",
+							"points": "453:1281;543:1319",
 							"showVisibility": true,
 							"nameLabel": {
 								"$ref": "AAAAAAFsszn/zp3ZalY="
@@ -17616,6 +17633,16 @@
 							"name": "request_id",
 							"stereotype": "关联请求主键",
 							"type": "int(11) unsigned"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "AAAAAAFyxW36e8zwN/k=",
+							"_parent": {
+								"$ref": "AAAAAAFsszcmpZJX6fE="
+							},
+							"name": "error_msg",
+							"stereotype": "错误信息",
+							"type": "varchar(200)"
 						}
 					]
 				},
