@@ -1,0 +1,115 @@
+@startuml
+title 贴标签
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "ajaxController\n贴标签C" as pasteC  #00FF00
+participant "PasteLabelAction\n贴标签A" as pasteA #FFFFFF
+participant "VisitCountAction\n统计参数人数A" as count #FFFFFF
+
+
+/'==================贴标签操作==================start=='/
+group 贴标签操作
+	view->pasteC: index_post()
+	activate pasteC
+		note over pasteC 
+			参数描述:
+				params = array(
+				wechat_id  => 公众账号表主键
+				open_id  => 用户关注微信号的openid 
+				scence_id => 场景表主键 )
+		end note
+		
+		group 处理贴标签业务逻辑
+			pasteC->pasteA: main(params)
+			activate pasteA
+				/'===通过场景表主键查询活动==='/
+				group 通过场景表主键查询活动
+					pasteA->count:_getActiviteBysceneId(scence_id)
+					activate count
+					count-->pasteA:activiteRow
+					deactivate count
+					
+					alt !is_array($activiteRow) 无活动, 不贴标签
+						pasteA-->pasteC:  array('state'=>1)
+					end
+				end			
+				/'===通过openid和wechat_id查询用户关系主体表记录==='/
+				group 通过openid和wechat_id查询用户关系主体表记录
+					pasteA->count:_getRelationRow(open_id, wechat_id)
+					activate count
+					count-->pasteA:relationRow
+					deactivate count
+					
+					alt !is_array($relationRow)
+						pasteA-->pasteC:  异常返回: 查询用户关系主体表失败
+					end
+				end		
+
+				/'===通过活动主键查规则表label_paste_rule==='/
+				group 通过活动主键查规则
+					pasteA->pasteA:getRule(活动主键)
+					activate pasteA
+						note over pasteA
+							注意: 查询条件要在规则时间范围内
+							即: 当前时间 >= 开始时间 AND < 截止时间
+						end note
+					pasteA-->pasteA:ruleRow
+					deactivate pasteA
+					alt  !is_array($ruleRow) 无规则,不贴标签
+						pasteA-->pasteC: array(state=>1)
+					end
+				end				
+				
+				/'===查标用户与标签关系表==='/
+				group 通过标签主键(从规则表获取)和用户主键查询用户与标签关系表user_lable
+					pasteA->pasteA:getUserLable(用户主键, 标签表主键)
+					activate pasteA
+					pasteA-->pasteA:userLabelRow
+					deactivate pasteA
+					alt empty(userLabelRow)  如果查不到数据则,标签得分=1
+						note over pasteA: labelScore = 1;
+					else 标签得分累加1
+						note over pasteA: labelScore = userLabelRow[label_score]+1;
+					end
+				end		
+				
+				/'===新增或修改用户与标签关系==='/
+				group 新增或修改用户与标签关系			
+					alt labelScore = 1 新增
+						note over pasteA: 通过以上查询,组合用户与标签关系数据 arr 
+						pasteA->pasteA:_addUserLable(arr)
+						activate pasteA
+							note over pasteA
+								try{
+									pasteA->LabelModel:add()
+								}catch{
+									return 新增用户与标签关系时, 无标签或无用户
+								}
+							end note
+						pasteA-->pasteA:boolean
+						deactivate pasteA						
+					else 修改(这里只修改标签分数)
+						note over pasteA: arr[label_score] =  labelScore
+						pasteA->pasteA:_modifyUserLable(userLabelRow[id], arr)
+						activate pasteA
+							note over pasteA
+								try{
+									pasteA->LabelModel:save()
+								}catch{
+									return 修改用户与标签关系时, 无标签或无用户
+								}
+							end note
+						pasteA-->pasteA:boolean
+						deactivate pasteA	
+					end /'if'/
+				end				
+				pasteA-->pasteC: 		
+			deactivate pasteA	
+		end
+	pasteC-->view:
+	deactivate pasteC
+end
+/'==================贴标签操作==================end==='/
+
+@enduml

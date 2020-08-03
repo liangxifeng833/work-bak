@@ -1,0 +1,62 @@
+@startuml
+title 收银员退款保存-时序图
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "cashierRefund\n收银员退款C" as orderC  #00FF00
+participant "CashierRefundAction\n财务退款A" as orderA  #FFFFFF
+
+view->orderC:index_post()
+activate orderC
+	/'===========验证参数=============='/
+	group 验证参数
+		note over orderC
+			接收参数：
+				 $params = this->get("params");
+		end note
+	end
+	note over orderC
+		验证token
+	end note
+	
+	/'===========构造方法======start========'/	
+	group 初始化
+		orderC->orderA:__construct(操作人员id,收银款台号,合同收款表主键)
+		activate orderA
+			note over orderA: parent::__construct(操作人员id,收银款台号,合同收款表主键)
+			orderA-->orderC: obj
+		deactivate orderA
+	end
+	/'===========构造方法======end========'/	
+	
+	
+	
+	/'===========处理逻辑=============='/
+	orderC->orderA:obj->post(params)
+	activate orderA
+		note over orderA: 验证参数
+
+		group 验证必须是收银退款
+				alt parent::check()
+					orderA-->orderC:异常返回, 该账号必须是收银员账号
+				end
+				alt this->consumeObj->consume_state!=1
+					orderA-->orderC:异常返回, 该合同已经当班提交不能收银退货
+				end
+		end		
+		
+		note over orderA: this->consumeBack = 1; 收银
+		
+			
+		group 调用主业务方法
+			orderA->orderA:main(params)
+			activate orderA
+				orderA-->orderA: res
+			deactivate orderA
+		end
+		
+		orderA-->orderC:res
+	deactivate orderA
+orderC-->view:res
+deactivate orderC
+
+@enduml

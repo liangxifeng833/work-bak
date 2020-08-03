@@ -1,0 +1,165 @@
+@startuml
+title 退款Action-时序图
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "subClass" as C  #00FF00
+participant "RefundAction\n退款Action" as A  #FFFFFF
+participant "diningCardDao\n卡主表" as card  #FFFFFF
+participant "diningCardPriceDao\n卡充值记录表" as cardPrice  #FFFFFF
+participant "tctRefund\nDAL退款事务" as tct  #00FF00
+
+view->C:index_**()
+activate C	
+		/'===============构造器================='/
+		group 构造器
+			C->A:__construct(cardNum=卡号)
+			activate A
+				/'============通过卡号查询卡主表信息=============='/
+				group 通过卡号查询卡主表信息
+					A->A:getCardInfo(cardNum)
+					activate A
+						A->card:get()
+						card-->A: cardInfo卡信息
+					deactivate A
+					note over A: this.cardInfo = 卡信息
+				end
+				/'============通过卡号查询卡主表信息=============='/				
+			A-->C:obj
+			deactivate A			
+		end
+		/'===============构造器================='/
+
+		/'===============主入口方法================='/		
+		group 主入口方法
+			C->A:mainPost(params)
+			activate A
+			note over A
+				必要参数: 
+					params[cardPriceId] = 充值记录表主键
+					params[cardPrice] = 卡余额
+					params[curRefundPrice] = 本次退款金额
+					params[payType] = 支付方式 1微信 2支付宝 3现金
+					params[userId] = 前台登录用户id
+			end note		
+				/'---------通过充值记录表主键查询充值记录表数据--'/
+				group 通过充值记录表主键查询充值记录表数据
+					A->cardPrice:get()
+					cardPrice-->A:充值记录表数据
+				end
+				/'---------验证卡余额--------------------------------------------'/
+				group 验证卡余额
+					alt 参数卡余额 != this.cardInfo.卡余额
+						A-->C:卡余额有误
+					end
+				end
+				/'---------通过充值记录表主键查询充值记录表数据--'/
+				alt  本次退款金额 > 充值记录表数据.充值金额 
+					A-->C:本次退款金额有误
+				end
+				
+				/'---------------------组织生成退款事务所需数据----------'/
+				group 生成退款事务所需数据
+					A->A:createTctData()
+					activate A
+						/'---计算最新卡余额----'/
+						group 生成卡主表数据
+							alt 通过充值记录表数据中的押金标识,如果 [ 非押金 ]
+								note over A
+									新卡余额 = this.cardInfo.卡内余额 - 本次退款金额 
+									editCardData[卡余额] = 	新卡余额;		
+								end note 		
+								alt 如果新卡余额 < 0
+									A-->A:卡内余额小于本次退款金额
+								end			
+							else 通过充值记录表数据中的押金标识,如果[ 为押金 ]<font color="red"><b>真正的退卡操作
+									note over A
+										卡状态state = 1未使用;
+										editCardData[state] = 卡状态;		
+									end note
+									alt 卡充值记录表.卡类型 = 展员卡 or 员工卡
+										note over A:卡锁定状态is_lock = 2已锁定\n editCardData[state] = 卡锁定状态;	
+									end									
+							end
+						end 
+						/'----计算流水号---'/
+						group 计算流水号
+							A->A:createWasterNum()
+							activate A
+								note over A
+									查询条件: WHERE 卡号 AND 
+									opeation = 操作人id AND 
+									date > date('Y:m:d 00:00:00')) 主键倒序 LIMIT 1
+								end note 
+								A->cardPrice:get()
+								cardPrice-->A:卡最后充值记录
+								alt  卡最后充值记录有记录
+									note over A
+										流水号 = Common::handleWaster(用户id,卡最后充值记录->number);
+									end note
+								else
+									note over A
+										流水号 = 用户id.substr(date('Y'),2).date('m').date('d').卡号.'01';
+									end note
+								end
+							A-->A:流水号
+							deactivate A
+						end						
+						/'----计算流水号---'/
+						
+						/'----生成卡充值记录表数据----'/
+						
+						/'---修改办卡或充值数据为已退款---'/
+						group 修改办卡或充值数据为已退款数据
+							note over A
+								editCardPriceData[card_price_id] = 充值记录表主键;
+								editCardPriceData[refund_flag] = 1; 已退款
+							end note
+						end
+						/'---修改办卡或充值数据为已退款---'/			
+						
+						/'----生成卡充值记录表数据----'/
+						group 生成卡充值记录表数据
+							note over A
+								addCardPriceData[number] = 流水号
+								addCardPriceData[card_num] = 卡号
+								addCardPriceData[type] = 卡类型
+								addCardPriceData[price] = 退款金额, 注意负数
+								addCardPriceData[opeation] = 用户id
+								addCardPriceData[date] = 记录生成时间
+								addCardPriceData[opeation_status] = 2 退卡
+								addCardPriceData[is_account_status] = 1 未结算
+								addCardPriceData[pay_type] = 1 微信 2支付宝 3现金
+								addCardPriceData[charge] = 手续费 (微信支付宝子类生成)
+								addCardPriceData[deposit_flag] = 押金标识(根据已经查到的充值记录表数据获取)
+								addCardPriceData[mobile_pay_id] = 移动支付主键wechatId或alipayId
+							end note
+						end
+						/'----生成卡充值记录表数据----'/
+					A-->A: 新增充值记录表数据, 修改办卡或充值数据, 修改卡数据
+					deactivate A
+				end
+				/'---------------------组织生成退款事务所需数据----------'/
+				
+				/'---------------------调用事务----------'/
+				A->A:tctRefund()
+				activate A	
+					A->tct:index_post()
+						note right A
+							事务处理逻辑
+								1. 根据addCardPriceData 新增充值记录表dining_card_price,获取新增主键
+								2. 根据editCardData修改卡表dining_card信息 (注意: 判断如果退押金修改newest_refund_card_price_id 最新退卡记录主键 )
+								3.修改办卡或充值数据为已退款
+						end note
+					tct-->A:json
+				A-->A:
+				deactivate A	
+				/'---------------------调用事务---------'/
+			A-->C:卡剩余金额
+			deactivate A			
+		end 
+		/'===============主入口方法================='/			
+C-->view:res
+deactivate C
+
+@enduml

@@ -1,0 +1,41 @@
+@startuml
+title 选课系统选课核心流程图
+start
+	:登录;
+	while(是否登录成功) is (否)
+		:返回重新登录;
+	endwhile
+	:服务器注册session;
+	:根据session确认身份;
+	fork
+		:管理员;
+		fork
+		:资讯的增删改查操作;
+		fork again
+		:课程的增删改查;
+		fork again
+		:班级的增删改查;		
+		fork again
+		:学生的增删改查;			
+		fork again
+		:教师的增删改查;		
+		fork again
+		:管理员的增删改查;				
+		end fork
+	fork again
+		:学生;
+		:查询课程;
+		:选课;
+		while(是否同一时间同一门课程) is (是)
+			:重新选择;
+		endwhile
+		:选课成功;
+	fork again
+		:教师;
+		:查询课程;
+	end fork
+	:退出登录;
+	:注销session;
+
+end
+@enduml

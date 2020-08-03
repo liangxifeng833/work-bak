@@ -1,0 +1,105 @@
+@startuml
+title 批量提报抽象-非BLL\n
+
+actor subClass #red
+/'-------------定义参与者别名 -------------------'/
+participant "batchSubmitAbstract\n批量提报抽象C" as submitC #ADD8E6
+participant "share_ljyunstyle_mdl\n蓝景分类表M" as ljtypeM #FFFFFF
+participant "product_mdl\n商品M" as proM #FFFFFF
+participant "product_type_mdl\n商品分类M" as typeM #FFFFFF
+
+/'================初始化==================='/
+subClass->submitC:__construct()
+	note over submitC
+		this->_ljyunId = 从session中获取
+	end note
+submitC-->subClass:obj
+
+/'================验证并过滤参数==================='/
+group 验证并过滤参数
+	subClass->submitC:_checkParam()\najax验证函数
+	activate submitC
+				note over submitC
+					post方式接收：this->_ljTypeId = 蓝景分类主键
+					this->_merchantTypeId = 商户商品分类主键
+				end note
+				alt empty(this->_ljTypeId) || empty(this->_merchantTypeId)
+					submitC-->submitC:false
+				else
+					submitC-->submitC:true
+				end
+			submitC-->subClass:boolean
+	deactivate submitC
+end
+
+/'==============验证蓝景分类=================='/
+	group 验证蓝景分类
+		 subClass->submitC:_checkLjType()
+		 activate submitC
+		 	submitC->ljtypeM:getOne(this->_ljTypeId,'style_id')
+		 	ljtypeM-->submitC:typeArr
+		 	alt typeArr
+		 		submitC-->subClass:true
+		 	else
+		 		submitC-->subClass:false
+		 	end
+		 deactivate submitC
+	end
+	
+/'==============验证商户商品分类=================='/
+	group 验证商户商品分类
+		subClass->submitC:_checkMerchantType()
+		activate submitC
+			note over submitC
+				通过商户分类主键查询分类信息
+			end note
+			submitC->typeM:getOne(this->_merchantTypeId,'pt_id,pt_left,pt_right);
+			typeM-->submitC:typeArr
+				alt !typeArr
+					submitC-->subClass:false
+				end
+				alt typeArr[pt_right]-typeArr[pt_left]==1
+					note over submitC
+						说明是叶子结点，组合分类id一维数组
+						this->_merchantTypeIds =array( typeArr[pt_id]);
+					end note
+				else
+					note over submitC
+						查询该分类结点的子孙结点中所有叶子结点的主键
+						where = pt_right<res[pt_right] 
+						AND pt_left>res[pt_left]' 
+						AND pt_right-pt_left=1
+					end note
+					submitC->typeM:getTotal('pt_id',where)
+					typeM-->submitC:res
+					alt !res
+						submitC-->subClass: false
+					end
+					/'===循环查询到该分类下所有叶子结点结果===='/
+					loop foreach(res as v) 循环查询到该分类下所有叶子结点结果
+						note over submitC
+							this->_merchantTypeIds[] = v[pt_id]
+						end note
+					end
+				end
+				submitC-->subClass:true
+			deactivate submitC
+	end
+	
+
+/'==============通过商品分类查询商品=================='/
+	group 通过商品分类查询商品数量
+		subClass->submitC:_getProFromType()
+		activate submitC
+			note over submitC
+				//查询条件为新增商品
+				where = array(product_status=0)
+				//根据商品分类做whereIn查询
+				whereIn=array(product_typeid, this->_merchantTypeIds)
+			end note
+			submitC->proM:getTotalNum(where,whereIn)
+			proM-->submitC:cout
+		submitC-->subClass:count
+		deactivate submitC
+	end
+@enduml

@@ -1,0 +1,55 @@
+@startuml
+title 微信关闭订单-时序图
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "CloseServlet" as C  #00FF00
+participant "PayAction\n支付A" as pA  #FFFFFF
+participant "CloseAction\n关闭订单action" as A  #FFFFFF
+participant "CommonUtils\n公共工具类" as common  #FFFFFF
+participant "CouchDB\nCouchDB工具类" as couch  #FFFFFF
+participant "CorefireHttpPost\n支付http请求类" as http  #FFFFFF
+participant "中信服务器" as citic  
+view->C:doPost()
+activate C
+	/'===========验证参数=============='/
+	note over C
+		验证token规则：
+			md5(类名+方法名+casher)
+	end note
+	C->pA:queryRequest(map)
+		activate pA
+			note over pA
+				先查询订单状态
+			end note
+			pA-->C:res
+		deactivate pA
+	
+	alt res.trade_state == 未支付 || 未支付(确认支付超时) ||  支付失败 
+		/'===========处理逻辑=============='/
+		C->A:closeRequest(map)	
+		activate A				
+			group  将请求返回值写入couchDB，注意写明返回说明
+				A->A:调用父类insertCouchDB( )
+			end
+		
+				group 去中信请求
+					A->http:connect()
+					activate http
+						http->citic:post数据
+						citic-->http:
+					http-->A:xml
+					deactivate http
+				end
+				
+			group  将请求返回值写入couchDB，注意写明返回说明
+				A->A:调用父类insertCouchDB( )
+			end
+				
+			A-->C:res
+		deactivate A
+	end /'----alt res.trade_state == 未支付-----'/
+C-->view:res
+deactivate C
+
+@enduml

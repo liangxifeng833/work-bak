@@ -1,0 +1,93 @@
+@startuml
+title 短信发券操作-时序图
+actor view #red
+participant "sendTicketMsg\n发券短信接口C" as C #00FF00
+participant "SendTicketMsgAction\n发券短信接口Action" as A #FFFFFF
+participant "controller/ticekt/TctGet_ticket_main\n事务发券DAL" as sendTicket #FFFFFF
+participant "library/ticket/CreateUseCodeRule\n生成使用码类" as createUse #FFFFFF
+participant "library/ticket/Ticket_batch\n券批次类" as batch #FFFFFF
+participant "短信平台" as msg #FFFFFF
+participant "SaleSendTicketRecordDao\n活动发券记录表" as record #FFFFFF
+
+view->C: index_post()
+activate C
+	/'=============================接收参数================================='/
+	group 接收参数
+		note over C
+			 接收参数,参数说明：
+			 	batchId：批次主键
+			 	ticketCount：券数量
+			 	phone：手机号
+			 验证token:规则与券平台一致
+		end note
+	end
+	
+	/'=============================处理主方法================================='/
+	group 调用发短信主方法
+			C->A:mainPost()
+			activate A
+			
+				group 调用Dal事务获取未发放的券
+					A->sendTicket:index_get(array($batchId=>券数量))
+					sendTicket-->A: ticketArray券信息
+				end
+				
+				group  生成使用码
+					A->A:createUseCode()
+					activate A
+						loop ticketArray券信息				
+								A->createUse:createRule(券主表主键，手机号)
+								createUse-->A:
+								note over A
+									tickets = 组合以电子券主表主键为键名,使用码为键值的数组
+								end note
+						end
+						
+						group 调用Dal事务，修改券使用码，ticket_send_object
+							A->sendTicket:index_put()
+							sendTicket-->A:
+							A-->sendTicket:
+						end 
+					A-->A: tickets
+					deactivate A
+					
+					group 根据批次主键查询批次信息
+						A->A:getBatch(batchId)
+						activate A
+							A->batch:get()
+							batch-->A:batchInfo券批次信息
+						A-->A:
+						deactivate A
+					end
+					
+					note over A: 组合短信内容，注意：券有效期从batchInfo->lifecycleHandle中获取
+					
+					group 给用户发短信
+						A->A:sendMsg()
+						activate A
+							A->msg:file_get_content(http://msg.develop?phone=手机号&content=短信内容)
+							note over A:注意：短信平台域http://msg.develop做常量替换
+							msg-->A:
+						A-->A:
+						deactivate A
+					end
+					
+					group  向活动发券记录表新增数据
+						A->A:addSendRecode()
+						activate A	
+							A->record:add()
+							record-->A:
+						A-->A:
+						deactivate A			
+					end
+					
+					
+
+				
+			A-->C:
+			deactivate A
+	end
+C-->view:json
+deactivate C
+
+@enduml

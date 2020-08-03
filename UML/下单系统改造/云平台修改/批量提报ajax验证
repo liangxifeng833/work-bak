@@ -1,0 +1,39 @@
+@startuml
+title 批量提报ajax验证-非BLL\n
+
+actor html #red
+/'-------------定义参与者别名 -------------------'/
+participant "batchSubmitAjaxCheck\n提报商品C" as submitC #FFFFFF
+participant "share_ljyunstyle_mdl\n蓝景分类表M" as ljtypeM #FFFFFF
+participant "product_mdl\n商品M" as proM #FFFFFF
+participant "product_type_mdl\n商品分类M" as typeM #FFFFFF
+
+html->submitC:ajaxCheck()\najax验证函数
+activate submitC
+	
+/'===验参==='/
+alt parent::!_checkParam()
+		note over submitC:echo '参数错误'
+end
+
+/'===验证蓝景分类==='/
+alt !parent::_checkLjType()
+ 	note over submitC:echo 所选择的蓝景分类不存在
+end
+
+/'===验证商户商品分类==='/	
+alt !parent::_checkMerchantType()
+	note over submitC: echo 验证商品分类失败	
+end 
+
+/'========通过商品分类查询商品========'/
+submitC->submitC:parent::_getProFromType()
+activate submitC
+submitC-->submitC: 需要提报的商品数量 count 
+deactivate submitC
+
+submitC-->html: count
+deactivate submitC
+
+
+@enduml

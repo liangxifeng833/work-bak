@@ -1,0 +1,72 @@
+@startuml
+title 微信用户交互请求类操作
+participant "controller接口" as index #00FF00
+participant "UserRequest\nRedis用户交互请求类L" as request #FFFFFF
+
+/'=======================初始化操作========================'/
+group 初始化操作
+	index->request:__construct(userMsgObj)
+	activate request
+		note over request: this.userMsgObj = userMsgObj
+	request-->index:obj
+	deactivate request
+end
+
+/'=======================查询该用户请求========================'/
+group  查询该用户请求次数
+	participant "RedisClient\nRedis操作类L" as redis #FFFFFF
+	index->request:getRequest()
+		activate request
+			request->redis:hGetAll($key)
+			activate redis
+				note over redis
+					redis存储用户请求次数的value类型为hash
+					Key说明：
+						wechatTmp_userOpenId => wechatTmp_用户在微信服务器的唯一标识
+				end note
+			redis-->request:用户请求过的信息 requestedMsg
+			deactivate redis
+		request-->index:用户请求过的信息 requestedMsg
+		deactivate request
+end 
+
+/'=======================修改用户请求信息========================'/
+group  修改用户请求信息
+	index->request:setRequests($params=array(batchNum=>批次编号, saleId=>活动主键...))
+	activate request
+		alt empty($params)
+			note over request: 记录错误日志log_message(error,修改用户请求信息参数为空 )\n程序终止执行
+		end
+		
+		/'------设置用户请求的信息------'/
+		group 设置用户请求的信息
+			request->redis:hMset($key,$valus)
+			activate redis
+				note over redis
+					 key    =>  wechatTmp_userOpenId
+					 values => params
+				end note
+				redis-->request:boolean
+			deactivate redis
+			alt !hSet()
+					request-->index:false
+			end
+		end
+		
+		request-->index:true
+	deactivate request
+end
+
+/'==========================删除用户请求信息==========================='/
+group 删除用户请求信息
+	index->request:delRequests()
+		activate request
+			request->redis:del($key)
+			activate redis
+			redis-->request:boolean
+			deactivate redis
+		request-->index:boolean
+		deactivate request
+end 
+
+@enduml

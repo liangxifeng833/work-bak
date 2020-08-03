@@ -1,0 +1,81 @@
+@startuml
+title 管理端应用层发券-流程
+
+actor 小程序登录页 #red
+/'-------------定义参与者别名 -------------------'/
+participant "SendTicketController\n发券API" as sendC  #00FF00
+participant "CommonSendTicket\n发券公共library" as common  #FFFFFF
+participant "sendTicketRule\n发券规则表" as rule  #FFFFFF
+participant "CheckSendEmploy\n验证发券员工" as sendEmploy  #FFFFFF
+participant "CheckSendSaleMan\n验证发券展员" as sendman  #FFFFFF
+participant "SendTicket\n领域层发券API" as domain  #FFFFFF
+
+
+
+小程序登录页->sendC:index_post()
+activate sendC
+group 参数说明
+	note over sendC
+		发券规则主键
+		用户主键
+		unionId
+		券批次表主键,默认=0(不指定批次发券时使用该参数)
+		通过other参数获取来源终端，当前时间戳
+	end note
+end
+/'===========验证参数=============='/
+group 发券主方法
+	sendC->common:doMain(arr)
+	activate common
+		
+		group 通过主键查询发券规则
+			common->common:getSendRuleById(ruleId)
+			activate common
+				common->rule:getOne(ruleId)
+				rule-->common:发券规则obj
+			deactivate common
+		end
+
+		group 验证来源终端
+			alt 来源终端 != 发券规则obj.sendTicketPerson
+				common-->sendC:发券终端错误
+			end
+		end		
+		
+		group 验证发券人员
+			common-->common:checkSendPerson()
+			
+			
+			alt 发券规则obj.sendTicketPerson == 1　管理端小程序
+				common->sendEmploy:index(发券规则主键, 用户主键)\n验证发券员工
+				sendEmploy-->common:res
+				alt res==false
+					common-->sendC:该人员无权发券
+				end
+			end
+			
+			alt 发券规则obj.sendTicketPerson == 2 展员小程序
+				common->sendman:index(促销活动主键，用户主键)\n验证发券展员
+					sendman-->common:res
+				alt res==false
+					common-->sendC:该展员无权发券
+				end
+			end
+		end
+		
+		group 调用领域层接口发券
+			common->common:callDomainApi()
+			activate common
+				common->domain:send()
+				domain-->common:res
+			deactivate common
+		end
+				
+	common-->sendC:res
+	deactivate common
+end
+/'===========处理逻辑=============='/
+
+sendC-->小程序登录页:res
+deactivate sendC
+@enduml

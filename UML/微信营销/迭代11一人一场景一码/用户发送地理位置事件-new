@@ -1,0 +1,84 @@
+@startuml
+title 用户发送地理位置事件
+
+actor wechat #red
+/'-------------定义参与者别名 -------------------'/
+participant "WechatInterface\n微信事件入口C" as indexC  #00FF00
+participant "ReceiveMessageAction\n接收消息路由类A" as recA #FFFFFF
+participant "LocationSelectEvent\n用户发送地理位置事件类A" as ticketA #FFFFFF
+participant "Task\n考勤表" as task #FFFFFF
+participant "HitCard\n打卡表" as hit #FFFFFF
+
+/'-----------------------请求入口-------------------start---'/
+wechat->indexC:index(postData)
+activate indexC
+	indexC->recA:doLogic(postData)
+	activate recA
+		/'----------------------路由类根据事件类型new 电子券核销类--------start------'/
+		group 路由类根据事件类型new 用户发送地理位置事件类
+			recA->recA:_deal()
+			activate recA
+				/'----------------------处理核销事件--------start------'/
+				group 处理删除事件
+					recA->ticketA:dealData(postData)
+					activate ticketA
+						note over ticketA: 验证参数
+						/'------------查询考勤记录数据------start---'/
+						group 查询考勤记录数据
+							ticketA->ticketA:_getTask()
+							activate ticketA
+								note over ticketA
+									where = 最小纬度<= postData[Location_X] && postData[Location_X]<=最大纬度 &&  
+									 		最小经度<= postData[Location_Y] && postData[Location_Y]<最大经度 && 
+									 		&&  打卡最小时间戳=<当前是时间戳<=打卡最大时间戳			    
+								end note
+								ticketA->task:where(where)->order(正序)->find()
+								task-->ticketA:taskRow
+							deactivate ticketA
+						end
+						/'------------查询考勤记录数据------end---'/
+						
+						/'------------查询用户信息------start---'/
+						group 查询用户信息
+							ticketA->ticketA:_getUser(openId)	
+							ticketA-->ticketA:userRow
+						end						
+						/'------------查询用户信息------end---'/
+						/'------------入打卡表数据------start---'/
+						group 入打卡表数据
+							note over ticketA
+								data = array(
+									task_id = taskRow[id] ? taskRow[id] :0；
+									user_relation_id = 用户关系主体表主键
+									add_time = 当前时间
+									latitude = postData[Location_X] 纬度
+									longitude = postData[Location_Y] 纬度
+									label = postData[Label] 地理位置的字符串信息
+								)
+							end note
+							ticketA->ticketA:_addHitCard(data)
+							activate ticketA
+								ticketA-->hit:add(data)
+								hit-->ticketA:boolean
+							deactivate ticketA
+						end
+						/'------------入打卡表数据------end---'/
+						
+						group 入行为记录表
+							note over ticketA: this->_traceRecord()
+						end
+	
+					ticketA-->recA:
+					deactivate ticketA
+				end
+				/'----------------------处理核销事件--------end------'/
+			deactivate recA
+		end
+		/'----------------------路由类根据事件类型new 电子券核销类--------end-------'/
+	recA-->indexC
+	deactivate  recA
+	indexC-->wechat
+deactivate indexC
+/'-----------------------请求入口------------------end------'/
+
+@enduml

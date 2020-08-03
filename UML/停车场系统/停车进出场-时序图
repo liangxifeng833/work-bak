@@ -1,0 +1,39 @@
+@startuml
+title 停车进出场-时序图
+
+actor 用户车辆 #red
+/'-------------定义参与者别名 -------------------'/
+participant "停简单开放平台API" as stop  #FFFFFF
+participant "蓝景丽家API" as lj  #FFFFFF
+participant "海天" as sea  #FFFFFF
+
+
+group 进场
+	用户车辆 ->stop:车辆进入停车场
+	activate stop
+			stop->lj:进场通知
+			activate lj
+				note over lj:接收通知\n处理自身业务逻辑
+				lj-->stop:
+			deactivate lj
+	deactivate stop
+end 
+
+group 出场
+	用户车辆->stop:车辆到达闸机处, 等待出停车场
+	activate stop
+		stop->lj: 出场通知
+		activate lj
+			note over lj: 计算减免时长
+			lj->stop:调用在场订单查询接口:\nparkhub.order.infoForFreeMins
+			stop-->lj:返回订单id等信息
+			lj->stop:调用批量抵扣接口:\nparkhub.order.deductionForDetail
+			stop-->lj:返回抵扣成功　
+			lj->sea:通知海天收款台收款
+			sea->stop:收取停车费
+			sea-->用户车辆: 抬杆后车辆离开停车场
+		deactivate lj
+	deactivate stop
+end
+
+@enduml

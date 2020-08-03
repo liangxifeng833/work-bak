@@ -1,0 +1,22 @@
+@startuml
+title 前端用券规则--流程图
+
+
+|顾客小程序|
+start
+	:券使用码;
+	:BLL返回批次和券信息;
+	if(是否蓝景装饰合作)then(yes)
+		:不允许用券;
+		end
+	endif
+	
+	if(电子券面额  > 应付款的剩余金额)then(yes)
+		:不允许用券;
+		end
+	endif
+	
+	
+end
+
+@enduml

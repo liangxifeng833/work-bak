@@ -1,0 +1,51 @@
+@startuml
+title 普通下单促销折扣Action
+
+actor api #red
+/'-------------定义参与者别名 -------------------'/
+participant "DiscountActionOrder\n普通下单促销折扣A" as disA #FFFFFF
+participant "TmpOrderDao\n临时订单hash" as tmpD #FFFFFF
+
+
+/'===========初始化============='/
+group 初始化
+	 api->disA:__construct()
+	 activate disA
+	 	note over disA
+	 		parent::__construct(orderIncrementId)
+	 	end note
+	 disA-->api:
+	 deactivate disA
+end
+
+
+api->disA:index()
+activate disA
+	/'=========== 从redish中获取订单表信息=================='/
+	group 从redish中获取订单表信息
+		disA->disA:_getOrderFromRedis()
+		activate disA
+			disA->tmpD:get(this->_orderIncrementId)
+			tmpD-->disA:orderArr
+			alt empty(orderArr)
+				disA-->disA:false
+			else
+				note over disA
+					订单信息属性赋值
+					this->_orderArr = orderArr
+				end note
+				disA-->disA:true
+			end
+		deactivate disA
+		alt !_getORderFromReids()
+			disA-->api:array(state=>3 从redis中获取订单信息失败)
+		end
+	end
+	note over disA
+		调用父类主方法处理促销信息
+		parent::_index()
+	end note
+disA-->api:
+deactivate disA
+
+@enduml

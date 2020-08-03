@@ -1,0 +1,65 @@
+@startuml
+title 整体流程
+start
+:会员导入;
+:员工录入;
+:短信群发;
+
+:关注微信;
+note left:包含非会员
+/'=======全民营销========='/
+:全民营销;
+fork
+	:H5页面;
+fork again
+	:现金红包;
+fork again
+	:扫码关注+文章;
+fork again
+	:扫码邀请;
+fork again
+	:...;
+endfork
+
+
+/'=======微信相关========='/
+:微信管理;
+fork
+	:消息管理;
+fork again
+	:模板管理;
+fork again
+	:自定义菜单;
+fork again
+	:客服;
+end fork
+
+/'=======标签========='/
+:贴标签;
+note left : 以用户画像方式
+if(是否是会员)then(no)
+	:注册为会员;
+endif
+
+/'=======积分相关========='/
+:获取积分;
+fork
+	:完善个人资料;
+fork again
+	:分享;
+fork again
+	:签到;
+fork again
+	:邀请;
+fork again
+	:...;
+endfork
+	
+:消费积分;
+:积分商城;
+
+:群内营销;
+
+end
+
+@enduml

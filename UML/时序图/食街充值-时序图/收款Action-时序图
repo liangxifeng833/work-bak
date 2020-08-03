@@ -1,0 +1,37 @@
+@startuml
+title 收款Action-时序图
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "subClass" as C  #00FF00
+participant "PayAction\n收款Action" as A  #FFFFFF
+participant "tctPay\nDAL付款事务" as tct  #00FF00
+
+view->C:index_**()
+activate C	
+
+	
+		/'===========处理逻辑=============='/
+		C->A:tctPay()
+		activate A
+			alt editCardData 为空 或 addCardPriceData为空
+				A-->C:必要参数为空
+			end
+			note over A
+					将属性 editCardData,addCardPriceData,wechatId,alipayId
+					作为参数传递给事务
+			end note			
+			A->tct:index_post()
+				note right A
+					事务处理逻辑
+						1. 根据editCardData修改卡表dining_card信息
+						2. 根据addCardPriceData 新增充值记录表dining_card_price
+						 <font color="red">注意:addCardPriceData为二维数组,办卡的时候将卡余额和押金分为两条记录
+				end note
+			tct-->A:json
+		A-->C:
+		deactivate A	
+C-->view:res
+deactivate C
+
+@enduml

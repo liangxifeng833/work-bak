@@ -1,0 +1,43 @@
+@startuml
+title 尾款下单--流程图
+
+
+|展员|
+start
+:选择订单分期付款订单;
+:显示需要付的尾款金额;
+:手动输入尾款付款金额;
+
+:新增到付款期数redis hash结构;
+if(如果有卖场促销)then(yes)
+	:计算卖场促销折扣;
+else(no)
+	if(会员卡)then(yes)
+		:计算会员卡折扣;
+	endif
+endif
+
+if(存在折扣)then(yes)
+	:修改付款期数redis hash;
+endif
+
+
+:加入购物车redis数据;
+:选择付款方式;
+
+if(如果有卖场促销)then(yes)
+	:计算卖场促销折扣;
+else(no)
+	if(会员卡)then(yes)
+		:计算会员卡折扣;
+	endif
+endif
+
+if(存在折扣)then(yes)
+	:修改付款期数redis hash;
+endif
+
+:将付款期数数据从redis中新增到mysql;
+end
+
+@enduml

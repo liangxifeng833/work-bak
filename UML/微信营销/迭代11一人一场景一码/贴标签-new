@@ -1,0 +1,22 @@
+@startuml
+title 贴标签
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "EmployCenter\n员工中心C" as employC  #00FF00
+participant "EmployCenterAction\n员工中心A" as employA  #FFFFFF
+participant "Mobile/Lib/PasteLabelAction\n贴标签actionA" as tagA  #FFFFFF
+
+view->employC:pasteTag()
+activate employC
+	employC->employA:pasteTag(params)
+	activate employA
+		loop params[tagArray] as v 循环贴多个标签
+			employA->tagA:_pasteTags(relation_id,label_id)
+			tagA-->employA:boolean
+		end
+	employA-->employC:
+	deactivate employA
+	employC-->view:
+deactivate employC	
+@enduml

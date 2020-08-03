@@ -1,0 +1,38 @@
+@startuml
+title 审计日志-时序图
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "AuditAction" as C  #00FF00
+participant "AuditLog" as log  #FFFFFF
+
+
+view->C:doLog(map)
+activate C
+	/'===========验证参数=============='/
+    note over C
+    	验证必要参数
+	end note
+	note over C:_logTableType = 1代表审计日志
+	
+	
+	/'===========实例审计日志实体=============='/
+	group 实例审计日志实体
+		C->log:
+		log-->C: this.logTableObject  = auditLogObj
+	end
+	
+	/'===========将参数赋值给审计日志对象=============='/
+	group 将参数赋值给审计日志对象
+		note over C: auditLogObj.set*** = map.get(*)
+	end
+	
+	/'===========调用父类doLog方法=============='/
+	group 调用父类doLog方法
+		note over C: super.doLog(map)
+	end
+
+C-->view:
+deactivate C
+
+@enduml

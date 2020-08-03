@@ -1,0 +1,97 @@
+@startuml
+title 新增异常记录-时序图
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "exceptionInput\n异常录入中信支付数据C" as C  #00FF00
+participant "exceptionInputAddAction\n异常录入中信支付数据A" as A  #FFFFFF
+
+participant "OrderOnlineDao\n私有库订单表" as orderD  #FFFFFF
+
+participant "WechatAnnalDao\n支付宝表" as wD  #FFFFFF
+participant "AlipayAnnalDao\n支付宝表" as aD  #FFFFFF
+participant "CiticExceptionRecordDao\n中信支付异常记录表" as cD  #FFFFFF
+
+
+view->C:index_post()
+activate C
+	/'===========验证参数=============='/
+		note over C
+		验证token
+	end note
+	C->A:post(params)
+		activate A
+			note over A
+				验证必要参数
+					params['passTradeNo'] = 通道号
+					params['contractNumber'] = 合同号
+			end note
+			
+			group 验证合同号
+				A->A:_checkContractNumber(合同号)
+				activate A
+					group 通过合同号查询私有库订单表
+						A->orderD:get()
+						orderD-->A:json
+						alt 如果没有查询到该订单记录则返回
+							A-->C:无该订单
+						end
+					end
+				deactivate A
+			end
+			
+			
+			group 拆分通道号，获取支付类型
+				A->A:splitPassTradeNo(通道号)\n拆分通道号
+				activate A
+					note over A
+						获取通道号前4位
+					end note
+					alt 通道号前4位 == 1000
+						note over A: payType = 微信
+					else 通道号前4位 == 2000
+						note over A: payType = 支付宝
+					end
+				A-->A:payType
+				deactivate A
+			end
+	
+			group 查询异常记录表是否已经录入过该数据 
+				A->cD:get() where 合同号 and 通道号 and 支付类型	
+				cD-->A:json
+				alt 已经录入过该数据
+					A-->C:该通道号已录入过异常记录
+				end
+			end
+			
+			group 根据支付类型查询微信或支付宝表，无数据则新增支付数据
+				A->A:getCiticPay(支付类型)
+				activate A
+					alt 支付类型 = 微信 查询微信表数据，where pass_trade_no = 通道号 and 合同号
+						A->wD:get()
+						wD-->A:json
+					end
+					alt 支付类型 = 支付宝 查询支付宝 表数据，where pass_trade_no = 通道号 and 合同号
+						A->aD:get()
+						aD-->A:json
+					end
+					A-->A:json
+				deactivate A
+			end
+			alt 如果微信或支付宝有记录则返回
+					A-->C: 微信或支付宝表已录入数据
+			end
+			
+			group 新增异常表数据
+				alt !json
+					note over A:注意：新增时字段status = 0, 代表失败状态
+					A->cD:add()
+					cD-->A:json
+				end
+			end		
+			A-->C:
+		deactivate A
+C-->view:
+deactivate C
+
+@enduml

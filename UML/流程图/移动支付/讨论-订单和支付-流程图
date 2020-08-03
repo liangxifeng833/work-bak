@@ -1,0 +1,89 @@
+@startuml
+title 讨论-订单和支付-流程图
+
+|展员|
+start
+:商品选择;
+fork
+	:商品浏览;
+	:展员下单;
+	fork
+		:PC端;
+		:生成合同号;
+	fork again
+		:小程序端;
+		:生成付款二维码;
+	end fork
+fork again
+	:商品＋网购信息浏览;
+	note right
+		<font color=red>@@</font>需要先仔细分析mis商城系统与商品相关的数据表
+		<font color=red>@@</font>设计方案解决＋开发
+		<font color=red>@@</font>批量测试
+	end note
+	:顾客自行下单;
+	note right
+		一个订单只包含一件商品
+		<font color=red>@@</font>考虑到上一步，下一步保留历史数据，
+		需要做redis缓存，最后保存数据库
+		重新设计下单接口API
+	end note
+	fork
+		:常规下单;
+	fork again
+		:参加抢购\n限时等等活动购买;
+		note right
+			<font color=red>@@设计（包含下单后选择对应合同）</font>
+			需要有限制条件
+			和规则，规则做在应用层,
+			修改规则无需修改小程序
+		end note
+	end fork
+end fork
+
+:统一生成订单;
+note right
+	<font color=red>@设计开发</font>
+	1．是否自动检测合同号库存，
+	　　自动补充？
+	2.　如果自动补充，需要将shell脚本改为新架构方式
+end note
+
+:支付;
+note right:<font color=red>@微信/支付宝扫码</font>
+fork
+	:<font color=red>@</font>独立合同;
+	fork
+		:线下合同;
+	fork again
+		:线上合同;
+	endfork
+fork again
+	:电子券使用;
+	:独立支付方式;
+	note right
+		有多个渠道
+	end note
+endfork
+
+:购买赠予;
+:合同结算\n特殊费用计算;
+note right
+	在抢购商品下单选择合同是验证合同是否结算，
+	如果结算，则不允许操作；
+end note
+:支付校验机制;
+note right: <font color=red>@设计,微信支付宝T+1,每笔支付都需要知道结果!</font>
+:商户确认;
+:结算返款;
+
+:退货;
+fork
+	:退货关联;
+	note left:提示已经购买\n抢购商品的关联信息
+fork again
+	:退当前合同;
+end fork
+end
+
+@enduml

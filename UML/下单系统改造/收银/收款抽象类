@@ -1,0 +1,108 @@
+@startuml
+title 收款抽象类action
+
+actor subClass #red
+/'-------------定义参与者别名 -------------------'/
+participant "PaymentAbstract\n查询商品A" as paymentA  #ADD8E6
+participant "Common\n公共信息类L" as common  #FFFFFF
+participant "Order\n订单类L" as orderL  #FFFFFF
+participant "OrderOnlineDao\n订单商品表D" as orderD  #FFFFFF
+participant "Member_info_base\n会员类L" as memberL  #FFFFFF
+participant "member/Dictionary\n会员字典类L" as dictionaryL  #FFFFFF
+participant "ProductConumeDao\n合同收款表D" as conumeD  #FFFFFF
+
+
+
+
+	/'===========构造方法======start========'/	
+	group 初始化
+		subClass->paymentA:__construct(orderNumber)
+		activate paymentA
+			note over paymentA: $this->orderNumber = (int)orderNumber
+			paymentA->paymentA:_init()
+			activate paymentA
+				/'=====根据合同号获取运编号====='/
+				alt !empty(this->orderNumber  如果合同号非空，则获取商户信息
+					group 根据合同号获取运编号
+						paymentA->common:getMerchantByContract()
+						common->paymentA:merchantArr
+						note over paymentA: this->merchantArr = merchantArr
+					end
+				end
+				
+				/'=====初始化订单类=======start============='/
+				alt !empty(this->merchantArr[ljyunId])
+					group 初始化订单类
+						paymentA->orderL: __construct(this->orderNumber,this->merchantArr[ljyunId])
+						orderL-->paymentA: obj
+						note over paymentA: this->orderHandle = obj				
+					end
+				end
+				/'=====初始化订单类=======end============='/
+				
+				alt !empty(this->orderHandle->customer_phone)
+				/'=====查询会员信息=======start============='/
+					group 查询会员信息
+						paymentA->memberL:__construct(phone=>$this->orderHandle->customer_phone)
+						memberL-->paymentA: memberObj
+						alt !empty(memberObj->member_id)
+							paymentA->dictionaryL:getOneById(memberObj->member_id)
+							dictionaryL-->paymentA:gradeObj
+							note over paymentA
+								组合等级名gradeObj->grade_name 到memberObj->gradeHandle中
+								计算本期积分并将结构填充到 memberObj->integralHandle中
+								this->memberObj = memberObj
+							end note
+						end
+					end
+				/'=====查询会员信息=======end=============='/
+				end
+				paymentA-->paymentA:
+			deactivate paymentA
+			
+			
+	end
+	/'===========构造方法======end========'/	
+			paymentA-->subClass: obj
+	deactivate paymentA	
+
+	/'=====================验证合同收款和订单日期==============start====='/
+	group  验证合同收款和订单日期
+		subClass->paymentA:check()
+		activate paymentA
+			group 订单编号
+				alt empty(this->orderNumber) || empty(this->merchantArr) || empty(this->orderHandle)
+					paymentA-->subClass: res = array(state=>2, 参数异常)
+				end
+			end
+			/'================查询合同收款表========start====='/
+			group 根据合同号查询合同收款表
+				paymentA->paymentA:getProductConume()
+				activate paymentA
+					note over paymentA
+					组合参数：
+						WHERE consume_pact_id = this->orderNumber AND consume_back = 0 (排除退款)
+						ORDER BY consume_id LIMIT 1
+					end note
+					paymentA->conumeD: get(list,参数)
+					conumeD-->paymentA: consumeArr
+				deactivate paymentA
+			end
+			/'================查询合同收款表========end======'/
+		alt getProductConume()
+			paymentA-->subClass: res = array(state=>3, msg=>该订单已收款!)
+		end
+	
+		group 验证收款日期
+			paymentA->orderL:this->orderHandle->checkDate()
+			orderL-->paymentA: boolean
+		end
+		alt !checkDate()
+			paymentA-->subClass: res = array(state=>4, msg=>合同不在收款日期内)
+		else
+			paymentA-->subClass: res = array(state=1)
+		end
+	end
+	/'=====================验证合同收款和订单日期==============end====='/
+	deactivate paymentA
+@enduml

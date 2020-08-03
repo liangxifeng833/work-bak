@@ -1,0 +1,77 @@
+@startuml
+title 订单确认显示
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "contractDetail\n合同详情C" as orderC  #00FF00
+participant "contractDetailAction\nA" as orderA  #FFFFFF
+participant "Order\n订单类L" as orderL  #FFFFFF
+
+view->orderC:index_get()
+activate orderC
+	/'===========验证参数=============='/
+	group 验证参数
+		note over orderC
+			接收参数：
+				 $params = this->get("params");
+				 参数下标说明：
+				 $param[orderNumber] = 订单编号（即合同号）
+				 $param[isCheck] = 是否验证订单 0是　1否　默认0				 
+		end note
+	end
+	note over orderC
+		验证token
+	end note
+	
+	/'===========构造方法======start========'/	
+	group 初始化
+		orderC->orderA:__construct(orderNumber,isCheck)
+		activate orderA
+			note over orderA: parent::__construct(orderNumber)\nthis->_isCheck=isCheck
+			orderA-->orderC: obj
+		deactivate orderA
+	end
+	/'===========构造方法======end========'/	
+	
+	
+	/'===========处理逻辑=============='/
+	orderC->orderA:obj->main()
+	activate orderA
+		/'====验证订单日期和收款情况======start=='/	
+		alt 1==this->_isCheck
+			group 验证订单日期和收款情况
+				note over orderA: checkRes = parent::check();
+				alt  1 != checkRes[state] 验证失败
+					orderA-->orderC: checkRes
+				end
+			end
+		end
+		/'=====验证订单日期和收款情况=====end=='/		
+		
+		/'====查询订单商品信息======start=='/
+		group 查询订单商品信息
+			orderA->orderL:this->orderHandle->getOrderPro()
+			orderL-->orderA:
+		end
+		/'====查询订单商品信息======start=='/
+		
+		/'====组合view页面需要的数据======start=='/
+		group 组合view页面需要的数据
+			note over orderA
+				returnArr = array(
+					1. 订单数据：orderData
+					2. 顾客数据：customerData
+					3. 商户数据：merchantData
+					4. 商品清单：proData
+					5. 定制商品：customerProData
+				)
+			end note
+		end
+		/'====组合view页面需要的数据======end=='/
+		orderA-->orderC:returnArr
+			
+	deactivate orderA
+orderC-->view:returnArr
+deactivate orderC
+
+@enduml

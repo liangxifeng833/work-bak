@@ -1,0 +1,65 @@
+@startuml
+title 微信卡券js-sdk签名-时序
+
+actor 微信卡券应用层 #red
+/'-------------定义参与者别名 -------------------'/
+participant "WechatJsapiController\n微信js接口签名对外controller" as index #00FF00
+participant "GetCardSignatureImpl\n微信卡券js接口签名实现类" as A  #FFFFFF
+participant "WechatJsapiTicket\njs-sdk ticket处理类" as ticket  #FFFFFF 
+participant "WechatAccessToken\n操作微信token类" as token  #FFFFFF 
+participant "微信服务器" as wechat  #FFFFFF 
+微信卡券应用层->index: cardSign()
+activate index
+	index->A:doGet()
+	activate A
+	group 获取卡券api_ticket
+		A->ticket:getCardApiTicket(微信账号表主键)
+		activate ticket
+			ticket->ticket:checkTicketToRedis(微信账号表主键)\n验证js_api ticket在redis中是否过期\n过期时间为2小时
+			activate ticket
+				note over ticket
+					微信卡券api_ticket在redis中一hash结构存储，
+					key=cardapi_ticket_账号表wechat_account主键
+					value = array (  ticketValue = >ticket值，　ticketTime＝＞当前时间戳)  
+				end note
+				ticket-->ticket:
+			deactivate ticket
+			alt 如果过期
+				ticket->token: get(微信账号表主键)\n获取请求微信token
+				token-->ticket:token
+				ticket->ticket:getCardTicketToWechat(token)\n去微信获取最新的api_ticket
+				activate ticket
+					ticket->wechat:get() 
+					wechat-->ticket:
+				deactivate ticket
+				
+				group 将最新ticket设置到reids中
+					ticket->ticket:setTicketToReids()
+				end
+			else
+				note over ticket: 从reids获取ticket	
+			end
+			ticket-->A:api_ticket
+		deactivate  ticket
+	end
+	
+	group 签名
+		A->A:sign(api_ticket, 卡券信息)
+		activate A
+			note over A
+				//一下微信卡券code如果没有则传递空串即可；
+				signature = sha1(微信卡券code + 当前时间戳 + 随机串 + api_ticket + 微信card_id)
+				组合返回retMap
+					nonceStr = 随机串
+					timestamp =当前时间戳 
+					signature = signature
+			end note
+		A-->A:retMap
+		deactivate A
+	end 
+		
+	A-->index:DomainResponse
+	deactivate A
+	index-->微信卡券应用层:DomainResponse
+deactivate index
+@enduml

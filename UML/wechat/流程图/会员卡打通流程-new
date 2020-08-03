@@ -1,0 +1,69 @@
+@startuml
+title 会员卡打通流程
+
+|公众号|
+start
+: 用户中心(自定义菜单);
+
+  fork
+    :会员中心;
+    end;
+  fork again
+    :员工中心;
+    end;
+  fork again
+  	:注册成为会员;
+    note right
+	   通过card_id获取开卡组件url
+	    开卡组件开卡( 跳转型 )
+	   end note
+  end fork
+  
+  	/'----------------注册新会员-----------------start------------------------------'/
+  	:注册新会员;
+  	:填写个人资料;
+  	:将个人资料提交给微信;
+	 fork
+	 	group <font color=blue>触发领取事件
+		 	 :将会员卡code入会员卡表;
+		 	 :修改库存和领取数量;
+		 	 end
+	 	 end group
+	 fork again
+		group 微信回调	
+			if(验证是否线下老会员)then(是)
+				:取出会员number;
+				:<font color=green>接口激活;
+				:老会员提示;
+				:<font color=red>重定向到会员中心;
+			else(否)
+				if(是否有导入新卡号)then(是)
+					
+					if(否存在未分配的会员卡号)then(不存在)
+						:程序终止执行,抛出异常;
+						end
+					else(存在)
+						fork
+							:入队;
+							:出队请求回调url;
+							:<font color=green>回调url接口激活会与卡;	
+							end
+						fork again
+						:<font color=red>重定向到会员中心;
+						end fork			
+					endif
+					
+				else(否)
+					:将code指定为number;
+					:<font color=green>接口激活;
+					:<font color=red>重定向到会员中心;
+				endif
+			endif
+		end group
+	  fork end
+ /'----------------注册新会员------------------end------------------------------'/
+ 
+:会员中心;
+ end
+
+@enduml

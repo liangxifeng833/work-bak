@@ -1,0 +1,77 @@
+@startuml
+title 申请退款-时序图
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "RefundServlet\n申请退款S" as C  #00FF00
+participant "RefundAction\n申请退款A" as A  #FFFFFF
+participant "CommonUtils\n公共工具类" as common  #FFFFFF
+participant "CouchDB\nCouchDB工具类" as couch  #FFFFFF
+participant "CorefireHttpPost\n中信支付http请求类" as http  #FFFFFF
+participant "WechatAnnalDao\n微信收款表" as cDao  #FFFFFF
+
+view->C:index_post()
+activate C
+	/'===========验证参数=============='/
+	group 验证参数
+		note over C
+			接收参数：
+				 参数下标说明：
+				 request[tradeNo] = 支付号
+				 request[price] = 退款金额, 注意：退款金额等于总金额
+				 request[refundNo] = 退款单号
+		end note
+	end
+	note over C
+		验证token规则：
+			md5(类名+方法名+casher)
+	end note
+	
+	/'===========处理逻辑=============='/
+	C->A:refundRequest(map)
+	activate A
+		note over A: 验证参数
+			group 设置请求参数
+				note over A
+						<b><font color="red">注意:退款单号由客户端自行生成
+				end note
+				group 查询退款信息
+						A->A:queryRequest()
+				end
+				alt 如果查询到的退款状态 != FAIL(支付宝) /  如果查询到的退款状态 != FAIL and != NOTSURE(微信)
+								A-->C:不符合退款条件，提示用户退款完成
+				end
+
+			end
+			
+			
+			group  将请求参数写入couchDB，注意写明返回说明
+				A->A:调用父类insertCouchDB( )
+			end
+			group 去中信请求	
+				A->http:connect()
+				activate http
+				http-->A:xml
+				deactivate http
+			end
+			
+
+			group  将请求返回值写入couchDB，注意写明返回说明
+				A->A:调用父类insertCouchDB( )
+			end				
+			
+			group 判断请求后的返回值
+				alt return_code!=SUCCESS
+					A-->C:通讯异常
+				end
+				
+				alt result_code!=SUCCESS 退款失败
+							A-->C:支付失败，需要用户重新支付
+				end
+			end		
+		A-->C:res
+	deactivate A
+C-->view:res
+deactivate C
+
+@enduml

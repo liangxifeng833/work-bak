@@ -1,0 +1,60 @@
+@startuml
+title CM3-获取合同数据
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "contractPays\n同付款方式数据C" as orderC  #00FF00
+participant "ContractPaysAction\n同付款方式数据A" as orderA  #FFFFFF
+participant "ProductConumeDao\n合同收款表D" as consumeD  #FFFFFF
+
+view->orderC:index_get()
+activate orderC
+	/'===========验证参数=============='/
+	group 验证参数
+		note over orderC
+			接收参数：
+				 $params = this->get("params");
+				 参数下标说明：
+				 $params[orderNumber] = 订单编号（即合同号）	
+				 $params[consumeId] = 合同收款表product_conume 主键	 
+		end note
+	end
+	note over orderC
+		验证token
+	end note
+	
+	
+	/'===========处理逻辑=============='/
+	alt !empty($params[orderNumber])
+		orderC->orderA:obj->getByContractNum(orderNumber)\n通过合同号查询
+		activate orderA
+			note over orderA: 验证参数
+			note over orderA
+				组合查询参数
+				WHERE consume_pact_id = orderNumber 
+				ORDER BY consume_id ASC
+			end note
+			orderA->consumeD: get(list,参数)
+			consumeD-->orderA:consumeArr	
+	
+			orderA-->orderC:consumeArr
+		end
+	alt !empty($params[consumeId])
+		orderC->orderA:obj->getByConsumeId(consumeId)\n通过主键查询
+		activate orderA
+			note over orderA: 验证参数
+			note over orderA
+				组合查询参数
+				WHERE consume_id = consumeId 
+				LIMIT 1
+			end note
+			orderA->consumeD: get(list,参数)
+			consumeD-->orderA:consumeArr	
+	
+			orderA-->orderC:consumeArr
+		end
+	deactivate orderA
+orderC-->view:consumeArr
+deactivate orderC
+
+@enduml

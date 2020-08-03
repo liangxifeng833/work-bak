@@ -1,0 +1,102 @@
+@startuml
+title 支付宝对账单对比接口
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "BillCompareServlet\n账单对比S" as C  #00FF00
+participant "BillCompareAction\n账单对比A" as A  #FFFFFF
+participant "AlipayAnnalDao\n支付宝支付表A" as alipayD  #FFFFFF
+participant "CorefireHttpPost\n支付http请求类" as http  #FFFFFF
+participant "中信服务器" as citic  
+view->C:doPost()
+activate C
+	/'===========验证参数=============='/
+	group 验证参数
+	end
+	note over C
+		验证token规则：
+			md5(类名+方法名+casher)
+	end note
+	
+	
+	/'===========处理逻辑=============='/
+	C->A:billRequest(map)	
+	activate A			
+			note over A
+				参数:
+					对账日期
+					<font color=red><b>--业务类型 = ALL (代表查询所有)--
+			end note
+			
+			group 查询支付宝支付表
+				note over A: 同微信
+			end
+	
+			group 去中信请求
+				note over A: 同微信
+			end
+			
+			
+			group 循环返回结果，和数据库数据做对比，并导出csv文件
+				A->A:_compare()
+				activate A
+					note over A: dbPayCount = 数据库中收款总数\n dbRefundCount = 数据库中退款总数
+					loop 循环中信对账单结果
+						note over A: 将每一行数据写入到文件名为: alipay-bill-日期.cs 中
+						alt 业务类型=  交易 (收款)
+							alt $收款[交易号]==null
+								note over A: 电子邮件内容：alipay-bill-日期.csv退款数据异常：数据第n行在数据库中无该条收款记录\n continue
+							end
+							
+							alt $收款[交易号][price] != 每次循环的交易金额
+								note over A: 电子邮件内容：alipay-bill-日期.csv收款数据异常：数据第n行交易金额与数据库金额不等
+							end
+							alt  $收款[交易号][charge] != 每次循环的手续费 
+								note over A: 电子邮件内容：alipay-bill-日期.csv收款数据异常：第n行手续费与数据库手续费不等
+							end
+							note over A: 收款计数器+1 \n 将$收款[交易号])从收款数组中删除
+						end
+						alt 业务类型= 退款 ( 退款 ) 
+								alt $退款[交易号]==null
+									note over A: 电子邮件内容：alipay-bill-日期.csv退款数据异常：数据第n行在数据库中无该条退款记录\n continue
+								end
+								
+								alt  $退款[交易号][price] != 每次循环的退款金额
+									note over A: 电子邮件内容：alipay-bill-日期.csv退款数据异常：数据第n行退款金额与数据库金额不等
+								end
+								alt   $退款[交易号][charge] != 每次循环的手续费 
+									note over A: 电子邮件内容：alipay-bill-日期.csv退款数据异常：数据第n行手续费与数据库手续费不等
+								end
+								note over A: 将$退款[交易号])从退款款数组中删除
+								note over A: 退款计数器＋１
+						end
+						
+						note over A: 获取账单中的交易总额和总退款额
+					end	/'---loop---'/	
+					
+					group 循环结束，对比收款总数和退款总数
+						note over A: 同微信
+					end		
+					
+					group 查看剩余收款数组和退款数组的值
+						note over A: 同微信
+					end
+				A-->A:
+				deactivate A
+				/'end compare'/
+				
+				group 对比总额
+					note over A: 同微信（注意：支付宝的总退款额为负数）
+				end
+				
+				group 将以上拼接的电子邮件内容发送出去
+					A->A:sendMail()
+				end
+			end
+			
+		A-->C:
+	deactivate A
+C-->view:
+deactivate C
+
+@enduml

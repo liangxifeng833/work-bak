@@ -1,0 +1,153 @@
+@startuml
+title 前台用户抽象类
+
+actor subClass #red
+/'-------------定义参与者别名 -------------------'/
+participant "UserAbstractAction\n 前台用户抽象类C" as userA  #ADD8E6
+participant "MerchantWechatRelation\n商户与微信关系表" as merchantR  #FFFFFF
+participant "MerchantInfo\n商户表" as merchant  #FFFFFF
+participant "WechatFansRelation\n用户关系主体表" as userR  #FFFFFF
+participant "WechatFans\n用户详情信息" as user  #FFFFFF
+
+participant "UserLabel\n用户标签表" as utag  #FFFFFF
+participant "Label\n标签表" as label  #FFFFFF
+
+
+/'----------------------初始化------------------------------start--'/
+group 初始化
+	subClass-> userA:__construct(appId,openId='')
+	activate userA
+		/'---------------------查询商户信息---------------------start--'/
+		group 查询商户信息
+			userA->userA: _getMerchant(appId)
+			activate userA
+				userA->merchantR:select()
+				merchantR-->userA:relationRow
+				userA->merchant:select()
+				merchant-->userA:merchantRow		
+				userA-->userA:array_merge(relationRow,merchantRow)				
+			deactivate userA
+		end
+		note over userA
+			//初始化商户信息属性,数据来源_getMerchant(appId)
+			this->merchantRow = array(
+				merchant_id //商户表主键
+				app_id //微信应用id
+				app_secret //微信秘钥
+				wechat_number //微信号
+				merchant_name //商户名称
+				merchant_name_short //名称简称
+				logo_path //logo图片本地路径
+				service_phone //客服电话
+			) 
+		end note
+		/'---------------------查询商户信息---------------------end--'/
+		/'---------------------查询用户信息---------------------start--'/
+		group 查询商户信息
+			alt !empty(openId)
+				userA->userA: _getUser(openId)
+				activate userA
+					userA->userR:select()
+					userR-->userA:relationRow
+					userA->user:select()
+					user-->userA:userRow		
+					note over userA
+						//初始化用户信息属性,数据来源_getUser()
+						this->userRow = _getUser()
+					end note
+					userA-->userA:array_merge(relationRow,userRow)		
+				deactivate userA
+			end
+		end
+
+		/'----------------------查询用户信息-------------------------end--'/
+	userA-->subClass:obj
+	deactivate userA
+end
+/'----------------------初始化------------------------------end---'/
+/'-------------------- 查询用户详情---------------------start-------------'/
+group <font color=green><b>查询用户详情
+	subClass->userA:getUserDetail()
+	activate userA
+		group 查询该用户已贴标签
+			userA->userA:_getUserTag()
+			userA-->userA:tagArray
+		end
+		group 组合用户详情数据
+			note over userA
+				userArray = array(this->userRow,this->tagArray)
+			end note
+		end
+	userA-->subClass:userArray
+	deactivate userA
+end
+/'--------------------查询用户标签---------------------end-------------'/
+
+/'----------------------验证用户身份------------------------------start---'/
+subClass->userA:_checkUser(openId='')
+activate userA
+			alt !empty(openId)
+				userA->userA:_getUser(openId)
+			end
+			/' 从session中验证用户--------start'/
+			group 从session中验证用户
+				userA->userA:_checkUserBySession()
+				activate userA
+					note over userA: 从session中获取 userType\n并判断标识sign=1 粉丝, 2:会员, 3:员工
+				userA-->userA:sign
+				deactivate userA
+			end
+			/' 从session中验证用户--------start'/
+			
+			/' 从mysql数据库中验证用户--------start'/
+			group 从mysql数据库中验证用户
+				alt !_checkUserBySession()
+					userA->userA:_checkUserByDB()
+					activate userA
+						note over userA: sign = 1; (1 粉丝, 2:会员, 3:员工)
+						alt this->userRow[员工标识] = 1
+							note over userA:sign=3;
+						else this->userRow[会员标识] = 1
+							note over userA:sign=2;
+						end
+						group 注册session
+						userA->userA:_addSession()
+							activate userA
+								note over userA
+									session注册信息如下:
+										privateId => 私有库merchant_id
+										appId=>appId
+										openId=>openId
+										userId=>用户关系主体表主键
+										userType => 用户身份标识, 1:粉丝, 2:会员, 3:员工
+								end note
+								userA-->userA:
+							deactivate userA
+						end
+						userA-->userA: sign
+					deactivate userA
+				end
+			end
+			/' 从mysql数据库中验证用户--------end'/
+userA-->subClass:sign
+deactivate userA
+/'----------------------验证用户身份---------------------end------------'/
+
+/'--------------------查询用户标签---------------------start-------------'/
+group 查询用户标签
+	subClass->userA:_getUserTag()
+	activate userA
+		group 查询该用户已贴标签id
+			userA->utag:where(relation_id)->select()
+			utag-->userA:utagArray
+		end
+		group 根据已贴标签id查询标签信息
+			userA->tag:where( in tag_id)->select()
+			tag-->userA:tagArray
+		end
+	userA-->subClass:tagArray
+	deactivate userA
+end
+/'--------------------查询用户标签---------------------end-------------'/
+
+@enduml

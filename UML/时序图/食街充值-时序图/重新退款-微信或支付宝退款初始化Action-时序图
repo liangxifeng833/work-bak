@@ -1,0 +1,91 @@
+@startuml
+title 重新退款-微信或支付宝退款初始化Action--时序图
+
+actor controller #red
+/'-------------定义参与者别名 -------------------'/
+participant "WechatOrAliRefundAction\n微信或支付宝支付Action" as C  #FFFFFF
+participant "RetryRefundInitWechatOrAlipayAction\n微信或支付宝退款初始化Action" as A  #FFFFFF
+participant "RefundResponseLog\n退款响应日志DAO" as log  #FFFFFF
+participant "RemoteRequestRefund\n远程请求申请退款接口" as remote  #FFFFFF
+participant "微信或支付宝AnnalDao\n微信或支付宝收款表dao" as cDao  #FFFFFF
+participant "diningCardPriceDao\n充值记录表dao" as cardPriceDao  #FFFFFF
+controller->C:mainPost()
+activate C	
+		/'===========处理逻辑=============='/
+		C->A:mainInit($params)	
+		activate A				
+		note over A
+			参数说明：
+				params[cardNum] = 卡号
+				params[cardPriceId] = 充值记录表主键
+				params[payType] = 支付方式 1微信 2支付宝 3现金
+		end note
+		
+		/'-------------------去日志表查询该笔记录是否退款成功-------------------------'/
+		group 去退款响应日志表查询该笔记录是否退款成功
+		A->A:getLog(卡号，充值记录表主键)
+		activate A
+			A->log:getList()
+				note right A
+					 SELECT 微信或支付单号 transaction_id, 商户退款单号 (out_trade_no)
+					 WHERE  source_id = 充值记录表主键 AND pact_id = 卡号 
+					 AND pay_type=微信/支付宝 AND 平台类型=食街充值系统
+					 ORDER BY id DESC LIMIT 1
+				end note
+			log-->A:logRes
+			A-->A: logRes
+			deactivate A
+			alt 如果没有查询到退款成功记录
+				A-->C:返回标识，代表微信或支付宝没有退款
+			end
+		end
+		/'-------------------去日志表查询该笔记录是否退款成功-------------------------'/
+		
+		/'-------------------去中信查询微信或支付宝退款记录------------------------'/
+		group 去中信查询微信或支付宝退款记录
+			A->A:remoteRequest()
+			activate A
+				A->remote:wechatRefundQuery()/aliRefundQeury()\n请求微信或支付宝退款查询接口
+					note right A: 条件是：微信或支付单号 transaction_id 和 商户退款单号 (out_trade_no)
+				remote-->A: res
+			deactivate A
+			alt 如果去微信或支付宝没有查询到退款数据
+				A-->C:我们日志中存在退款成功数据\n但是微信支付宝端不存在\n属于异常必须联系技术支持
+			end
+			alt 如果查询到的退款状态refund_status == FAIL退款失败 
+				A-->C: 返回标识，代表微信或支付宝退款失败，重新发起退款，<font color=red><b>注意：原退款单号发起退款
+			end 
+			alt 如果查询到的退款状态refund_status == NOTSURE 未确定 && 支付方式＝微信
+				A-->C: 返回标识，代表微信退款失败，重新发起退款，<font color=red><b>注意：原退款单号发起退款
+			end 
+			alt 如果查询到的退款状态refund_status == CHANGE 转入代发  && 支付方式＝微信
+				A-->C: 返回标识，代表微信转入代发，退款到银行发现用户的卡作废或者冻结了，\n需要与财务沟通，使用收银监管现金退
+			end 	
+
+		end
+		/'-------------------去中信查询微信或支付宝退款记录------------------------'/
+				
+		group 查询本地数据库
+			A->A:getLocalDB()
+				A->cDao:getList()
+					note right A:　根据退款单号和 微信或支付单号查询微信或支付宝表
+				cDao-->A:mobileRes
+				alt 如果查到数据，则查询充值记录表
+					A->cardPriceDao: getList()
+						note  right A: 根据移动支付主键查询
+					cardPriceDao-->A:cardPriceRes
+				end
+			A-->A:true：返回值说明：如果移动支付表和充值记录表都存在数据则返回true,\n 否则返回false
+		end
+		
+		alt getLocalDB()==false && ( 远程查询到的退款状态refund_status == SUCCESS  ||  PROCESSING)
+			A-->C:返回标识，远程退款成功　并返回微信或支付宝退款响应日志中的数据logRes
+		else getLocalDB()==true && ( 远程查询到的退款状态refund_status == SUCCESS  ||  PROCESSING)
+			A-->C:返回标识，本地退款成功
+		end
+		
+		deactivate A
+C-->controller:res
+deactivate C
+
+@enduml

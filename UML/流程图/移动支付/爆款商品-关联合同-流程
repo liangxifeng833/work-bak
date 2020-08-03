@@ -1,0 +1,118 @@
+@startuml
+title  爆款商品-关联合同-流程
+
+actor 顾客小程序 #red
+/'-------------定义参与者别名 -------------------'/
+participant "HotProContractRuleController\n爆款商品与合同关联规则Apii" as app
+participant "HotProContractRuleAction\n爆款商品关联合同规则" as action
+participant "CheckBindPhoneAction\n验证是否绑定手机号action" as check
+participant "HotProductConfig\n爆款商品配置文件" as hconfig
+participant "GetHotDataByDB\n获取爆款商品和促销活动数据" as getProduct
+participant "CheckRuleCommon\n爆款商品公共验证规则" as commonRule
+participant "CreateHotRecord\n生成爆款商品预定记录Library" as createRecord
+
+ 顾客小程序->app:index_get()
+ activate app
+ 	note over app
+		必要参数: 
+			爆款商品主键
+			促销活动主键
+			<font color=blue>unionid
+	end note
+	
+	
+	 /'=====start============================='/
+	 group 查询数据
+		app->action:getData()
+		activate action
+		
+			group 验证是否绑定手机号
+				action->check:checkMain(unionId)
+					note right action: 通过unionid查询会员表 member_info_base
+					note right action: 如果查询到数据则将会员数据全部返回
+				check-->action: 
+				alt 判断验证结果, 如果未查询到数据
+					action-->app: 未绑定手机号
+				end
+				note over action: 以下逻辑用到会员主键从以上验证结果中获取
+			end 
+		
+				group 读取爆款商品配置数据
+					action->hconfig: getHotPro() 获取爆款商品配置数据
+					hconfig-->action: 爆款商品数组 hotArr
+				end
+				
+				group 从数据库中获取促销活动数据
+					action->getProduct:getSaleById(促销活动主键)
+					getProduct-->action:促销活动对象
+				end
+				
+				group 查询促销活动时间内符合条件的合同信息
+					note over action: $hotArr[白名单数组]
+					note over action: <font color=red><b>注意: 以下逻辑在 原有 购买条件接口:buyCondition 有部分实现, 修改后调用就可以
+					note over action
+						根据会员主键member_id and 展位号 IN 白名单 (如何白名单数组非空情况, 否则无该条件)
+						and 日期consume_date> 促销活动开始日期 
+						and consume_date<促销活动截止日期, 
+						查询product_conume表, 循环计算累加金额的 <font color=red><b>$hot[合同额or实额], 
+						判断如果累加金额是否 >= <font color=red><b>$hotArr[最大金额],
+						则将合同对应数组返回给前端, 否则返回累计消费不足信息
+					end note
+				end
+		action-->app: 合同数据
+ 		deactivate action
+	end
+ 	 /'======end============================'/ 
+ 	 
+	/'================新增数据 start ========================='/ 	 
+ 	group 新增数据
+ 	顾客小程序->app: index_post()
+ 	note over app: 必要参数 :  \n  手机号\n  爆款商品主键 \n <font color=blue>unionid
+		app->action:postData()
+		activate action
+			/'-------验库存-------------'/
+			group 验证库存
+				action->commonRule:checkStock()验证库存
+				commonRule-->action:
+					alt 如果没有库存
+						action-->app: 无库存
+					end
+			end		
+			/'-------验库存------------'/
+			
+			group 新增到爆款商品预定记录表\n和爆款商品与合同关系表数据
+				note over action
+				<font color=red><b>注意: 以下业务逻辑已经在原有接口 ( 生成爆款商品预订接口:createHotServe) 中有实现
+					       <font color=red><b>调整后, 直接调用该接口就可以了
+				end note
+				note over action
+					1.根据爆款商品主键查询爆款商品表，获取云编号，促销活动主键，预订价格，ecm_goods主键和私有库商品表主键
+					2. 根据手机号查询会员平台member_info_base表，获取用户名称
+					3. 根据 ecm_goods主键 查询ecm_goods表，获取商品名称，如果为空则通过云编号和私有库商品表主键查询大表商品表获取商品名称和商品型号
+					4. 根据云编号查询公有库的share_merchant_online表，获取K代码，通过K代码查询商户与合同签订表，获取展位号．
+				end note
+			end
+			
+			note over action: 新增爆款商品预订数据到hot_reserve表
+			
+			group 新增爆款商品预定记录
+				action->createRecord: mainPost()\n生成爆款商品预定记录表数据
+				note right action: 将unionid也新增到预定记录表
+				createRecord-->action: 新增后的爆款商品主键
+			end
+			group <font color=red>查询门槛合同是否有过门槛历史\n<font color=red>如果有门槛历史则新记录扣款状态=已确认
+			note over action
+				查询同与爆款商品关系表
+				WHERE 合同号 AND 扣款状态 != 未确认状态  LIMIT 1　
+				如果能查询到记录则新增合同与爆款商品关系表时，扣款状态 = 已确认，否则 = 未确认
+			end note
+			end 
+			note over action:  新增合同与爆款商品关系表数据
+		action-->app: 
+ 		deactivate action
+	end
+	/'================新增数据 end ========================='/
+	app-->顾客小程序: 
+ deactivate app
+
+@enduml

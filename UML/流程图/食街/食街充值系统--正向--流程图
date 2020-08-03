@@ -1,0 +1,56 @@
+@startuml
+title 食街充值系统-正向-流程图
+
+
+|充值系统|
+start
+fork
+	: 顾客卡办卡;
+	: 修改卡主表;
+	note right
+		修改卡余额
+		修改状态为已使用
+		修改押金
+		修改发卡时间
+		修改最后充值时间
+	end note
+	:新增充值记录表;
+	note right:注意办卡和充值分为两条记录
+fork again 
+	: 展员办卡;
+	:新增充值表;
+	:修改卡主表;
+		note right
+			修改云编号字段
+			其他修改与顾客办卡一致
+		end note
+	:修改展员表person;
+		note right
+			修改卡领取状态＝已领取
+			修改卡号字段
+		end note
+	:sqlServer数据库操作;
+		note right
+				:删除该卡在sqlServer中的打卡记录;
+				:删除该卡在sqlServer中的展员表信息;
+				:将卡号展员信息写入sqlServer展员表;
+		end note
+fork again
+	:充值;
+	:新增充值表;
+	:修改卡主表;
+		note right
+			修改卡余额
+			修改最后充值时间
+		end note
+fork again
+	:员工发卡;
+	:修改卡主表;
+		note right:修改押金和卡发放时间
+	:修改员工表;
+		note right:卡领取状态为已领取
+end fork
+
+
+end
+@enduml

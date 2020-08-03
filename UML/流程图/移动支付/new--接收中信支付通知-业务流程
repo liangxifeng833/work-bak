@@ -1,0 +1,134 @@
+@startuml
+title  接收中信支付通知-业务流程
+
+actor 顾客小程序 #red
+/'-------------定义参与者别名 -------------------'/
+participant "中信服务器口" as citic
+participant "顾客小程序应用层" as msgUrl
+participant "移动支付领域层" as log
+participant "收银系统领域层" as payment
+participant "短信平台" as message
+participant "下单系统领域层" as order
+participant "原BLL接口" as bll
+	
+		顾客小程序->citic:扫码支付
+		activate citic
+			citic->citic:处理支付请求
+		citic->msgUrl:通知支付结果
+		activate msgUrl
+			group 验证sign签名,必须是中信的请求
+				alt 如果sign签名验证不通过
+					msgUrl-->citic:return_code = FAIL
+				end 
+			end
+		
+			group 记录通知请求日志
+			msgUrl->log: 记录通知请求日志
+			end
+			alt 如果中信请求的状态 result_code != SUCCESS
+				msgUrl-->citic: return_code = FAIL
+			end
+			
+			note over msgUrl: 拆分附加数据attach\n获取商户订单表主键orderId,\n 付款期数表主键paymentId, \nsource来源, \npayType=1微信,2支付宝, \n合同号			
+			
+			group 通过查询付款方式获取微信支付宝手续费率
+				msgUrl->payment:payType.get()
+					note right msgUrl: 参考BLL libraris/citic_pay/CreateHandleFee.
+				payment-->msgUrl: 费率
+			end
+			note over msgUrl: 计算手续费
+			group 新增数据到微信支付宝表
+				msgUrl->payment:alipayAnnal/wxapyAnnal  add
+				payment-->msgUrl:
+			end
+			
+			group 通过商户订单号查询付款期数表状态
+				msgUrl->order:SELECT 付款状态 FROM order_payment WHERE 商户订单号
+				order-->msgUrl: 付款期数状态
+			end
+			
+			alt 付款期数状态 = 已支付
+				msgUrl-->citic: return_code= SUCCESS
+			else 如果该商户订单号未支付
+				group 查询订单表
+					msgUrl->order: SELECT * FROM order_online  WHERE 主键orderId
+					order-->msgUrl: 订单表数据
+				end
+				
+				group 查询订单付款期数关联的电子券信息
+					msgUrl->order: SELECT * FROM order_use_ticket  WHERE 付款期数表主键
+					order-->msgUrl: 该订单所用的电子券
+				end				
+				
+				note right msgUrl
+					组合调用BLL参数, 收款台号和收银员id从配置文件中获取
+				end note
+				
+				alt 订单表数据中标识是全额付款=部分付款
+					msgUrl->order: SELECT * FROM order_payment WHERE 订单主键orderId ORDER BY 主键 ASC LIMIT 
+					order-->msgUrl: res
+					alt  res.状态=未付款
+						note over msgUrl: 部分付款首期款
+					end
+				end
+				
+				alt 订单表数据中标识是全额付款 OR 部分付款首期款
+					msgUrl->bll:调用普通收款bll接口: basePayment.index_post()
+					bll-->msgUrl:json请求结果
+				else 尾款付款
+					msgUrl->bll:调用尾款收款bll接口: finalPayment.index_post()
+					bll-->msgUrl:json请求结果						
+				end
+				
+			group 调用原有BLL接口处理会员信息
+				alt 调用BLL member/checkMember 是会员 则修改会员信息
+					 msgUrl->bll: member/modifyMemberInfo
+					 bll-->msgUrl: 修改结果
+				else 否则新增会员
+					 msgUrl->bll: member/addMemberInfo
+					 bll-->msgUrl: 新增结果	
+					 group 给新用户发短信
+					 	msgUrl->message:发短信
+					 	message-->msgUrl:
+					 end
+				end
+			end
+				
+				group 调用当班结算接口当班
+					msgUrl->bll: 当班结算接口
+					bll-->msgUrl:
+				end
+				
+				alt 来源source = hot (爆款商品)	
+					note over msgUrl
+						1. 修改爆款商品购买记录表支付时间和<font color=red><b>移动支付主键
+						2. 修改爆款商品与合同关系表中付款状态=已付款
+					end note
+				end		
+						
+			end
+		
+				
+			group 记录通知响应日志
+				msgUrl->log: 记录通知请求日志
+			end
+			
+		msgUrl-->citic: return_code = SUCCESS
+		deactivate msgUrl
+		deactivate citic	
+		
+		
+		group 中信不保证通知的准确性，我们需要主动查询支付结果
+		顾客小程序->msgUrl:点击未付款的订单详情
+		activate msgUrl
+				msgUrl-->log:根据<font color=red>商户订单号</font>请求查询支付API
+				log-->msgUrl:支付结果
+				alt 支付结果=支付成功 AND 本地订单付款期数状态=未付款
+					note over msgUrl: 与以上调用新增微信, 支付宝BLL以后的业务一致(注意: 自己封装独立方法) 
+				end
+		msgUrl-->顾客小程序:支付结果
+		deactivate msgUrl
+	end
+		
+		
+@enduml

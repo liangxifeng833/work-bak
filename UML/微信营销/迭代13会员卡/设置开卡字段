@@ -1,0 +1,56 @@
+@startuml
+title 设置开卡字段
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "SetOpenCardField\n设置开卡字段C" as C  #00FF00
+participant "SetOpenCardFieldAction\n设置开卡字段A" as A  #FFFFFF
+participant "MemberOpenCardField\n会员开卡字段表A" as open  #FFFFFF
+participant "WechatMemberCardSDK\n微信会员卡相关sdk" as openSDK  #FFFFFF
+
+group 初始化查询
+view->C:index()
+activate C
+	C->A:get(id)
+	activate A
+		A->open:find()
+		open-->A:openRow
+	A-->C
+	deactivate A
+C-->view:openRow
+deactivate C
+end
+
+group 新增操作
+	view->C:indexPost()
+	activate C
+		C->A:create(params)
+		activate A
+			A->open:add()
+			open-->A:boolean
+			note over A: 注意：老会员绑定地址为：域名/Mobile/OldMemberBind/index
+			A->openSDK:setOpenCardInfo(data)
+			openSDK-->A:json
+		A-->C:boolean
+		deactivate A
+	C-->view:
+	deactivate C
+end
+
+group 修改操作
+	view->C:indexPut()
+	activate C
+		C->A:modify(params)
+		activate A
+			A->open:save()
+			open-->A:boolean
+			note over A: 注意：老会员绑定地址为：域名/Mobile/OldMemberBind/index
+			A->openSDK:setOpenCardInfo(data)
+			openSDK-->A:json
+		A-->C:boolean
+		deactivate A
+	C-->view:
+	deactivate C
+end
+
+@enduml

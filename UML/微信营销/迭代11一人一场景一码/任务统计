@@ -1,0 +1,72 @@
+@startuml
+title 任务统计
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "TaskStatics\n任务统计C" as staticC  #00FF00
+participant "TaskStaticsAction\n任务统计A" as staticA  #FFFFFF
+participant "InviteQrcode\n邀请二维码表" as code  #FFFFFF
+participant "InviteDetail\n邀请二维码详情表" as detail  #FFFFFF
+
+view->staticC:indexGet()
+activate staticC
+	staticC->staticA:
+	activate staticA
+		group 根据主键查询任务
+			staticA->staticA:_getTask(id)
+			activate staticA
+			staticA-->staticA:taskRow
+			deactivate staticA
+		end	
+		group 查询邀请二维码
+			staticA->staticA: _getQrcode(taskId)
+			activate staticA
+				staticA->code:where(task_id = taskId)->select()
+				code-->staticA:qrcodeRow
+			staticA-->staticA:qrcodeRow
+			deactivate staticA
+		end
+
+		group 查询邀请人数, 和目前关注人数
+			staticA->staticA: _getQrcodeDetail(inviteId)
+			activate staticA
+				group 邀请总人数
+					staticA->detail:where(invite_id = inviteId)->count()
+					detail-->staticA:inviteCount
+				end
+				group 目前关注人数
+					staticA->detail:where(invite_id = inviteId and status=1)->count()
+					detail-->staticA:focusCount
+				end
+			staticA-->staticA:array(inviteCount, focusCount)
+			deactivate staticA
+		end
+		
+		group 计算成功关注率
+			note over staticA
+				//计算成功关注率(目前关注人数 ÷ 总邀请人数) ÷ 任务进行天数(任务开始日期到今天),
+				//如果今天大于任务截止日期,则任务进行天数=任务开始日期到截止日期的天数
+				curTime =  time();
+				 endTime = curTime >  strtotime($taskRow['end_date']) ? strtotime($taskRow['end_date']) : curTime;
+				//邀请天数
+				$inviteDays = ceil((time()-(strtotime($taskRow['start_date'])))/76800);
+				//计算成功关注率 = (目前关注人数 ÷ 总邀请人数) ÷ 邀请天数 = 该用户的邀请成功关注率。四舍五入保留小数点后两位
+				successRate = round($followCount/$count/$inviteTime,2)
+			end note
+		end
+		
+		group 查询打卡统计信息
+			staticA->staticA:_getHitStatic()
+			activate staticA
+			return hitArray
+			deactivate staticA
+		end
+		
+		group
+			note over  staticA: 组合页面需要的数据staticArray
+		end
+	staticA-->staticC:staticArray
+	deactivate staticA	
+staticC-->view:staticArray
+deactivate staticC
+@enduml

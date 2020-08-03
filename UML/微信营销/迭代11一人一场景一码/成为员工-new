@@ -1,0 +1,49 @@
+@startuml
+title 成为员工
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "BecomeEmloy\n成为员工C" as becomeC  #00FF00
+participant "UserAction\n用户A" as userA  #FFFFFF
+participant "EmloyAction\n员工A" as employA  #FFFFFF
+participant "WechatFansRelation\n主体关系表" as relation  #FFFFFF
+participant "WechatFans\n用户详情表" as user  #FFFFFF
+
+
+group 根据关系表主键查询用户信息
+	view->becomeC:indexGet(relationId)
+	activate becomeC
+		becomeC->userA:getUserInfo(id)
+		userA-->becomeC:array
+		becomeC-->view:array
+	deactivate becomeC
+end
+
+group 成为为员工操作
+	view->becomeC: indexPost()
+	activate becomeC
+		becomeC->employA:become()
+		activate employA
+			group 修改主体关系状态
+				note over employA: data[identity_sign] = 1 \n 称为特殊身份(员工)
+				employA->employA:_modifyRelation(id,data)
+				activate employA
+					employA->relation: where(id)->data(data)->save()
+					relation-->employA:boolean
+				deactivate employA
+			end
+			group 修改用户详情表信息
+				employA->employA:_modifyUserInfo(id,data)
+				activate employA
+					employA->user:where(id)->data(data)->save()
+					user-->employA:boolean
+				deactivate employA
+			end
+		employA-->becomeC:
+		deactivate employA
+	becomeC-->view:
+	deactivate becomeC
+end
+
+
+@enduml

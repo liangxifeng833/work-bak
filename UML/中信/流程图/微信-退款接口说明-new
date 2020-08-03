@@ -1,0 +1,59 @@
+@startuml
+title 中信银行-微信-退款接口-流程
+|BLL（可连外网）|
+start
+	:退款;
+	#yellow:申请退款API;
+	note left
+		退款条件：
+			１．退款金额<=实际付款额
+			２．退款申请单号out_refund_no唯一
+			３．退款失败重新提交要保证out_refund_no＝原out_refund_no
+	end note
+	
+	|威富通（中信）|
+	:接收退款数据;
+	
+	|BLL（可连外网）|
+	/'返回xml数据判断是否支付成功'/
+	:返回xml数据;
+		if (return_code!=SUCCESS ?) then (yes)
+			#red:通信异常;			
+			end
+		elseif(return_code=SUCCESS  and result_code = SUCCESS ? ) then(yes)
+  			#green:申请退款成功;
+  		else(no)
+			#yellow:申请退款API;
+			note right
+				退款单号使用退款失败的退款单号\n
+				即：原退款单号
+			end note
+		endif
+	/'返回xml数据判断是否支付成功'/
+	#yellow:退款查询API;
+	note left
+		提交退款申请后, 通过调用该接口查询退款状态
+		退款有一定延时, 用零钱支付的退款 20 分钟内到账,
+		银行卡支付的退款 3 个工作日后重新查询退款状态
+	end note
+	/'查询退款状态返回后判断-----------------------start'/
+	if (return_code!=SUCCESS ?) then (yes)
+		#red:通信异常;			
+	elseif(return_code=SUCCESS  and result_code = SUCCESS ? ) then(no)
+		#yellow:使用原退款单号\n重新申请退款API;
+	else(yes)
+		:得到退款状态 refund_status_$n;
+		fork
+			:FAIL退款失败\n或NOTSURE未确定;
+			#yellow:使用原退款单号\n重新申请退款API;
+		fork again
+			:SUCCESS—退款成功;
+		fork again
+			:PROCESSING—退款处理中;
+		fork again
+			:CHANGE—转入代发;
+		end fork
+	endif
+	/'查询退款状态返回后判断-----------------------end'/
+end
+@enduml

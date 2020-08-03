@@ -1,0 +1,25 @@
+@startuml
+title 自动审核验证-非BLL\n
+
+actor controller #red
+/'-------------定义参与者别名 -------------------'/
+participant "autoCheck\n验证自动审核类L" as autoL #FFFFFF
+participant "business_review_mdl\n自动审核表M" as autoM #FFFFFF
+
+controller->autoL:isautoLCheck()\n是否自动审核
+activate autoL
+			autoL->autoM:getOne(1,'rev_val')\n通过主键＝１查询自动审核表rev_val字段
+			autoM-->autoL:autoRes
+			
+			alt empty(autoRes)
+				autoL-->controller:false
+			end
+
+			alt autoRes[rev_val]=1 开启自动审核
+				autoL-->controller: true
+			else if autoRes[rev_val]=0 关闭自动审核
+				autoL-->controller: false
+			end
+			
+deactivate autoL
+@enduml

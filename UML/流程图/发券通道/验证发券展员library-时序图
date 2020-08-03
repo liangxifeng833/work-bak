@@ -1,0 +1,31 @@
+@startuml
+title 验证发券展员-时序图
+
+actor library #red
+/'-------------定义参与者别名 -------------------'/
+participant "CheckSendSaleMan\n发券API" as common  #FFFFFF
+participant "saleMan\n展员表" as saleMan  #FFFFFF
+participant "merchantList\n商户名单表" as rer  #FFFFFF
+
+library->common:index(促销活动obj，展员主键)
+activate common
+			activate common
+				alt  促销活动obj.商户类型字段 == 1 不存在黑白名单
+					common-->library:不存在黑白名单不需要验证
+				end
+					common->saleMan:getOne()\n通过主键查询展员表信息
+					saleMan-->common:展员obj
+					
+					common->rer:getList()\n查询商户名单表
+						note right common: WHERE 促销活动主键 AND 展员obj.云编号
+					rer-->common:商户名单obj
+					
+					alt 促销活动obj.商户类型字段 == 2（ 黑名单 ） AND 商户名单obj 非空
+						common-->library: 该商户在黑名单内不允许发券
+					end
+					
+					alt 促销活动obj.商户类型字段 == 3（ 白名单 ） AND 商户名单obj 为空
+						common-->library: 该商户不在白名单黑不允许发券
+					end				
+deactivate common
+@enduml

@@ -1,0 +1,134 @@
+@startuml
+title 财务返款操作
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "returnPrice\n商户返款C" as remitC  #00FF00
+participant "ReturnPriceAction\n商户返款A" as remitA  #FFFFFF
+participant "MerchantInfoDao\n商户基础信息表D" as merchantD  #FFFFFF
+participant "MerchantContractSignedDao\n商户合同签订表D" as contractD  #FFFFFF
+participant "MerchantDocumentFromDao\n商户对账单表D" as documentD  #FFFFFF
+participant "ChequeAnnalDao\n支票表D" as chequeD  #FFFFFF
+participant "RemitMerchantDao\n商户返款记录表" as remitD  #FFFFFF
+participant "tctReturnPrice\n返款事务" as tctReturn  #FFFFFF
+
+
+view->remitC:index_post()
+activate remitC
+/'===========验证参数=============='/
+group 验证参数
+	note over remitC
+		接收参数：
+			 $params = this->get("params");
+		         验证参数$params 非空
+	end note
+end
+note over remitC
+	验证token
+end note
+
+/'===========处理逻辑=============='/
+group 处理逻辑
+	remitC->remitA:main($params)
+	activate remitA
+		note over remitA
+			参数说明:
+				$params[merchantId] = 商户基础信息表merchant_info主键
+				$params[consumeIds] = product_consume表主键数组
+		end note
+		note over remitA: 验证参数
+		
+		/'====查询商户信息===='/
+		group 通过商户主键查询商户洗洗你
+			remitA->remitA: getMerchantById(merchantId)
+			activate remitA
+				remitA->merchantD:通过主键查询商户基础信息表数据
+				merchantD-->remitA:merchantRow
+				remitA->contractD:通过K代码查询合同签订表, 注意按着主键倒序取一条
+				contractD-->remitA:contractRow
+				alt  !merchantRow || !contractRow
+					remitA-->remitA: false
+				else
+					remitA-->remitA: array_merge(merchantRow,contractRow)
+				end
+			deactivate remitA		
+			alt ! getMerchantById()
+				remitA-->remitC:商户信息查询失败
+			end
+		end
+		
+		/'=========生成结账单==========='/
+		group 生成结账单
+		remitA->remitA:_createAccountId()
+		activate remitA
+			remitA->documentD: 主键倒序查询一条数据
+			documentD-->remitA:documentRow
+			alt  empty(documentRow->document_from_id)
+				note over remitA: accountId = 1
+			else
+				note over remitA: accountId = documentRow->document_from_id+1
+			end
+			remitA-->remitA: accountId
+		deactivate remitA
+		end 
+
+		/'========查询出所有包含支票未到帐或者已作废的consume_id============'/
+		group 查询出所有包含支票未到帐或者已作废的consume_id
+			remitA->remitA:_filterCheque(consumeIds)\n查询支票未到帐或者已作废的consume_id
+			activate remitA
+				remitA->chequeD:SELECT cheque_consume_id  WHERE cheque_state != 1 AND cheque_consume_id IN (consumeIds)
+				chequeD-->remitA:chequeConsumeIds
+				loop chequeConsumeIds as v 循环去除支票未到帐或者已作废的consume_id
+					note over remitA: unset(consumeIds[v]) 
+				end
+				remitA-->remitA: consumeIds
+			deactivate remitA
+		end
+		note over remitA: <font color=red><b>注意: consumeIds = _filterCheque(consumeIds)
+		
+		/'========查询返款总额============='/
+		group 查询返款总额
+			remitA->remitA:_getRemitTotal()
+			activate remitA
+				remitA->remitD: SELECT SUM(remit_total_value) AS totalPrice WHERE remit_merchant_id=merchantId AND remit_consume_id IN (consumeIds) AND a.remit_state != 2
+				remitD-->remitA:totalPrice
+			deactivate remitA
+		end
+		
+		/'========调用DAL事务, 进行最终的返款操作============='/
+		group 调用DAL事务, 进行最终的返款操作
+			note over remitA
+				组合事务参数:
+					data[accountId] = 结账单号
+					data[consumeState ] = product_consume状态=4,已结算
+					data[remitState] = remit_merchant状态 = 2 已打款
+					data[consumeIds] = consumeIds 
+					data[merchantId] = 商户基础信息表merchant_info主键
+					date[remitTotalPrice] = 结算额totalPrice
+					...商户所需信息,来源:getMerchantById()
+			end note
+			remitA->tctReturn:index_post()
+				note right of remitA
+					事务处理逻辑:
+						1, 更新product_conume表
+							SET consume_state = consumeState, consume_checkout_form = 结账单号   WHERE consume_id IN (consumeIds)
+						2, 更新remit_merchant表
+							SET remit_state = remitState, remit_document_form = 结账单号 WHERE remit_consume_id IN (consumeIds)
+						3, 新增结算记录表merchant_document_from数据
+							  document_id: －－－－－－－－－－－－－－主键
+							  document_from_id:－－－－－结账单号
+							  document_merchant_id: －－－－－－－商户merchant_info表主键
+							  document_bank_id: －－－－－银行卡号,( merchant_info.merchant_account)
+							  document_bank_name: －－－－－－持卡人(merchant_info.merchant_bank_man)
+							  document_merchant_show: －－－－－－－－展位号(merchant_contract_signed.con_resource)
+							  document_form_value: －－－－－－结算额 remitTotalPrice
+							  document_form_date: －－当前时间
+				end note
+			tctReturn-->remitA: boolean
+		end
+		remitA-->remitC:
+	deactivate remitA
+end
+remitC-->view:
+deactivate remitC
+@enduml

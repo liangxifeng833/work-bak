@@ -1,0 +1,56 @@
+@startuml
+title 微信入口
+
+actor 微信后台 #red
+/'-------------定义参与者别名 -------------------'/
+participant "WechatIndex\n微信接入接口" as A #00FF00
+participant "WechatSignature\n微信签名类" as sign #FFFFFF
+participant "ProjectRoute\n项目路由类" as route #FFFFFF
+group 构造方法
+	微信后台->A: __contruct()
+	activate A
+			/'===========调用初始化方法=============='/		
+			A->A:_init()
+			activate A
+				/'签名操作'/
+				alt 1==this._isSignture(签名)
+					A->sign:__construct()
+					activate sign
+						sign->sign:valid()
+						activate sign				
+							note over sign
+								if(this.checkSignature()) 
+								 echo $_GET['echostr'] ; exit;
+							end note	
+							sign-->微信后台:echo $_GET['echostr']; exit; "<font color=red ><b> 注意这里一定要有exit"
+						deactivate sign
+					deactivate sign
+				else 请求信息
+					A->A:_parseXmlToObj()\n将微信请求的xml信息解析为对象\n并将赋值给this._msgObj
+					activate A
+					deactivate A
+				end
+				A-->A: _init调用结束
+			deactivate A
+			/'===========调用初始化方法=============='/
+			A-->A:构造方法结束
+	deactivate A
+end 
+
+group 请求逻辑
+	微信后台->A: index()
+	activate A
+		group 将请转发到对应项目
+			A->route: index(requestData = this->msgObject)
+			activate  route
+				alt ROUTE_TO (路由到哪, 从常量获取) =  1 代表电子券
+					
+				end
+			route-->A:
+			deactivate  route
+		end
+	A-->微信后台:
+	deactivate A
+end
+
+@enduml

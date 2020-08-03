@@ -1,0 +1,120 @@
+@startuml
+title 商城下单流程分析
+
+|云平台|
+:提报商品;
+note left
+	商品信息存入商品平台
+end note
+|mis系统|
+:审核商品;
+
+|云平台|
+:填写网购信息;
+group
+if(是否仅供网销)then(yes)
+:标注为仅供网销;
+endif
+if(是否定金支付)then(yes)
+:输入定金金额;
+endif
+end group
+
+|商城后台|
+:关联店铺与商户;
+:选择云平台商户商品;
+note left
+	从云平台私有库读商品数据
+end note
+:编辑商品;
+note left
+	可修改商品定金金额
+end note
+:审核商品;
+note left
+	修改商品平台商品状态
+end note
+
+|商城前台|
+:浏览商品;
+note left
+	读商城的view数据
+end note
+:加入购物车;
+
+|会员平台|
+:验证会员;
+
+|商城前台|
+if(是否是会员)then(yes)
+	:根据会员折扣重新计算商品价钱;
+	note right
+	定金是否计算会员折扣?
+	end note
+endif
+:确认订单;
+note left
+	填写收货地址,发票信息,
+	商品备注
+end note
+
+|订单平台|
+:生成订单;
+|下单系统|
+if(是否议价)then(yes)
+   	if(商品是否定金支付)then(yes)
+    else(no)
+    #green:议价;
+	note right
+	修改单品价格
+	end note
+    endif
+
+	|会员平台|
+	:验证会员;
+	|商城前台|
+	if(是否是会员)then(yse)
+		:计算会员价钱;
+	endif
+	:重新计算订单价钱;
+	
+	|订单平台|
+	:修改订单信息;
+endif
+
+|商城前台|
+if(是否用券)then(no)
+	else(yes)
+		:输入使用码;
+		|券平台|
+		:验证电子券是否可用;
+		|商城前台|
+		if(是否可用)then(yes)
+			:计算最终支付金额;
+		else(no)
+			:抛出异常;
+		endif
+endif
+
+|支付平台|
+:支付;
+
+|商城前台|
+if(是否支付成功)then(yes)
+	:简单消息异步系统;
+	fork
+		:修改订单状态;
+	fork again
+		:处理会员信息;
+	fork again
+		:微信电子券核销;
+	fork again
+		:...;
+	end fork
+	end
+else(no)
+	|支付平台|
+	:重新支付;
+end
+
+@enduml

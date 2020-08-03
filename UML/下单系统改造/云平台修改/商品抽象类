@@ -1,0 +1,80 @@
+@startuml
+title 商品抽象类-非BLL\n
+
+actor subClass #red
+/'-------------定义参与者别名 -------------------'/
+participant "productAbstract\n验证自动审核类L" as proA #ADD8E6
+participant "product_mdl\n商品M" as proM #FFFFFF
+participant "extrapro_mdl\n商品附表M" as exM #FFFFFF
+participant "AutoCheck\n自动审核L" as autoL #FFFFFF
+participant "checkProducts\n审核商品C" as bll  #00FF00
+
+/'===========初始化操作============'/
+group 初始化
+	subClass->proA:__construct()
+	activate proA
+		note over proA
+			//云编号赋值
+			this->_ljyunId = 云编号从session中获取
+			//商品主键赋值
+			this->_proId = get/post('proId');
+		end note
+	/'=======查询商品信息====='/
+	group 查询商品信息	
+		/'---查询商品信息---'/
+		proA->proA:_getProduct()\n查询商品信息
+			activate proA
+			proA->proM:getOne(this->_proId)
+			proM-->proA:proArr
+			proA->exM:getTotal(where条件为商品表主键)
+			exM-->proA:extraArr
+			
+			alt proArr && extraArr
+			   note over proA
+			   //合并查询到的主表和附表数据，并赋值属性
+				this->_proArray = array_merge(proArr,extraArr)
+			  end note
+				proA-->proA:true
+			else
+				proA-->proA:false
+			end
+		deactivate proA
+		
+		alt !_getProduct()
+			note over proA: 系统提示：该商品不存在
+		end
+end
+proA-->subClass:obj
+deactivate proA
+
+		
+/'====自动审核===='/
+group 自动审核
+	subClass->proA:_autoCheck()
+		alt this->_proArr['product_status']  != 0 非新增商品
+			activate proA
+			 /'------验证是否自动审核--------'/
+			 proA->autoL:isAutoCheck()\n验证是否自动审核
+			 autoL-->proA:boolean
+			 
+			 alt isAutoCheck()
+			 		note over proA
+					 		组织调用bll自动审核接口参数
+					 		$arr[params] = array(ljyunId=>云编号,proId=>商品表主键);
+					 	end note
+			 	proA->bll:index_post()
+			 	bll-->proA:boolean
+			 end
+		 end
+		proA-->subClass:boolean
+	 	deactivate proA
+end		
+		
+		
+		
+		
+		
+
+
+deactivate proA
+@enduml

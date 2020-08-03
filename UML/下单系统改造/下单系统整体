@@ -1,0 +1,124 @@
+@startuml
+title 下单系统整体流程分析
+
+|云平台后台管理|
+start
+:商户查询管理 ☆;
+note left:对商户统一管理
+fork
+	#yellow:蓝景装饰合作商户设置\n☆☆;
+fork again
+	:商户清库管理\n☆☆;
+fork again
+	#yellow:商户定制类商品类目设置\n☆☆;
+fork again
+	:合同号批量预制\n☆;
+fork again
+	:分配云编号\n☆☆;
+fork again
+	:初始化admin密码\n☆;
+end fork
+
+
+|云平台|
+:品牌管理;
+:商品分类管理;
+note left:标准和非标
+:商品上传;
+fork
+	:手动添加商品;
+fork again
+	#yellow:批量导入\n☆☆☆;
+	note right: excel转xml
+end fork
+
+#yellow:提报商品\n☆☆;
+note left
+	应该创建商品平台
+	将webservice切断
+end note
+
+:系统需求: 商品由私有库至商品平台,存储过程\n☆}
+#yellow:特价商品\n☆☆☆;
+|下单系统|
+#00FF99:价签设置\n☆☆;
+|mis系统|
+#00FF99:价签打印\n☆☆☆☆;
+|云平台|
+fork
+	#yellow:向实体店提报(视图)\n☆;
+fork again
+	:向蓝景商城提报;
+	end
+end fork
+
+|mis系统|
+#99CCFF:审核商品\n☆☆☆;
+
+
+|下单系统|
+#99CCFF:浏览商品\n☆☆;
+#99CCFF:加入购物车\n☆☆;
+#99CCFF:填写顾客信息☆;
+|会员平台|
+:验证会员;
+
+|下单系统|
+#99CCFF:蓝景装饰合作商户\n☆;
+
+if(商品类目为定制类)then(yes)
+	#99CCFF:填写定制说明\n☆;
+	note left: 以订单商品为单位说明
+endif
+
+#99CCFF:议价\n☆;
+#99CCFF:促销活动计算\n☆☆;
+#99CCFF:另行支付+测量安装时间\n☆;
+if(全额付款)then(yes)
+else(no)
+#99CCFF:设置首付款金额\n☆;
+endif
+
+|订单平台|
+#99CCFF:生成订单\n☆☆;
+
+fork
+	:生成实体订单;
+fork again
+	:生成线上订单;
+	end
+end fork
+
+|收银系统|
+#FFCCFF:查询订单\n☆☆;
+if(是两天前的订单)then(yes)
+	:更新订单状态为已作废;
+	end
+else(no)
+endif
+
+#FFCCFF:订单查看页面\n☆;
+
+#FFCCFF:收款\n☆☆☆☆☆☆☆;
+:bll 做结构+事务+外键约束}
+fork
+	#FFCCFF:打印流水小票\n☆;
+fork again
+	#FFCCFF:打印合同单\n☆☆☆;
+end fork
+
+:收款成功后的操作;
+#00FF99:需要实现简单异步消息机制\n☆☆☆☆☆☆☆}
+fork
+	#00FF99:成为会员/修改会员积分\n☆;
+fork again
+	#00FF99:修改订单状态\n☆;
+fork again
+	#00FF99:微信发券核销\n☆;
+fork again
+	:...;
+end fork
+#FFCCFF:收银系统所有查询列表页\n☆☆☆;
+end
+
+@enduml

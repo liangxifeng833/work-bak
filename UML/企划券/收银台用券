@@ -1,0 +1,12 @@
+@startuml
+title  微信用券
+
+
+ |收银系统|
+ start
+ :扫码过程;
+ :用券并更改本地券状态;
+ #red:更新微信核销系统 ☆ ☆;
+ end
+
+@enduml

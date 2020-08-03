@@ -1,0 +1,39 @@
+@startuml
+title 生成二维码图片处理类
+
+actor subClass #red
+/'-------------定义参与者别名 -------------------'/
+participant "CreateQrcodeMixImg\n微信用户请求抽象类L" as index #FFFFFF
+/'==================初始化===================='/
+group 初始化
+	subClass->index: __construct(dataArr)
+	activate index
+		note over index 
+			//图片上需要的信息
+			this.dataArr = dataArr
+		end note
+	index-->subClass:obj
+	deactivate index
+end
+
+/'==================生成混合图片===================='/
+group 生成混合图片
+	subClass->index: create()
+	activate index
+		index->index:_createQrcode()生成二维码图片
+		activate index
+		note over index:二维码图片路径调用常量 \nIMG_PATH = CI根目录下static/img/wechat
+		participant "phpqrcode\nPHP二维码类L" as qrcode #FFFFFF
+			index->qrcode:QRcode::png()
+			activate qrcode
+			qrcode-->index:
+			deactivate qrcode
+		deactivate index
+		
+		index->index:_createImg()生成二维码+券信息图片
+		activate index
+		deactivate index
+	index-->subClass:imgPath最终要上传微信服务器的图片地址
+	deactivate index
+end
+@enduml

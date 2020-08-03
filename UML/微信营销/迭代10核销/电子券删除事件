@@ -1,0 +1,59 @@
+@startuml
+title 电子券删除事件
+
+actor wechat #red
+/'-------------定义参与者别名 -------------------'/
+participant "WechatInterface\n微信事件入口C" as indexC  #00FF00
+participant "ReceiveMessageAction\n接收消息路由类A" as recA #FFFFFF
+participant "CouponUserDelEvent\n电子券删除类A" as ticketA #FFFFFF
+participant "Coupon\n电子券表" as coupon #FFFFFF
+participant "CouponBatchStatics\n电子券批次统计表" as batch #FFFFFF
+
+/'-----------------------请求入口-------------------start---'/
+wechat->indexC:index(postData)
+activate indexC
+	indexC->recA:doLogic(postData)
+	activate recA
+		/'----------------------路由类根据事件类型new 电子券核销类--------start------'/
+		group 路由类根据事件类型new 电子券删除类
+			recA->recA:_deal()
+			activate recA
+				/'----------------------处理核销事件--------start------'/
+				group 处理删除事件
+					recA->ticketA:dealData(postData)
+					activate ticketA
+						note over ticketA: 验证参数\n开启事务
+						group 修改券信息为已删除
+							note over ticketA
+								组合修改数据参数:
+									$map['card_id'] = array('eq',$param['CardId']); //微信券批次编号
+									$map['code'] = array('eq',$param['UserCardCode']);//券编号
+									$data['status'] = 'DELETE'
+									data [last_time] =  当前时间
+							end note 
+							ticketA->coupon:where($map) ->data($data)->limit(1)->save();
+							coupon-->ticketA:boolean
+						end
+						group 修改批次统计信息中( 删除数量+1 )
+							note over ticketA
+								组合修改数据参数:
+									$map['card_id'] = array('eq',$param['CardId']); //微信券批次编号
+									$data['delete_count'] = delete_count + 1
+							end note 		
+							ticketA->batch:where($map) ->data($data)->limit(1)->save();		
+							batch-->ticketA:boolean	
+						end
+					ticketA-->recA:
+					deactivate ticketA
+				end
+				/'----------------------处理核销事件--------end------'/
+			deactivate recA
+		end
+		/'----------------------路由类根据事件类型new 电子券核销类--------end-------'/
+	recA-->indexC
+	deactivate  recA
+	indexC-->wechat
+deactivate indexC
+/'-----------------------请求入口------------------end------'/
+
+@enduml

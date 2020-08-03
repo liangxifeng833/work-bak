@@ -1,0 +1,35 @@
+@startuml
+title 换购商品-业务流程
+
+
+actor 展员 #red
+actor 编辑 #red
+actor 顾客 #red
+/'-------------定义参与者别名 -------------------'/
+participant "下单系统" as order 
+participant "商城后台" as mall 
+participant "客户端小程序" as smallProgram 
+participant "应用层" as app
+	
+	==商品暂时手动指定==
+	
+	group 顾客抢购换购商品
+	顾客->smallProgram:点击换购商品抢购
+	activate smallProgram
+		note over smallProgram:<font color=red>抢购是否需要做队列？
+		smallProgram->smallProgram:验证有无资格抢购\n将验证作为配置文件\n规则尚未确定
+		alt 如果符合抢购规则
+			smallProgram->app:下单API
+				note over app
+					<font color=red>注意：
+						获取合同号注意并发
+				end note
+			app-->smallProgram:返回订单号
+			smallProgram->smallProgram:线上支付
+		end
+	smallProgram-->顾客:
+	deactivate smallProgram
+	end
+	
+	
+@enduml

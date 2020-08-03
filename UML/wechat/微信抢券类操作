@@ -1,0 +1,79 @@
+@startuml
+title 微信抢券类操作
+
+/'-------------定义参与者别名 -------------------'/
+participant "RequestFirst\n微信对外接口C" as index #FFFFFF	
+/'=======================实例化抢券类对象开始 ========================'/	
+group  实例化抢券类对象
+	participant "RushTicket\n微信抢券类L" as rush #FFFFFF
+	index->rush:__construct(userMsgObj,saleType)
+	activate rush
+		participant "WechatTicketAbstract\n微信抢券抽象类L" as rushA #ADD8E6		
+		/'----------------------parent:contruct构造父类开始----------------------------'/
+		group 构造父类 		
+			rush->rushA:parent::__construct(userMsgObj,saleType)
+				activate rushA
+				rushA-->rush:
+				deactivate rushA
+			end
+			/'----------------------parent:contruct构造父类结束----------------------------'/
+			
+			/'----------------------个性化规则验证开始----------------------------'/
+			group 个性化规则验证	
+				rush->rush:_checkSpecialRule()个性化规则验证	
+				activate rush
+					alt 1==this._startFlag 如果在活动期间内
+						/'---加载配置类---'/
+						participant "Config\n配置类L" as configB #FFFFFF
+						rush->configB:getRule($saleType[rule]);获取规则类名
+						activate configB
+							note over configB:$ruleLib = 'Rule_'.$saleType[1];
+						configB-->rush:	$ruleLib (比如：Rule_1)
+						deactivate configB
+										
+						/'---加载对应规则类---'/
+						alt $ruleLib
+							participant "Rule_1\n规则类L" as rule #FFFFFF
+							participant "WechatServerApi\n微信服务端接口类L" as wechat #FFFFFF
+							rush->rule:index()
+							activate rule
+								alt 当前时间 < 10点							
+									note over rule: 组织入参paramJson,现在不是领券时间，请稍后再试 ,程序终止执行
+									rule->wechat:serviceSend(paramJson)
+								end
+								rule-->rush:
+							deactivate rule
+						end
+					end
+				rush-->rush: boolean
+				deactivate rush
+			end
+			/'----------------------个性化规则验证结束----------------------------'/			
+			
+			/'----------------------验证是否领取过券开始----------------------------'/	
+			group 验证是否领取过券
+				participant "Sale_ticket_log\n微信用户抢券记录表类L" as log #FFFFFF
+				rush->rush:_checkGetTicket()
+				activate rush
+					note over rush
+						组合查询条件：
+						log_openid＝微信用户唯一标识, 从this.userMsgObj中获取
+						log_batch_num ＝批次编号, 从this.saleType中获取
+						log_sale_id = 活动主键, 从this.saleType中获取
+					end note
+					rush->log:通过REST方式查询
+					log-->rush:logObj
+					alt 1 == count(logObj)
+						rush->wechat:serviceSend(您已领取过优惠券，谢谢关注)
+						note over rush: 程序终止执行
+					end			
+				rush-->rush:
+				deactivate rush
+			end
+			/'----------------------验证是否领取过券结束----------------------------'/	
+			
+	rush-->index:obj
+	deactivate rush
+end
+/'=======================实例化抢券类对象结束 ========================'/	
+@enduml

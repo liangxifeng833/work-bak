@@ -1,0 +1,32 @@
+@startuml
+title 微信小程序付款-时序图
+
+actor 用户 #red
+/'-------------定义参与者别名 -------------------'/
+participant "蓝景丽家微信小程序" as lj  #FFFFFF
+participant "停简单开放平台API" as stop  #FFFFFF
+participant "停简单微信小程序" as jiandan  #FFFFFF
+participant "微信" as wx  #FFFFFF
+
+
+用户->lj:扫码获取停车时长，需缴费金额
+activate lj
+	lj->stop:调用在场订单查询接口:\nparkhub.order.infoForFreeMins
+	activate stop
+	stop-->lj:订单信息
+	deactivate stop
+	lj->stop:调用批量抵扣接口:\nparkhub.order.deductionForDetail
+	activate stop
+	stop-->lj:抵扣结果
+	deactivate stop
+		lj->jiandan:打开停简单小程序	
+		activate jiandan
+			jiandan->wx:微信支付
+			stop->lj:支付成功通知
+			wx-->jiandan:支付结果
+			jiandan->lj:用户点击完成按钮跳转回蓝景小程序
+		deactivate jiandan
+ lj-->用户:支付结果		
+deactivate lj
+
+@enduml

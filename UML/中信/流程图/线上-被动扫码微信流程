@@ -1,0 +1,65 @@
+@startuml
+title 中信银行-微信-被动扫码流程
+|用户|
+start
+
+|蓝景商城|
+:下单成功点击支付;
+	#yellow:获取二维码API;
+	note left
+		参数：
+			支付金额
+			<font color="red"><b>回调URL地址
+	end note
+	
+	|威富通（中信）|
+	:处理;
+	
+	|蓝景商城|
+	/'返回xml数据判断是否支付成功'/
+	:返回xml数据;
+		if (status!=0 ?) then (yes)
+			#red:通信异常;			
+		elseif(status=0  and result_code = 0 ? ) then(yes)
+  			:<font color="red"><b>二维码链接\n<font color="red"><b>二维码图片;
+  		else(no)
+			:查询异常;
+		endif
+	/'返回xml数据判断是否支付成功'/
+
+|用户|
+:显示二维码给用户;
+
+|蓝景商城|
+:用户扫描二维码;
+
+|威富通（中信）|
+:支付;
+
+|蓝景商城|
+#yellow:扫码通知API;
+note left
+	威富通把相关支付
+	和用户信息发送给<font color="red"><b>回调URL
+	要对接收到通知参数里的订单号 out_trade_no 
+	和订单金额total_fee 和自身业务系统的订单
+	和金额做校验
+end note
+
+|威富通（中信）|
+if (回调URL返回=="success" ? ) then(no)
+	|蓝景商城| 
+	 #yellow:继续请求扫码通知API;
+	 note left
+	 	30 分钟共 8 次, 定期重新发起通知
+	 	我们要做好排重工作
+	 end note
+else(yes)
+|威富通（中信）|
+endif
+
+#yellow:订单查询API\n退款API\n退款查询API\n关单API与主动扫码流程一致;
+
+
+end
+@enduml

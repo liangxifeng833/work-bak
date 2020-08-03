@@ -1,0 +1,149 @@
+@startuml
+title 微信或支付宝退款Action-时序图
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "API" as C  #00FF00
+participant "WechatOrAliRefundAction\n微信或支付宝支付Action" as A  #FFFFFF
+participant "RetryRefundInitWechatOrAlipayAction\n微信或支付宝退款初始化Action" as init  #FFFFFF
+participant "diningCardDao\n卡主表" as card  #FFFFFF
+participant "CreateRefundNumber\n生成商户退款单号" as create  #FFFFFF
+participant "CreateHandleFee\n生成手续费类" as fee  #FFFFFF
+participant "RemoteRequestRefund\n远程请求申请退款接口" as remote  #FFFFFF
+
+participant "WechatAnnalDao\n微信收款表" as cDao  #FFFFFF
+participant "AlipayAnnalDao\n支付宝收款表" as aDao  #FFFFFF
+view->C:index_**()
+activate C	
+		/'===============构造器================='/
+		group 构造器
+			C->A:__construct(type=微信支付宝标识, cardNum = 卡号)
+			activate A
+				note over A
+					this.type = type 1:微信 2:支付宝
+				end note
+				/'============构造父类=============='/
+				group 构造父类
+					A->A:parent::__construct(卡号)
+				end
+				/'============通过卡号查询卡主表信息=============='/
+			A-->C:obj
+			deactivate A			
+		end
+		/'===============构造器================='/
+	
+		/'===========处理逻辑=============='/
+		C->A:obj.mainPost(params)	
+		activate A			
+		note over A
+			必要参数:
+				params[refundNum] = =退款单号
+				params[cardPriceId] = 充值记录表主键
+				params[curRefundPrice] = 本次退款金额
+				params[userId] = 前台登录用户id		
+				params[payType] = 1微信 2支付宝	3现金		
+		end note
+				
+		/'-------------------生成退款单号-------------------------'/
+		group 生成退款单号
+			alt 退款单号非空, 说明是退款失败重新点击的退款,
+				note over A
+					<font color="red"><b>一笔退款失败后重新提交，请不要更换退款单号，请使用原商户退款单号
+					退款单号 = 参数传过来的退款单号
+				end note
+			else		
+				A->create:diningRechargeRefundNum(W/A)
+				activate create
+					note right A: 规则: 卡号-W/A-R-年月日十分秒  ( W=微信, A=支付宝)
+				create-->A:	
+				deactivate create
+			end
+		end
+		/'-------------------生成退款单号-------------------------'/
+		
+		/'-------------------重新退款-------------------------'/
+		group  <font color=purple><b>重新退款，退款之前查询微信或支付宝日志，有则不请求微信支付宝退款
+			A->A:retryRefund()
+			activate A
+			alt params[refundNum] 退款单号 存在，并非空
+				A->init:mainInit(params)
+				init-->A:retryRes
+				alt 如果retryRes返回＂转入代发＂状态
+					A-->C: 代表微信转入代发，退款到银行发现用户的卡作废或者冻结了，\n需要与财务沟通，使用收银监管现金退
+				else 如果retryRes返回＂远程退款成功＂
+					note over A: $this->response = 微信或支付宝退款响应日志中的数据
+				else 如果retryRes返回＂本地退款成功＂
+					A-->C:直接返回给controller提示退款成功
+				end 
+			end
+			deactivate A
+		end		
+		/'-------------------重新退款-------------------------'/		
+	
+		/'-------------------去远程请求退款-------------------'/
+		group 去远程请求退款
+			alt <font color=purple><b>this->response == null
+				A->A:remoteRequestRefund()
+				activate A
+					A->remote:根据this.type区分wechatRefund()或aliRefund()
+					activate remote
+					remote-->A:申请退款结果
+					deactivate remote
+				A-->A:申请退款结果
+				deactivate A
+				
+				alt 退款失败
+					A->C:退款失败
+				end
+			end
+		end
+		/'-------------------去远程请求退款-------------------'/
+		
+		/'-------------------计算手续费-------------------------'/
+		group 计算手续费
+			A->fee:mainGet(wechat/alipay, 退款额)
+			activate fee
+			fee-->A:计算后的手续费
+			deactivate fee
+		end
+		/'-------------------计算手续费-------------------------'/		
+		
+	
+	
+	/'----------------新增返回支付数据库到数据库---------------'/
+	group 新增退款结果到数据库, <font color="red"><b>注意:退款额和手续费为负	
+	  alt this.type == 1 微信
+			A->A:addWechat(退款结果数据)
+			activate A
+				A->cDao:add()
+			cDao-->A:json
+			A-->A:新增主键
+			note over A:<font color="red">this.wechtId = 新增主键(微信主键)
+			deactivate A
+		else this.type == 2 支付宝
+			A->A:addAlipay(退款结果数据)
+			activate A
+				A->aDao:add()
+				aDao-->A:json
+			A-->A:新增主键
+			note over A:<font color="red">this.alipayId = 新增主键 (支付宝主键)
+			deactivate A
+		end
+		
+		alt 如果新增数据失败
+			A-->C:退款成功,但是入库失败
+		end
+	end
+	/'----------------新增返回支付数据库到数据库---------------'/
+	
+	/'----------------执行父类入口方法---------------'/	
+	group 执行父类入口方法
+		A->A:parent::mainPost(params)
+	end
+		
+		A-->C:
+		deactivate A
+C-->view:res
+deactivate C
+
+@enduml

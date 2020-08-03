@@ -1,0 +1,44 @@
+@startuml
+title OM8-验证蓝景装饰合作
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "checkDecoration\n验证蓝景装饰合作C" as orderC  #00FF00
+participant "CheckDecorationAction\n验证蓝景装饰合作A" as orderA  #FFFFFF
+
+view->orderC:index_get()
+activate orderC
+	/'===========验证参数=============='/
+	group 验证参数
+		note over orderC
+			接收参数：
+				 $params = this->get("params");
+				 参数下标说明：
+				 $params[orderNumber] = 订单编号（即合同号）		 
+		end note
+	end
+	note over orderC
+		验证token
+	end note
+	
+	/'===========构造方法======start========'/	
+	group 初始化
+		orderC->orderA:__construct(orderNumber)
+		activate orderA
+			note over orderA: parent::__construct(orderNumber)
+			orderA-->orderC: obj
+		deactivate orderA
+	end
+	/'===========构造方法======end========'/	
+	
+	
+	/'===========处理逻辑=============='/
+	orderC->orderA:obj->get(orderNumber)
+	activate orderA
+		note over orderA: 验证参数	
+		orderA-->orderC:this->orderHandle->orderObj->decoration_status
+	deactivate orderA
+orderC-->view:
+deactivate orderC
+
+@enduml

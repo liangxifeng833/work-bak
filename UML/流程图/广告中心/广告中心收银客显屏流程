@@ -1,0 +1,55 @@
+@startuml
+title 广告中心收银客显屏--流程
+
+
+|收银系统|
+start
+:开机自启动\n主屏浏览器\n客显屏浏览器;
+:客显屏获取本地MAC地址;
+:客显屏需要通过\nsocket.io.js连接websocketServer\nhttp:请求方式：//域名:9092?mac=68:f7:28:62:bf:47;
+	
+|广告中心领域层|	
+:netty-socket监听9092端口;
+if(mac合法)then(yes)
+else(no)
+end
+endif
+
+:将key=mac地址, value=SocketIOClient对象\n存入到静态线程安全的webSocketMap中;
+:sendEvent(messageevent)\n触发客户端js监听的messageevent事件;
+
+|收银系统|
+:客显屏js监听\nsocket.on('messageevent')方法\n接收返回值判断是否连接成功;
+if(websocket连接成功?)then(yes)
+	:与服务器端管道建立成功;
+	:服务器和浏览器互相可以通信;
+else(no)
+	:页面提示连接错误信息;
+	end
+endif
+
+fork
+	:收款菜单页\n请求客显接口\n收款中提示;
+fork again
+	:收款成功打印小票之前\n请求客显接口\n收款成功或失败提示;
+fork again
+	:退款菜单页\n请求客显接口\n退款中提示;
+fork again
+	:收款成功打印小票之前\n请求客显接口\n退款成功或失败提示;	
+endfork
+
+|广告中心应用层|
+:收银系统客显信息接口;
+|广告中心领域层|
+:收银系统客显信息接口;
+if(验证MAC地址合法？)then(yes)
+	:将消息转发给客户端;
+else
+	end
+endif
+|收银系统|
+:客显屏监听时间socket.on("messageevent");
+:根据返回值判断应显示的信息;
+
+end
+@enduml

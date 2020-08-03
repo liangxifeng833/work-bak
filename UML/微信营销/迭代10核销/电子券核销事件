@@ -1,0 +1,69 @@
+@startuml
+title 电子券核销事件
+
+actor wechat #red
+/'-------------定义参与者别名 -------------------'/
+participant "WechatInterface\n微信事件入口C" as indexC  #00FF00
+participant "ReceiveMessageAction\n接收消息路由类A" as recA #FFFFFF
+participant "CouponCheckSaleEvent\n电子券核销事件类A" as ticketA #FFFFFF
+participant "WechatServiceApi\n微信接口Api" as wapi #FFFFFF
+participant "Coupon\n电子券表" as coupon #FFFFFF
+participant "CouponBatchStatic\n电子券批次统计表" as batch #FFFFFF
+
+/'-----------------------请求入口-------------------start---'/
+wechat->indexC:index(postData)
+activate indexC
+	indexC->recA:doLogic(postData)
+	activate recA
+		/'----------------------路由类根据事件类型new 电子券核销类--------start------'/
+		group 路由类根据事件类型new 电子券核销类
+			recA->recA:_deal()
+			activate recA
+				/'----------------------处理核销事件--------start------'/
+				group 处理核销事件
+					recA->ticketA:dealData(params)
+					activate ticketA
+						note over ticketA: 验证参数
+						group 查询核销员昵称
+							ticketA->wapi:getUserInfo(params[StaffOpenId])
+							wapi-->ticketA:nickname
+						end
+						note over ticketA: 开启事务
+						group 修改券表为已核销
+							note over ticketA
+								组合修改数据参数:
+									$map['card_id'] = array('eq',$params['CardId']); //微信券批次编号
+									$map['code'] = array('eq',$params['UserCardCode']);//券编号
+									data [status] = 'CONSUMED' 已经核销
+									data [staff_time] =  核销时间(当前时间)
+									data [last_time] =  当前时间
+									data [staff_openid] =  params[StaffOpenId] 核销员openid
+									data[staff_nickname] = nickname 核销员昵称
+							end note 
+							ticketA->coupon:where($map) -> data($data) ->save();
+							coupon-->ticketA:boolean
+						end
+						group 修改统计信息(使用数量+1)
+							note over ticketA
+								组合修改数据参数:
+									$map['card_id'] = array('eq',$params['CardId']); //微信券批次编号
+									data [use_count] = 原use_count基础上+1
+									data [last_time] =  当前时间
+							end note 
+							ticketA->batch:where($map) ->data($data)->limit(1)->save();		
+							batch-->ticketA:boolean
+						end 
+					ticketA-->recA:
+					deactivate ticketA
+				end
+				/'----------------------处理核销事件--------end------'/
+			deactivate recA
+		end
+		/'----------------------路由类根据事件类型new 电子券核销类--------end-------'/
+	recA-->indexC
+	deactivate  recA
+	indexC-->wechat
+deactivate indexC
+/'-----------------------请求入口------------------end------'/
+
+@enduml

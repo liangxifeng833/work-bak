@@ -1,0 +1,30 @@
+@startuml
+title 脱离员工
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "LeaveEmloy\n成为员工C" as becomeC  #00FF00
+participant "UserAction\n用户A" as userA  #FFFFFF
+participant "EmloyAction\n员工A" as employA  #FFFFFF
+participant "WechatFansRelation\n主体关系表" as relation  #FFFFFF
+
+	view->becomeC: indexPut()
+	activate becomeC
+		becomeC->employA:leave()
+		activate employA
+			group 修改主体关系状态
+				note over employA
+					data[identity_sign] = 0  不是特殊身份(员工)
+					data[is_member] = 1  修改成为会员身份
+				end note
+				employA->employA:_modifyRelation(id,data)
+				activate employA
+					employA->relation: where(id)->data(data)->save()
+					relation-->employA:boolean
+				deactivate employA
+			end
+		employA-->becomeC:
+		deactivate employA
+	becomeC-->view:
+	deactivate becomeC
+@enduml

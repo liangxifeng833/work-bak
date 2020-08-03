@@ -1,0 +1,63 @@
+@startuml
+title OM4-验证尾款订单
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "checkFinalOrder\n验证尾款订单C" as orderC  #00FF00
+participant "CheckFinalOrderAction\n验证尾款订单A" as orderA  #FFFFFF
+
+view->orderC:index_get()
+activate orderC
+	/'===========验证参数=============='/
+	group 验证参数
+		note over orderC
+			接收参数：
+				 $params = this->get("params");
+				 参数下标说明：
+				 $param[orderNumber] = 订单编号（即合同号）
+		end note
+	end
+	note over orderC
+		验证token
+	end note
+	
+	/'===========构造方法======start========'/	
+	group 初始化
+		orderC->orderA:__construct(orderNumber)
+		activate orderA
+			note over orderA: parent::__construct(orderNumber)
+			orderA-->orderC: obj
+		deactivate orderA
+	end
+	/'===========构造方法======end========'/	
+	
+	
+	/'===========处理逻辑=============='/
+	orderC->orderA:obj->check()
+	note over orderA: 验证参数
+	activate orderA
+		group 验证是否有未付款数据
+			alt 1==this->orderHandle->notPayObj->status 	
+				orderA-->orderC: 无未付款数据
+			end
+		end
+		
+		group 验证尾款总额不能超过合同额
+			loop this->orderHandle->orderPayArr as val
+				note over orderA
+					//计算尾款总额
+					finalAllPrice +=  val->account_payable(折前额)
+				end note
+			end
+			alt finalAllPrice < this->orderHandle->pact_value(合同额)
+				orderA-->orderC: array(state=>1)
+			else
+				orderA-->orderC: 尾款总额超过合同总价款
+			end
+		end
+	deactivate orderA
+	
+orderC-->view:
+deactivate orderC
+
+@enduml

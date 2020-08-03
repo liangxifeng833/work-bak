@@ -1,0 +1,93 @@
+@startuml
+title 线下支付-时序图
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "PayServlet\n中信支付接口C" as C  #00FF00
+participant "MD5\nMD5签名类" as md5  #00FF00
+participant "PayAction\n中信支付A" as A  #FFFFFF
+participant "CommonUtils\n公共工具类" as common  #FFFFFF
+participant "CreateTradeNo\n生成支付号类" as createNo  #FFFFFF
+participant "CouchDB\nCouchDB工具类" as couch  #FFFFFF
+participant "CorefireHttpPost\n中信支付http请求类" as http  #FFFFFF
+
+view->C:doPost()
+activate C
+	/'===========验证参数=============='/
+	group 验证参数
+		note over C	
+				 参数下标说明：
+				 auth_code = 扫码支付授权码		 
+		end note
+	end
+		note over C
+		验证token规则：
+			md5(类名+方法名+casher)
+	end note
+	C->md5:EncoderByMd5(String str)
+	md5-->C:enCodeStr
+	
+	alt token验证失败
+		C-->view:BLL token验证失败
+	end
+	
+	
+	/'===========处理逻辑=============='/
+	C->A:payRequest(map)
+	activate A
+		note over A: 验证参数
+			group 设置请求参数
+				note over A
+					<b><font color="red">注意 : 支付号从客户端作为参数传递进来
+				end note
+			end
+			
+			group 先根据支付号(商户订单号查询)
+				A->A:queryRequest()
+			end
+			alt 如果已支付成功
+				A-->C: 已支付成功
+			end
+			
+			group 根据客户端平台标识设置各个平台商户号请求参数
+					note over A:<b><font color="red"> 注意:其他所有接口均调用该方法进行设置商户信息
+					A->A:调用父类setCommonRequestMap( 客户端平台标识 )
+			end
+			
+			group  将请求参数写入couchDB，注意写明请求说明
+				A->common:调用父类insertCouchDB( )
+			end
+			
+			group 去中信请求
+				A->http:connect()
+				activate http
+				http-->A:xml
+				deactivate http
+			end
+			
+			group  将请求返回值写入couchDB，注意写明返回说明
+				A->A:调用父类insertCouchDB( )
+			end
+			
+			group 判断请求后的返回值
+				alt return_code!=SUCCESS
+					A-->C:通讯异常
+				end
+				
+				alt  err_code = USERPAYING(微信)/result_code = PAYING（支付宝）  需要用户密码流程，需要用户自行查询\n
+				
+					loop  循环每１０秒查询一次，查３次
+						A->A:queryRequest()
+					end
+					alt 如果３次均未返回支付成功
+							A->A:reverseRequest()撤销接口关单
+							A-->C:支付失败，需要用户重新支付
+					end
+				end
+			end
+		A-->C:支付成功,返回支付数据
+	deactivate A
+C-->view:支付成功,返回支付数据
+deactivate C
+
+@enduml

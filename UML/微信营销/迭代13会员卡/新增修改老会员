@@ -1,0 +1,86 @@
+@startuml
+title 新增/修改老会员
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "OldMember\n新增修改老会员C" as C  #00FF00
+participant "OldAction\n新增修改老会员A" as A  #FFFFFF
+participant "GetOldMemberOrNumber\n查询老会员或会员卡号A" as common #FFFFF
+participant "OldMember\n老会员表A" as batch  #FFFFFF
+
+
+group 初始化查询
+view->C:index()
+activate C
+	C->A:getById(id)
+	activate A
+		A->batch:find()
+		batch-->A:oldMemberRow
+	A-->C
+	deactivate A
+C-->view:oldMemberRow
+deactivate C
+end
+
+group 新增操作
+	view->C:indexPost()
+	activate C
+		C->A:create(params)
+		activate A
+			group 通过卡号查询会员卡表数据
+				A->common:getNumberByNum(params[number])
+				common-->A:numberRow
+			end
+			alt numberRow会员卡表存在
+				A-->C:false
+			end
+			group 通过卡号查询老会员表数据
+				A->common:getOldMemberByNum(params[number])
+				common-->A:oldRow
+			end
+			alt oldRow老会员表存在该卡号
+				A-->C:false
+			end
+			A->batch:add()
+			batch-->A:boolean
+		A-->C:boolean
+		deactivate A
+	C-->view:
+	deactivate C
+end
+
+group 修改操作
+	view->C:indexPut()
+	activate C
+		C->A:modify()
+		activate A
+			group 通过卡号查询会员卡表数据
+				A->common:getNumberByNum(params[number])
+				common-->A:numberRow
+			end
+			alt numberRow会员卡表存在
+				A-->C:false
+			end
+			group 通过卡号查询老会员表数据
+				A->common:getOldMemberByNum(params[number])
+				common-->A:oldRow
+			end
+			alt oldRow老会员表存在该卡号
+				A-->C:false
+			end
+			group 通过卡号查询老会员表数据
+				A->common:getOldMemberByPhone(params[phone])
+				common-->A:oldRow
+			end
+			alt oldRow老会员表存在该手机号
+				A-->C:false
+			end
+			A->batch:add()
+			batch-->A:boolean
+		A-->C:boolean
+		deactivate A
+	C-->view:
+	deactivate C
+end
+
+@enduml

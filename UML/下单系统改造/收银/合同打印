@@ -1,0 +1,173 @@
+@startuml
+title 合同打印
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "contractPrint\n合同打印C" as orderC  #00FF00
+participant "contractPrintAction\n合同打印A" as orderA  #FFFFFF
+participant "saleGiftDateDao\n买赠活动日期表D" as dateD  #FFFFFF
+participant "saleGiftBaseDao\n买赠活动表D" as baseD  #FFFFFF
+participant "saleGiftBlacklistDao\n买赠活动黑名单表D" as blackD  #FFFFFF
+
+view->orderC:index_get()
+activate orderC
+	/'===========验证参数=============='/
+	group 验证参数
+		note over orderC
+			接收参数：
+				 $params = this->get("params");
+				 参数下标说明：
+				 $param[orderNumber] = 订单编号（即合同号）
+		 note
+	
+	note over orderC
+		验证token
+	 note
+	
+	/'===========构造方法======start========'/	
+	group 初始化
+		orderC->orderA:__construct(orderNumber)
+		activate orderA
+			note over orderA: parent::__construct(orderNumber)
+			orderA-->orderC: obj
+		deactivate orderA
+	
+	/'===========构造方法=============='/	
+	
+	
+	/'===========处理逻辑=============='/
+	orderC->orderA:obj->main()
+	activate orderA
+		/'====查询合同收款表信息======start=='/	
+		group 查询合同收款表信息
+			note over orderA
+				this->consume = parent::getProductConume()
+				注意格式化货币请用  Util::cnMoney 和 Util::formatMoney
+			 note
+		
+		/'=====查询合同收款表信息======='/	
+		alt  empty(this->consume)
+			orderA-->orderC: res = array(state=>2, 合同数据异常)
+			
+		
+		/'====查询支付方式======start=='/		
+		group 查询支付方式
+			orderA->orderA:getPayWay(consumeId)
+			activate orderA
+				note over orderA
+					注意：
+						１．参考：合同打印BLL的cashierPrintCompact.php中_getPayWay()和退款 显示cashierReturnShowCompactInfo.php中的_getPayway()
+						２．因为合同打印和退款合同显示统一调用该方法
+						３．将_getPayWay()中查询查询数据库方式修改为Dao方式
+						
+				 note
+			orderA-->orderA: payWayArr
+			note over orderA: this->payWayArr = payWayArr
+		
+		deactivate orderA
+		alt  empty(this->payWayArr)
+			orderA-->orderC: res = array(state=>3, 支付方式异常)
+			
+		/'====查询支付方式========'/	
+		
+		/'====查询买赠活动信息======start=='/		
+		group 查询买赠活动信息
+			orderA->orderA:getBuyGive()
+			activate orderA
+				/'====查询买赠活动日期表======start=='/
+					group 查询买赠活动日期表
+						note over orderA
+							组合参数：
+								WHERE date_item = date('Y-m-d',time())  LIMIT 1
+						 note
+						orderA->dateD: get(list, 参数)
+						dateD-->orderA: dateObj
+						alt dateObj->base_id 存在买赠活动
+							/'====查询买赠活动基本信息======start=='/
+							group 查询买赠活动基本信息
+								note over orderA
+									组合参数：
+										WHERE base_id = dateObj->base_id 	
+										LIMIT 1
+								 note
+								orderA->baseD: get(list, 参数)
+								baseD-->orderA:baseObj
+								alt empty(baseObj->base_id)
+									orderA-->orderA:false
+								else
+									note over orderA: this->buyGiveArr[buyGiveName] = baseObj->base_name\n买赠活动名称
+								
+							
+							/'====查询买赠活动基本信息========'/
+							
+							/'====查询买赠黑名单信息======start=='/
+							group 查询买赠黑名单信息
+								note over orderA
+									组合参数：
+										WHERE base_id = dateObj->base_id 	
+										AND merchant_showid = this->merchantArr[展位号]
+										LIMIT 1
+								 note								
+								orderA->blackD: get(list,参数)
+								blackD-->orderA: blackObj
+								alt blackObj->blacklist_id 如果该商户存在黑名单中
+									 note over orderA: this->buyGiveArr[isBlack] = 1;
+								else 如果该商户不存在黑名单中
+									note over orderA: this->buyGiveArr[isBlack] = 0;
+								
+							
+							/'====查询买赠黑名单信息========'/
+						
+					
+				/'====查询买赠活动日期表========'/
+					orderA-->orderA: true
+			deactivate orderA
+		
+		/'====查询买赠活动信息========'/	
+		alt !getBuyGive()
+			orderA-->orderC: res = array(state=>4, 买赠活动查询出现异常)
+		
+		
+		/'====计算本期实际积分======satrt=='/
+		group 计算本期实际积分（现金＋银行卡）	
+			orderA->orderA: createIntegral()
+			activate orderA
+				alt isset(this->payWayArr[bank]) 银行卡
+					note over orderA: this->curIntegral = Util::setIntegral(this->payWayArr['bank']['nowPrice']);
+				
+				alt  isset(this->payWayArr[cash] 现金
+					note over orderA: this->curIntegral += Util::setIntegral($payment['cash']['nowPrice']);
+				
+			orderA-->orderA:
+			deactivate orderA
+		
+		/'====计算本期实际积分========'/
+		
+		/'====组合返回数据======satrt=='/
+		group 组合返回数据
+			orderA->orderA:_createReturnArr()
+			activate orderA
+			note over orderA
+				returnArr = array(
+					1. 订单数据：orderData 
+					2. 顾客数据：customerData
+					3. 商户数据：merchantData
+					4. 商品清单：proData
+					5. 定制商品：customerProData
+					6. 买赠数据：buyGiveData
+					7. 收款数据：consumeData
+					8. 支付方式：payWayData 
+					9. 本期积分：curIntegral					
+				)
+			 note
+			orderA-->orderA: returnArr
+			deactivate orderA
+		
+		/'====组合返回数据========'/
+		orderA-->orderC: res = array(state=>1, dataArr => returnArr)	
+	deactivate orderA
+	
+orderC-->view:res
+deactivate orderC
+
+@uml

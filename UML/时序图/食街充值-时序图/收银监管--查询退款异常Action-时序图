@@ -1,0 +1,77 @@
+@startuml
+title 收银监管--查询退款异常Action-时序图
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "顾客/展员退卡controller" as C  #00FF00
+participant "AdminRefundGetAction\n微信或支付宝支付Action" as A  #FFFFFF
+participant "GetCiticExceptionAction\n查询异常记录Action" as E  #FFFFFF
+view->C:index_**()
+activate C	
+		/'===========处理逻辑=============='/
+		C->A:mainGet(params)	
+		activate A				
+		note over A
+			参数说明：
+				params[cardNum] = 卡号，
+				params[cardType] = 卡类型，
+				params[refundArr] = 需退款记录数组, 
+				params[isAdmin] = 是否收银监管 1是　０否
+		end note
+			
+	/'----------------查询异常记录---------------'/	
+	group 查询异常记录
+		A->E:mainGet(卡号，卡类型，退款异常，是否收银监管)
+		E-->A: exceptionArr
+	end
+	alt empty( exceptionArr)\n如果异常记录为空
+		A-->C:无异常记录
+	end
+	/'----------------查询异常记录---------------'/
+	
+	/'----------------查询异常记录---------------'/	
+	group 循环组合异常记录数组
+		note over A: 定义以dining_card_price表主键为key, 异常记录为value的异常记录数组\nexceptionArrNew = array();
+		loop exceptionArr as arr
+			alt dining_card_price表主键>0
+				note over A: exceptionArrNew[arr[dining_card_price表主键]] = arr;
+			end
+		end 
+	end
+	
+	/'----------------循环需退款记录数组---------------'/
+	group 循环非押金数据是否有异常记录
+		loop 需退款记录数组中的非押金数据[refund] as refundArr
+			alt exceptionArrNew[refundArr[dining_card_price表主键]] 非空
+				note over A
+					//退款移动支付表主键
+				 	refundArr[refundMobilePayId] = exceptionArrNew［dining_card_price表主键］［移动支付表主键］; 
+				 	//异常记录表主键
+				 	refundArr[exceptionId] = exceptionArrNew［dining_card_price表主键］［异常记录表主键］
+				 end note
+			 else
+			 		note over A: refundArr[refundMobilePayId] = 0; \nrefundArr[exceptionId] = 0;
+			end 
+			note over A: 将refundArr[refundMobilePayId]\n和refundArr[exceptionId]组合回　需退款记录数组中的非押金数据[refund]
+		end
+	end
+	/'----------------循环需退款记录数组---------------'/			
+	
+	group 处理押金退款数组是否有异常记录
+		alt exceptionArrNew［需退款记录数组中押金记录［refundDeposit］［dining_card_price表主键］］非空
+				note over A
+					//退款移动支付表主键
+				 需退款记录数组中押金记录［refundDeposit］[refundMobilePayId] = 
+				 exceptionArrNew［dining_card_price表主键］［移动支付表主键］; 
+				  需退款记录数组中押金记录［refundDeposit］[exceptionId] =
+				  exceptionArrNew［dining_card_price表主键］［异常记录表主键］
+				 end note	
+		end
+	end
+	
+		A-->C:需退款记录数组
+		deactivate A
+C-->view:res
+deactivate C
+
+@enduml

@@ -1,0 +1,96 @@
+@startuml
+title 会员促销类
+
+actor DiscountAction #red
+/'-------------定义参与者别名 -------------------'/
+participant "MemberDiscount\n会员促销类L" as d #FFFFFF
+participant "member/Member_info_base\n会员信息类L" as member #FFFFFF
+participant "member/Dictionary\n会员等级字典类L" as dictionary #FFFFFF
+
+DiscountAction->d:__construct(ljyunId,price,phone)
+activate d
+note over d:parent::__construct(ljyunId,price)\n <font color=blue><b>this->_phone=phone 会员手机号
+d-->DiscountAction:obj
+deactivate d
+
+DiscountAction->d:get()
+activate d
+	/'==== 验证参数===='/
+	group 验证参数
+		alt !parent::_checkPrarm()  <font color=blue><b>|| empty(this->_phone))
+			d--[#blue]>DiscountAction: res = array(state=>2,参数丢失)
+		end
+	end
+
+	/'=====================查询折扣信息=============start========'/
+	group 查询折扣信息
+		d->d:_getDiscount()
+		activate d
+			group 查询会员信息
+				d->member:load->library(array(array('id'=>this->_phone)))
+				member-->d:oM
+				note over d: <font color=blue><b>this->memberObj = oM
+			end
+			alt oM->gradeHandle->grade >0 会员等级字典表主键＞０
+				group 查询等级折扣
+					d->dictionary:getOneById(oM->gradeHandle->grade)
+					dictionary-->d:gradeRow
+				end
+				alt floatl(gradeRow[discount]) < 1 如果有折扣
+					note over d
+						折扣属性赋值
+						this->_discount = gradeRow[discount];
+					end note
+					d-->d:true
+				else
+					d-->d: 'noDiscount'不打折
+				end
+			else
+				d-->d:false
+			end
+		deactivate d
+	end
+	/'=====================查询折扣信息=============end========'/
+	alt !_getDiscount()
+		d-->DiscountAction: res = array(state=>2, 会员促销折扣获取失败)
+	end
+	alt 'noDiscount' == _getDiscount()
+		d-->DiscountAction: res = array(state=>0, 不打折)
+	end
+	
+	
+	/'=====================生成折后金额=============start========'/
+	note over d
+		//生成折后金额, Util::dealDecimal()四舍五入
+		 this->_discountPrice = Util::dealDecimal(this->_discount*this->_price)
+	end note
+	/'=====================生成折后金额=============end========'/
+	
+	/'===============生成本期应付额信息=============start========'/
+	group 生成本期应付额信息
+		d->d:_createShare()
+		activate d
+			note over d
+				打折省掉的钱 = 订单本期应付额 - 折后额
+				agioPrice  = $this->_price - $this->_discountPrice
+				
+				组合付款期数表数据 discountArr = array(
+					ljyun_id => this->_ljyunId
+					account_payable=>this->_price , 应付额
+					account_payable_discount=>this->_discountPrice,折后应付额
+					discount_merchant=>商户承担额,agioPrice
+					discount_market=>0, 卖场承担额为０
+					discount_type=>1,1代表会员卡
+					discount_id=>0, 促销表主键为０
+					member_id=><font color=blue><b>this->memberObj->member_id, 会员卡主键
+					discount_proportion=>this->_discount，比如：0.99代表99折,
+					 )
+			end note
+		d-->d: discountArr
+		deactivate d
+	end
+	/'===============生成本期应付额信息=============end========='/
+d-->DiscountAction: res = array(state=>1, discountArr => discountArr)
+deactivate d
+
+@enduml

@@ -1,0 +1,69 @@
+@startuml
+title 批量生成使用码-时序
+
+actor 微信卡券应用层 #red
+/'-------------定义参与者别名 -------------------'/
+participant "BatchCreateCodeController\n批量生成使用码controller" as index #00FF00
+participant "BatchCreateCodeImpl\n批量生成使用码实现类" as A  #FFFFFF
+participant "ticketMain\n券平台:券主表" as ticketMain  #FFFFFF 
+微信卡券应用层->index: addByEntity()
+activate index
+	
+	index->A:create()
+	activate A
+	
+	group 验证
+		A->A:dealParams()
+		activate A
+				note over A
+					验证必要参数
+						1. 批次表主键不可为空
+						2. 该批次在数据库必须存在
+						3. 单次导入数量不要超过配置文件中的配置数量10000
+				end note
+		A-->A:
+		deactivate A
+	end
+	
+	group 查询券主表信息
+		A->ticketMain:getList()
+		activate ticketMain
+			note over ticketMain
+				查询条件　
+					使用码 ticket_use_code　＝ ""
+					券状态　ticket_status = 1　未发放
+					关联批次主键　ticket_batch_id
+				order by id asc limit 导入数量
+			end note
+		ticketMain-->A:券主表信息
+		deactivate ticketMain
+	end
+	
+	group 根据查询到券主表信息循环更新使用码
+		loop 券主表信息
+			note over A
+				更新字段　
+					使用码 = 3位随机数 + 5位批次id + 7位券主键
+			end note
+			alt 参数中isModifyStatus = 1 
+				note over A
+				更新字段
+					ticket_status = 2 已发放
+					发放时间
+				end note
+			end 
+			
+			group 更新券主表数据
+				A->ticketMain:update()
+				ticketMain-->A: json
+			end
+		end /'循环loop结束'/
+	end
+	
+
+			
+		A-->index:DomainResponse
+	deactivate A
+	index-->微信卡券应用层:DomainResponse
+deactivate index
+@enduml

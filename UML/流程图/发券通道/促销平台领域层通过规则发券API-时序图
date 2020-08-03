@@ -1,0 +1,133 @@
+@startuml
+title 促销平台领域层通过规则发券API-时序图
+
+actor 小程序登录页 #red
+/'-------------定义参与者别名 -------------------'/
+participant "应用层" as sendC  #00FF00
+participant "SendTicketByRule\n通过规则发券API" as common  #FFFFFF
+participant "sendTicketRule\n发券规则表" as rule  #FFFFFF
+participant "CheckSendEmploy\n验证发券员工" as sendEmploy  #FFFFFF
+participant "saleWechat\n促销活动表" as sale  #FFFFFF
+participant "CheckSendSaleMan\n验证发券展员" as sendman  #FFFFFF
+
+participant "ruleBatchRelation\n发券规则与批次关系表" as rbr  #FFFFFF
+
+participant "SendTicket\n券平台领域层发券API" as domain  #FFFFFF
+participant "sendTicketRecord\n发券记录表" as record  #FFFFFF
+
+
+
+
+小程序登录页->sendC:index_post()
+activate sendC
+group 参数说明
+	note over sendC
+		发券规则主键
+		发券人用户主键
+		领券人unionId
+		领券人手机号
+		券批次表主键,默认=0(不指定批次发券时使用该参数)
+		通过other参数获取来源终端，当前时间戳
+	end note
+end
+/'===========验证参数=============='/
+group 发券主方法
+	sendC->common:doMain(arr)
+	activate common
+		group 通过主键查询发券规则
+			common->common:getSendRuleById(ruleId)
+			activate common
+				common->rule:getOne(ruleId)
+				rule-->common:发券规则obj
+				common->sale:getOne(saleId)\n通过主键查询促销活动
+				sale-->common:促销活动obj
+			deactivate common
+		end
+
+		group 验证活动结束日期
+			alt 当前日期 > 促销活动obj.结束日期
+				common-->sendC:活动已结束不可发券 
+			end
+		end		
+		
+		group 验证活动开始日期（PC端发券无该限制）
+			alt 当前日期 < 促销活动obj.开始日期 AND 发券规则obj.sendTicketPerson != 3 PC端发券
+				common-->sendC:活动未开始不可发券 
+			end
+		end
+		
+		group 验证动态码过期时间
+				alt 发券规则obj.二维码类型＝１动态码 AND 时间戳参数＋60秒　> 当前时间戳
+					common-->sendC:　二维码已过期
+				end
+		end
+		
+		/'---group 验证发券人员
+		
+			common-->common:checkSendPerson()		
+			activate common
+					alt 发券规则obj.sendTicketPerson == 1　管理端小程序
+					common->sendEmploy:index(发券规则主键, 用户主键)\n验证发券员工
+					sendEmploy-->common:res
+					alt res==false
+						common-->sendC:该人员无权发券
+					end
+				end
+			
+				alt 发券规则obj.sendTicketPerson == 2 展员小程序
+					common->sendman:index(促销活动主键，用户主键)\n验证发券展员
+						sendman-->common:res
+					alt res==false
+						common-->sendC:该展员无权发券
+					end
+				end
+				
+				alt 发券规则obj.sendTicketPerson == 3 PC端发券
+					note over common:不需要验证
+				end
+			deactivate common
+		end-----'/
+			
+		group 根据不同发券规则发券
+				group 查询发券规则与批次关系表
+					common->rbr:getList()\n通过规则主键
+					rbr-->common:batchsObj 关联批次
+				end
+								
+				alt  发券规则obj.发券规则字段 == 1 一个批次多张券
+					alt 如果来源终端 = PC端 AND 指定批次id发券
+						note over common: 通过指定发券批次发券
+					else 正常扫码过来的非指定批次id发券
+						loop 循环关联批次调用发券接口发券
+							common->domain:indexMain()
+							domain-->common:res
+ 						end /'loop'/
+					end
+				end
+				alt  发券规则obj.发券规则字段 == 2 多个批次多张券
+						note over common:　一次请求多个批次多张券
+						common->domain:indexMain()
+						domain-->common:res		
+				end
+				alt  发券规则obj.发券规则字段 == 3 选择批次发券
+						note over common: 通过指定发券批次发券
+						common->domain:indexMain()
+						domain-->common:res		
+				end		
+		end
+			
+
+		group 写入发券记录数据
+					common->record:post()
+					record-->common:res
+		end
+
+				
+	common-->sendC:res
+	deactivate common
+end
+/'===========处理逻辑=============='/
+
+sendC-->小程序登录页:res
+deactivate sendC
+@enduml

@@ -1,0 +1,71 @@
+@startuml
+title 修改微信卡券-时序
+
+actor 微信卡券应用层 #red
+/'-------------定义参与者别名 -------------------'/
+participant "WechatCardController\n微信卡券对外接口" as index #00FF00
+participant "UpdateWechatCardServiceImpl\n修改微信卡券实现类" as A  #FFFFFF
+participant "cardDetailImpl\n微信卡券详情实现类" as cardDetail  #FFFFFF
+participant "ticketBatch\n券平台:券批次表" as batch  #FFFFFF 
+participant "saleWechat\n促销平台:促销活动表" as sale  #FFFFFF 
+participant "wechatCard\n微信卡券表" as card  #FFFFFF 
+participant "modifyCardImpl\n微信端修改卡券实现类" as requestW  #FFFFFF 
+participant "微信服务器" as wechat  #FFFFFF 
+微信卡券应用层->index: modifyCard()
+activate index
+	
+	index->A:modifyCard()
+	activate A
+		group 去微信查询最新状态
+			A->cardDetail:doPost()\n根据card_id查询
+			cardDetail-->A:微信端最新卡券信息
+		end
+		alt 微信端最新卡券信息查询异常
+			A-->index:返回去微信查询出现的异常
+		end
+		alt 如果查询到的状态　!=待审核 && !=审核通过 && != 审核失败
+			A-->index: 卡券状态必须是待审核，或审核通过状态,或审核失败才可修改
+		end 
+		
+		group 修改本地微信卡券表信息
+			A->A:update(微信卡券实体)
+			activate A
+				alt 微信卡券表主键 == null 
+					A-->index: 修改微信卡券表主键不可为空
+				end 
+				A->card: getOne(卡券表主键)\n根据主键查询微信卡券表
+				card-->A:微信卡券表数据
+				alt  微信卡券表数据 == null
+					A-->index: 根据主键查询微信卡券,无数据
+				end
+				note over A
+					验证有效期时间修改仅支持有效区间的扩大
+				end note 
+				A->card: update()\n修改本地微信卡券表操作
+				card-->A:json
+				A-->A:DomainResponse
+			deactivate A
+		end
+		
+		group 请求微信服务器修改卡券信息
+			A->requestW: doPost()
+			activate requestW
+				requestW->wechat:post()
+				wechat-->requestW:json
+			requestW-->A:json
+			deactivate requestW
+		end
+		
+		group 通过修改微信服务器返回信息，判断修改本地数据库提审字段
+			alt 微信返回send_check == true 如果需要提审
+				A->card:update()\n修改状态＝待审核
+				card-->A:json
+			end 
+		end 
+		
+
+		A-->index:DomainResponse
+	deactivate A
+	index-->微信卡券应用层:DomainResponse
+deactivate index
+@enduml

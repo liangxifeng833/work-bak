@@ -1,0 +1,25 @@
+@startuml
+title 创建考勤
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "CreateTask\n创建考勤C" as taskC  #00FF00
+participant "CreateTaskAction\n创建考勤A" as taskA  #FFFFFF
+participant "SelectUserAction\n选择用户A" as userA  #FFFFFF
+participant "SelectTagAction\n选择标签A" as tagA  #FFFFFF
+participant "Task\n考勤表" as task  #FFFFFF
+
+group 创建任务操作
+	view->taskC:indexPost()
+	activate taskC
+		taskC->taskA:create()
+		activate taskA
+			taskA->task:add()
+			task-->taskA:boolean
+		taskA-->taskC:
+		deactivate taskA
+	taskC-->view:
+	deactivate taskC
+end
+
+@enduml

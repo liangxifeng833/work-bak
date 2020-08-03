@@ -1,0 +1,166 @@
+@startuml
+title 线下微信对账定时任务-时序图
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "BillCompareServlet\n账单对比S" as C  #00FF00
+participant "BillCompareAction\n账单对比A" as A  #FFFFFF
+participant "WechatAnnalDao\n微信支付表A" as wechatD  #FFFFFF
+participant "CorefireHttpPost\n支付http请求类" as http  #FFFFFF
+participant "中信服务器" as citic  
+view->C:doPost()
+activate C
+	/'===========验证参数=============='/
+	group 验证参数
+		note over C
+			<b><font color="red"> 注意:参数新增type标识,区分各平台,作用是,参数说明请看类图
+			<b><font color="red">下面对于读取各平台数据库及请求中信商户id
+			<b><font color="red">根据不同目录区分不同平台, 
+			线下收银系统:offline_cashier,食街充值:dining_recharge, 线上商城:online_mall			
+		end note
+	end
+	note over C
+		验证token规则：
+			md5(类名+方法名+casher)
+	end note
+	
+	
+	/'===========处理逻辑=============='/
+	C->A:billRequest(map)	
+	activate A			
+			note over A
+				参数:
+					对账日期
+					交易状态 = ALL (代表查询所有)
+			end note
+			
+			group 查询微信支付表
+				A->A:getPayDataByDB(对账日期)
+				activate A
+					A->wechatD:getList() where 新增时间 > 对账日期 00:00:00 and 新增时间 < 对账日期 23:59:59
+					wechatD-->A:json
+					loop 循环从数据库中查询的数据，创建收款数组和退款数组
+						alt 交易金额＞0
+							note over A
+								$收款[交易号][price] = 交易金额
+								$收款[交易号][charge] = 手续费
+							end note 
+						end
+						alt 交易金额 < 0 <font color="red"><b>一笔交易可以多次退款
+							note over A
+								<font color="red">$refundCount++; 退款总数+1
+								$退款[交易号][][price] = 退款金额
+								$退款[交易号][][charge] = 手续费
+								(注意：退款金额转换为正数)
+							end note
+						end
+						note over A: 总交易额++\n总手续费++
+						A-->A:
+					end
+				deactivate A
+			end
+	
+			group 去中信请求
+				A->http:connect()
+				activate http
+					http->citic:post数据
+					citic-->http:
+				http-->A:xml
+				deactivate http
+			end
+			
+			
+			group 循环返回结果，和数据库数据做对比，并导出csv文件
+				A->A:_compare()
+				activate A
+					note over A: dbPayCount = 数据库中收款总数\n dbRefundCount = 数据库中退款总数
+					loop 循环中信对账单结果
+						note over A: 将每一行数据写入到文件名为: wechat-bill-日期.cs 中
+						alt 交易状态= SUCCESS ( 收款 )
+							alt $收款款[交易号]==null
+								note over A: 电子邮件内容：wechat-bill-日期.csv退款数据异常：数据第n行在数据库中无该条收款记录\n continue
+							end
+							
+							alt $收款[交易号][price] != 每次循环的交易金额
+								note over A: 电子邮件内容：wechat-bill-日期.csv收款数据异常：数据第n行交易金额与数据库金额不等
+							end
+							alt  $收款[交易号][charge] != 每次循环的手续费 
+								note over A: 电子邮件内容：wechat-bill-日期.csv收款数据异常：第n行手续费与数据库手续费不等
+							end
+							note over A: 收款计数器+1 \n 将$收款[交易号])从收款数组中删除
+						end
+						alt 交易状态= REFUND ( 退款 ) 
+							alt 退款状态=SUCCESS(成功)/PROCESSING(退款中)/CHANGE
+								alt $退款[交易号]==null
+									note over A: 电子邮件内容：wechat-bill-日期.csv退款数据异常：数据第n行在数据库中无该条退款记录\n continue
+								end
+								
+								note over A: findFlag = 0;查找退款标识
+								loop  <font color="red">$退款[交易号] as $key=>$val  (同一比交易可以多次退款)
+									note over A: findPriceRes  = 0; 查找退款金额结果
+									alt  $val[price] == 每次循环的退款金额 证明csv文件中某一行退款金额在数据库中的对应退款数组中找到
+										note over A: findPriceRes = 1;
+									end
+									note over A:  findChargeRes  = 0; 查找退款手续费结果
+									alt   $val[price] == 每次循环的手续费  证明csv文件中某一行退款手续费在数据库中的对应退款手续费中找到
+										note over A: findChargeRes = 1;
+									end
+									alt findPriceRes==1 &&  findChargeRes ==1 如果找到对应对款数据
+										note over A: unset($退款[交易号][$key])\nbreak;退出循环
+										note over A: findFlag = 1;\nfindRefundCount++;在数据库中找到的退款总数+1
+									end
+								end
+								alt  findFlag ==0 如果循环结束还未找到则发送电子邮件
+									note over A: 电子邮件内容：wechat-bill-日期.csv退款数据异常：数据第n行退款金额在数据库中没有找到
+								end
+							end
+							alt  退款状态=CHANGE(转入代发)  用户银行卡已作废，无法退款
+								note over A: 电子邮件内容：wechat-bill-日期.csv退款数据异常：数据第n行退款进入转发状态，\n由于用户银行卡已作废等原因，无法原路退款，需要商户自行协商处理退款
+							end
+							note over A: 退款计数器＋１
+						end
+						
+						note over A: 获取账单中的交易总额和总退款额
+					end	/'---loop---'/	
+					
+					group 循环结束，对比收款总数和退款总数
+						alt 收款计数器!= 数据库中收款总数
+							note over A: 电子邮件内容：wechat-bill-日期.csv 收款总数和数据库中收款总数不等, 数据库中收款总数：* ，csv文件中收款总数：*
+						end
+						alt 退款计数器!= 数据库中退款总数
+							note over A: 电子邮件内容：wechat-bill-日期.csv 收款总数和数据库中收款总数不等，数据库中退款总数：* ，csv文件中退款总数：*
+						end
+					end		
+					
+					group 查看剩余收款数组和退款数组的值
+						alt $收款数组.length !=0
+							note over A: 电子邮件内容：数据库中的交易号为*,*,*...在csv文件中没有找到相应的收款记录
+						end
+						alt <font color="red">$findRefundCount在数据库中找到的退款总数 != 退款计数器
+							note over A: 电子邮件内容：数据库中的交易号为*,*,*...在csv文件中没有找到相应的退款记录
+						end
+					end
+				A-->A:
+				deactivate A
+				/'end compare'/
+				
+				group 对比总额
+					alt 远程获取账单中的交易总额-总退款额 != 数据库中的总交易额
+						note over A: 电子邮件内容：csv文件中的总交易总额-总退款额!=数据库中的总交易额, csv文件中总交易总额-总退款额=*,  数据库中的总交易额=*
+					end
+					alt 远程获取账单中总手续费 != 数据库中的总手续费
+						note over A: 电子邮件内容：csv文件中的总手续费!=数据库中的总手续费,   csv文件中总手续费=*, 数据库中的总手续费=*
+					end
+				end
+				
+				group 将以上拼接的电子邮件内容发送出去
+					A->A:sendMail()
+				end
+			end
+			
+		A-->C:
+	deactivate A
+C-->view:
+deactivate C
+
+@enduml

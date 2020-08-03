@@ -1,0 +1,21 @@
+@startuml
+title 员工打卡统计
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "HitCardStatics\n员工打卡统计C" as staticC  #00FF00
+participant "HitCardStaticsAction\n员工打卡统计A" as staticA  #FFFFFF
+participant "HitCard\n打卡表" as hit  #FFFFFF
+
+view->staticC
+activate staticC
+staticC->staticA
+activate staticA
+	staticA->hit:where(task_id)->select()
+	hit-->staticA:hitCardRow
+	staticA-->staticC:hitCardRow
+deactivate staticA
+staticC-->view:
+deactivate staticC
+deactivate staticC
+@enduml

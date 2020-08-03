@@ -1,0 +1,223 @@
+@startuml
+title 订单类
+
+actor action #red
+/'-------------定义参与者别名 -------------------'/
+participant "Order\n订单类A" as order  #ADD8E6
+participant "Common\n公共信息类L" as common  #FFFFFF
+participant "OrderOnlineDao\n订单表D" as orderD  #FFFFFF
+participant "OrderPaymentDao\n订单付款期数表D" as payD  #FFFFFF
+participant "OrderProducts\n订单商品表D" as orderProD  #FFFFFF
+participant "RedisClient\nredis操作类" as redis  #FFFFFF
+participant "Product\n商品表D" as proD  #FFFFFF
+participant "Probrand\n品牌表D" as brandD  #FFFFFF
+participant "Extrapro\n商品附表D" as extraproD  #FFFFFF
+participant "ShareArea\n国内产地表D" as areaD  #FFFFFF
+participant "ShareWorldwide\n国外产地表D" as worldD  #FFFFFF
+
+
+
+	/'===========构造方法======start========'/	
+	group 初始化
+		action->order:__construct(orderNumber, ljyunId=0 ,orderId=0)
+		activate order
+			note over order: this->ljyunId = (int)ljyunId
+			alt empty(this->ljyunId) 如果参数无云编号, 通过合同号获取
+					group 根据合同号获取运编号
+						order->common:getLjyunIdByContract(orderNumber)
+						common->order:ljyunId
+						note over order: this->ljyunId = ljyunId
+					end
+			end
+			/'==========查询订单主表数据============start=='/
+			group 查询订单主表数据
+				order->order:getOrder()
+				activate order
+					note over order
+					组合查询参数:
+						ljyun_id  = this->ljyunId
+						//主键或订单编号
+						WHERE id = orderId OR pact_number = orderNumber
+						ORDER BY id DESC LIMIT 1
+					end note
+						
+					order->orderD: get(list, 参数)
+					orderD-->order: orderArr[0]
+							
+					note over order
+						//订单主表对象属性赋值
+						this->orderObj = orderArr
+					end note
+					order-->order:
+				deactivate order
+			end
+			/'==========查询订单主表数据============end=='/
+			
+		/'==========查询订单付款期数表============start=='/
+		group 查询订单付款期数表
+			order->order:getOrderPay()
+		end
+		/'==========查询订单付款期数表============start=='/
+		
+		/'===================组合未付款期数数据据到订单对象中===============start===='/
+		group 组合未付款期数数据据到订单对象中
+			note over order
+				this->orderObj->notPayObj = end(this->orderPayArr)
+			end note
+		end
+		/'===================组合付款期数数据据到订单对象中===============end===='/
+		
+			order-->action: obj
+		deactivate order
+	end
+	/'===========构造方法======end========'/	
+
+	/'===========查询付款记录======start========'/		
+	group 查询付款记录
+		action->order:getOrderPay()
+		activate order
+			note over order
+			组合查询参数:
+				ljyun_id  = this->ljyunId
+				//订单主键
+				WHERE order_id = this->orderObj->id
+				ORDER BY id ASC
+			end note
+			order->payD:get(list,  参数)
+			payD-->order:payArr
+			note over order:this->orderPayArr = payArr
+			order-->action: 
+		deactivate order
+	end
+	/'===========查询付款记录======end========'/
+
+	/'===========查询订单商品======start========'/		
+	group 查询订单商品
+		action->order:getOrderPro()
+		activate order
+			note over order
+			组合查询参数:
+				ljyun_id  = this->ljyunId
+				//订单主键
+				WHERE order_id = this->orderObj->id
+				ORDER BY id ASC
+			end note
+			order->orderProD:get(list,  参数)
+			orderProD-->order:proArr
+			alt !empty(proArr)
+			/'=====循环查询商品其他属性====start===='/
+				note over order
+					注意：
+						1. 以下循环中的查询均按主键倒序查一条
+						2. 在查询商品其他属性后，组合返回值的时候，如果查询异常或空，则赋值为５个中横线
+				end note
+				
+				loop proArr as val　循环查询商品其他属性
+					/'---先查询redis中商品数据---'/
+					group 先查询redis中商品数据
+						 order->order:getProByRedis(val[product_id])
+						 activate order
+							order->redis: load->library(RedisClient)
+							redis-->order:redisObj
+							alt 1== redisObj->isConnect 如果reids连接成功, 继续取数据
+								note over order: hashKey = product_$ljyunId_$productId
+								order->redis:hGetAll(hashKey)
+								redis-->order:proRedisArr
+							else
+								redis-->order:array()
+							end 	
+						 deactivate order
+					end
+					alt empty(proRedisArr) 如果redis中没有命中数据,则从mysql中查询
+						order->order:getProByMysql(val[product_id])
+						activate order
+						/'----查询商品信息----'/
+						group 根据商品主键查询商品信息
+							order->proD: get(list, WHERE product_id = val->product_id)
+							proD-->order:proObj
+						end
+					
+						/'----查询商品品牌----'/
+						group 根据品牌主键查品牌
+							order->brandD: get(list, WHERE probrand_id = proObj->product_brandid)
+							brandD-->order:brandObj
+						end
+	
+						/'----查询商品附表----'/
+						group 根据商品主键查商品附表
+							order->extraproD: get(list, WHERE extrapro_proid = proObj->product_id)
+							extraproD-->order:extraObj
+						end
+					
+						/'----查询商品产地----'/
+						group 查询商品产地
+							alt  0 == extraObj->extrapro_importornot 国产
+								order->areaD: get(list, WHERE area_id = extraObj->extrapro_origin)
+								areaD-->order:areaObj
+							else 1 == extraObj->extrapro_importornot 进口
+								order->worldD: get(list, WHERE worldwide_id = extraObj->extrapro_origin)
+								worldD-->order:extraObj
+							end
+						end
+						deactivate order
+					end 
+					
+					alt 如果是定制类商品, 组合定制类商品数组
+						note over order
+							this->customProArr[][proName] = proObj->product_name 商品名
+							this->customProArr[][proModel] = proObj->product_model　商品型号
+							this->customProArr[][description] = val->customize_description　定制说明
+						end note
+						note over order: 组合定制标识为＂定制＂
+					else
+						note over order: 组合定制标识为＂非定制＂
+					end
+					
+					note over order: 组合返回值orderProArr
+					
+				end
+			/'=====循环查询商品其他属性====end===='/
+			end
+			note over order:this->orderProArr = orderProArr
+			order-->action:this->orderProArr
+		deactivate order
+	end
+	/'===========查询订单商品======end========'/
+	
+	/'===========验证订单过期======start========'/		
+	group 验证订单过期
+		action->order:checkDate()
+		activate order
+			alt ( date('Y-m-d 00:00:00) < this->orderObj->add_time &&  date('Y-m-d 23:59:59) > this->orderObj->add_time )
+				order-->action: true
+			else
+				order-->action:false 
+			end
+		deactivate order
+	end
+	/'===========验证订单过期=====end========'/
+	
+	/'===========修改订单状态======start========'/		
+	group 修改订单状态
+		action->order:updateStatus(params)
+		activate order
+			note over order
+				//修改中状态
+				this->orderObj->notPayObj->consume_id = params[consumeId] 收款表主键
+				this->orderObj->notPayObj->status = params[status]　付款状态
+				//组合修改条件
+				WHERE id = this->orderObj->notPayObj->id LIMIT 1
+			end note
+			order->payD:set(修改条件,this->orderObj->notPayObj)
+			payD-->order:json
+			alt 1==json->status 修改成功
+				order-->action:true
+			else 修改失败
+				order-->action:false
+			end
+		deactivate order
+	end
+	/'===========修改订单状态======end========='/		
+	
+	deactivate order
+@enduml

@@ -1,0 +1,99 @@
+@startuml
+title 中信支付接口
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "PayServlet\n中信支付接口C" as C  #00FF00
+participant "MD5\nMD5签名类" as md5  #00FF00
+participant "PayAction\n中信支付A" as A  #FFFFFF
+participant "CommonUtils\n公共工具类" as common  #FFFFFF
+participant "CouchDB\nCouchDB工具类" as couch  #FFFFFF
+participant "CorefireHttpPost\n中信支付http请求类" as http  #FFFFFF
+participant "PayTypeDao\n支付方式表" as pDao  #FFFFFF
+participant "WechatAnnalDao\n微信收款表" as cDao  #FFFFFF
+
+view->C:doPost()
+activate C
+	/'===========验证参数=============='/
+	group 验证参数
+		note over C	
+				 参数下标说明：
+				 auth_code = 扫码支付授权码		 
+		end note
+	end
+		note over C
+		验证token规则：
+			md5(类名+方法名+casher)
+	end note
+	C->md5:EncoderByMd5(String str)
+	md5-->C:enCodeStr
+	
+	alt token验证失败
+		C-->view:BLL token验证失败
+	end
+	
+	
+	/'===========处理逻辑=============='/
+	C->A:payRequest(request,response)
+	activate A
+		note over A: 验证参数
+			group 设置请求参数
+				A->common:createTradeNo()\n生成支付号out_trade_no
+				activate common
+				common-->A:tradeNo
+				deactivate common
+			end
+			
+			group  将请求参数写入couchDB，注意写明请求说明
+			A->couch:addOrUpdate()
+			couch-->A:
+			end
+			
+			group 去中信请求
+				A->http:connect()
+				activate http
+				http-->A:xml
+				deactivate http
+			end
+			
+			group  将请求返回值写入couchDB，注意写明返回说明
+				A->couch:addOrUpdate()
+				couch-->A:
+			end
+			
+			group 判断请求后的返回值
+				alt return_code!=SUCCESS
+					A-->C:通讯异常
+				end
+				
+				alt  err_code = USERPAYING(微信)/result_code = PAYING（支付宝）  需要用户密码流程，需要用户自行查询\n
+				
+					loop  循环每１０秒查询一次，查３次
+						A->A:queryRequest()
+					end
+					alt 如果３次均未返回支付成功
+							A->A:reverseRequest()撤销接口关单
+							A-->C:支付失败，需要用户重新支付
+					end
+				end
+			end
+			group 新增支付宝/微信收款表数据
+				A->A:saveData()
+				activate A	
+					group 计算手续费
+					A->pDao:select pay_value where s_name = wechat/alipay
+					pDao-->A:pay_value
+					note over A
+						手续费计算规则请查看开发指导文档
+					end note
+					end
+					A->cDao:add()
+					cDao-->A:boolean
+				deactivate A
+			end
+		A-->C:支付成功
+	deactivate A
+C-->view:支付成功
+deactivate C
+
+@enduml

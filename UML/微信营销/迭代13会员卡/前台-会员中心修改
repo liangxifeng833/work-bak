@@ -1,0 +1,31 @@
+@startuml
+title 前台-会员中心修改
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "MemberCenter\n会员中心C" as C  #00FF00
+participant "CouponAction\n电子券A" as A  #FFFFFF
+participant "Coupon\n电子券表" as coupon  #FFFFFF
+participant "JSSDK" as sdk  #FFFFFF
+
+group 新增操作
+	view->C:index()
+	activate C
+		group 通过openid查询该用户的电子券信息
+			C->A:getCouponByOpenId(openId)
+			activate A
+				A->coupon:select()
+				coupon-->A:couponArr
+			A-->C:couponArr
+			deactivate A
+		end
+		
+		group 加载jssdk
+			C->sdk:
+			sdk-->C:
+		end
+	C-->view: html端使用（查看微信卡包中的卡券接口）
+	deactivate C
+end
+
+@enduml

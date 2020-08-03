@@ -1,0 +1,24 @@
+@startuml
+title 老招商系统
+
+
+|mis|
+start
+: 新增正式商户;
+  fork
+    :会员中心;
+    end;
+  fork again
+    :员工中心;
+    end;
+  fork again
+  	:注册成为会员;
+    note right
+	   通过card_id获取开卡组件url
+	    开卡组件开卡( 跳转型 )
+	   end note
+  end fork
+end
+
+
+@enduml

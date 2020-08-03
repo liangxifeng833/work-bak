@@ -1,0 +1,43 @@
+@startuml
+title 创建会员卡
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "MemberCard\n创建/修改会员卡C" as createC  #00FF00
+participant "MemberCardAction\n会员卡A" as memberA  #FFFFFF
+participant "MemberBatch\n会员卡批次表A" as batch  #FFFFFF
+participant "WechatOneCouponSDK\n微信单张卡券SDK" as oneSDK  #FFFFFF
+
+group 初始化查询会员批次
+view->createC:index()
+activate createC
+	createC->memberA:getMemberBatch(id)
+	activate memberA
+		memberA->batch:find()
+		batch-->memberA:batchRow
+	memberA-->createC
+	deactivate memberA
+createC-->view:batchRow
+deactivate createC
+end
+
+group 新增操作
+	view->createC:indexPost()
+	activate createC
+		createC->memberA:create()
+		activate memberA
+			note over memberA
+				注意：
+					卡库存为微信规定最大值100000000
+					每人可领券数量为50
+					有效期w
+			end note
+			memberA->batch:add()
+			batch-->memberA:boolean
+		memberA-->createC:boolean
+		deactivate memberA
+	createC-->view:
+	deactivate createC
+end
+
+@enduml

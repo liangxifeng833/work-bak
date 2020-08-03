@@ -1,0 +1,35 @@
+@startuml
+title  邀请二维码
+
+
+ |平台|
+ start
+	:成为平台会员;
+	fork
+		:授权token;
+	fork again
+		:微信自定义导航;
+	end fork
+  
+|会员中心|
+:登录;
+:生成邀请二维码;
+	if(有无ticket)then(有)
+		if(是否过期)then(否)
+		else(是)
+			|微信|
+			:生成带参数二维码;	
+			|会员中心|
+			:保存ticket;	
+		endif
+	else(无)
+		|微信|
+		:生成带参数二维码;		
+		|会员中心|
+		:保存ticket;
+	endif
+
+:用ticket作为参数访问url生成二维码;
+end
+	
+@enduml

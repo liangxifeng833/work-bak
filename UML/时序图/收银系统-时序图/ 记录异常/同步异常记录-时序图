@@ -1,0 +1,104 @@
+@startuml
+title 同步异常记录-时序图
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "ExecptionSync\n异常同步接口" as C  #00FF00
+participant "ExecptionSyncAction\n异常同步Action" as A  #FFFFFF
+participant "WechatAnnalDao\n微信收款表" as wDao  #FFFFFF
+participant "AlipayAnnalDao\n支付宝收款表" as aDao  #FFFFFF
+
+
+participant "PayQueryServlet\n微信或支付宝查询接口java" as query  #FFFFFF
+participant "CreateHandleFee\n生成手续费类" as fee  #FFFFFF
+participant "PayTypeDao\n支付方式表" as pDao  #FFFFFF
+participant "tctSyncException\n同步收款异常事务" as tct  #FFFFFF
+
+
+view->C:index_post()
+activate C
+	/'===========验证参数=============='/
+		note over C
+		验证token
+	end note
+	C->A:mainPost(params)
+		activate A
+			note over A
+				验证必要参数
+					params['支付类型'] = 1微信, 2支付宝
+					params['通道号'] = 通道号
+			end note
+			
+			/'-------------查询本地数据库------------------------------'/
+			group 根据通道号和支付类型从本地数据库查询微信或支付宝数据
+				A->A:getPayFromDB(支付类型, 通道号)
+				activate A
+					alt params['支付类型'] = 1 微信
+						A->wDao: get()
+						wDao-->A:
+					else params['支付类型'] = 2 支付宝
+						A->aDao: get()
+						aDao-->A:
+					end
+				A-->A: 本地支付数据
+				deactivate A		
+			end
+			alt 本地支付数据非空
+				A-->C:支付成功
+			end
+			/'-------------查询本地数据库------------------------------'/
+			
+			/'-------------查询远程中信数据库------------------------------'/
+			group 查询远程中信数据库
+				A->A:getPayFromCitic(支付类型, 通道号)
+				activate A
+					note over A:  需根据支付类型调用微信或支付宝
+					A->query: doPost() <b> <font color="red">注意: 从bll php 访问 bll java
+					query-->A:				
+				A-->A:远程支付数据
+				deactivate A
+			end
+			/'-------------查询远程中信数据库------------------------------'/
+			
+			/'-------------根据远程支付数据拆分, 获取合同号------------------------------'/
+			group 根据远程支付数据拆分, 获取合同号
+				alt 拆分获取的合同号 != 参数中的合同号
+					A-->C:支付号异常
+				end 
+			end 
+			/'-------------根据远程支付数据拆分, 获取合同号------------------------------'/
+			
+			/'------计算手续费----------------------------'/
+			group 计算手续费
+			A->fee:mainGet(wechat/alipay, curPrice)
+			activate fee
+					fee->pDao:select pay_value where s_name = wechat/alipay
+					pDao-->fee:pay_value
+					note over fee
+						手续费计算规则请查看开发指导文档
+					end note
+			fee-->A:计算后的手续费
+			deactivate fee
+			end
+			/'------计算手续费----------------------------'/
+			
+			/'-------------调用事务同步异常------------------------------'/
+			group 调用事务同步异常
+				A->A:invokeTct()
+				activate A	
+					A->tct:index_post()
+						note right A
+							事务逻辑: 
+								1. 修改异常记录表信息price=远程支付数据中获取, state=1已处理
+								2. 新增数据到微信或支付宝表
+						end note
+					tct-->A:
+				deactivate A
+			end 
+			/'-------------调用事务同步异常------------------------------'/
+			A-->C:
+		deactivate A
+C-->view:
+deactivate C
+
+@enduml

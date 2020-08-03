@@ -1,0 +1,53 @@
+@startuml
+title 卡券核销输入code
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "CheckConsume\n卡券核销C" as checkC  #00FF00
+participant "CheckConsumeAction\n卡券核销A" as checkA  #FFFFFF
+participant "WechatOneCouponSDK\n微信单张卡券SDK" as oneSDK  #FFFFFF
+
+
+group 构造方法初始化action
+view->checkC:__construct()
+	activate checkC
+		checkC->checkA:__construct(session(appId),session(openID))
+		checkA-->checkC:this->consumeAction
+	checkC-->view:
+	deactivate checkC
+end
+
+group 核销首页
+view->checkC:indexInputCode()
+activate checkC
+	note over checkC
+		获取用户信息：this->consumeAction->userRow
+	end note
+	
+	group 核销查询
+		checkC->checkA:checkConsumeSearch()
+		activate checkA
+			group 查询卡券信息
+				checkA->checkA:getCardByCode()
+				checkA-->checkA:cardRow
+			end
+			
+			group 验证卡券过期
+				checkA->checkA:_checkDate()
+				checkA-->checkA:
+			end
+			
+			group 验证卡券状态
+				checkA->checkA:_checkStatus()
+				checkA-->checkA:
+			end
+			
+			group 组合页面需要的数据返回
+				checkA-->checkC:array(卡券数组)
+			end
+		deactivate checkA
+	end
+checkC-->view:
+deactivate checkC
+
+@enduml

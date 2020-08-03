@@ -1,0 +1,22 @@
+@startuml
+title 电子券统计列表
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "CouponStatics\n电子券统计C" as batchC  #00FF00
+participant "CouponBatchStaticsAction\n电子券批次统计A" as batchA  #FFFFFF
+participant "CouponExpireAction\n电子券过期action" as expireA #FFFFFF
+participant "Coupon\n电子券表" as batch #FFFFFF
+participant "WechatOneCouponSDK\n微信单张券处理类" as sdk #FFFFFF
+view->batchC:index_get(params)
+activate batchC
+	batchC->batchA:get(params)
+	activate batchA
+				batchA->batch:select()
+				batch-->batchA:couponArray
+	batchA-->batchC:array
+	deactivate batchA
+	batchC-->view: array
+deactivate batchC
+
+@enduml

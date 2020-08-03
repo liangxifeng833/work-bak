@@ -1,0 +1,101 @@
+@startuml
+title 提报商品-非BLL\n
+
+actor html #red
+/'-------------定义参与者别名 -------------------'/
+participant "submitProduct\n提报商品C" as submitC #FFFFFF
+participant "share_ljyunstyle_mdl\n蓝景分类表M" as ljtypeM #FFFFFF
+participant "product_mdl\n商品M" as proM #FFFFFF
+
+/'==================初始化===================='/
+group 初始化
+	html->submitC:__construct()
+	activate submitC
+		note over submitC
+			parent::__construct()
+		end note
+	submitC-->html
+	deactivate submitC
+end
+
+/'================主函数==================='/
+html->submitC:submitMain()\n控制主函数
+activate submitC
+	group 验证并过滤参数
+		note over submitC
+			post方式接收：
+				this->_ljTypeId = 蓝景分类主键
+		end note
+	end
+	
+	/'===验证商品==='/
+	group 验证商品
+		submitC->submitC:_checkPro()\n验证商品是否有权提报
+		activate submitC
+			alt this->_proArr['product_status'] != 0 
+				note over submitC: 该商品已经提报过了
+				submitC-->submitC:false
+			else
+				submitC-->submitC:true
+			end
+		deactivate submitC
+		alt !_checkPro()
+			note over submitC
+			 	系统提示：该商品已经提报过了
+			 	程序终止
+			 end note
+		end
+	end
+	
+	/'===验证蓝景分类==='/
+	group 验证蓝景分类
+		 submitC->submitC:_checkLjType()
+		 activate submitC
+		 	submitC->ljtypeM:getOne(this->_ljTypeId,'style_id')
+		 	ljtypeM-->submitC:typeArr
+		 	alt typeArr
+		 		submitC-->submitC:true
+		 	else
+		 		submitC-->submitC:false
+		 	end
+		 deactivate submitC
+		 alt !_checkLjType()
+		 	note over submitC
+		 		系统提示：所选择的蓝景分类不存在
+		 		程序终止
+		 	end note
+		 end
+	end
+	
+	group 修改商品状态
+		/'------修改商品状态--------'/
+		 submitC->submitC:_editStatus()
+		 activate submitC
+		 	submitC->proM:update(this->_proId,array('product_status'=>1))
+		 	note over submitC: 注意：修改状态为1,待审核
+		 	proM-->submitC:boolean
+			alt true==boolean
+				submitC-->submitC:true
+			else
+				submitC-->submitC:false
+			end
+		 deactivate submitC
+	end
+	
+	alt !_editStatus() 修改状态失败
+		note over submitC
+			系统提示：商品提报失败
+			终止程序
+		end note
+	end	
+
+	/'================= 自动审核==================='/		
+	group 自动审核
+		submitC->submitC:parent::_autoCheck()
+		submitC-->html:
+		deactivate submitC
+	end
+deactivate submitC
+
+
+@enduml

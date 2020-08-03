@@ -1,0 +1,17 @@
+@startuml
+title 选择标签
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "EmployCenter\n员工中心C" as employC  #00FF00
+participant "Mobile/Lib/PasteLabelAction\n贴标签actionA" as tagA  #FFFFFF
+
+view->employC:selectTag()
+activate employC
+	employC->tagA:getList()
+	activate tagA
+	tagA-->employC:array
+	deactivate tagA
+	employC-->view:
+deactivate employC	
+@enduml

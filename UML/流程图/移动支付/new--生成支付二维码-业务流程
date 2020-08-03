@@ -1,0 +1,100 @@
+@startuml
+title  生成支付二维码-业务流程
+
+actor 顾客 #red
+/'-------------定义参与者别名 -------------------'/
+participant "顾客小程序" as smallProgram 
+participant "顾客小程序应用层" as app
+participant "下单系统领域层" as order
+participant "移动支付领域层" as citic
+	
+	顾客->smallProgram:未付款订单支付
+	activate smallProgram
+	/'------------------------用券------------------start---'/
+	group 全额付款订单和部分付款订单首期款才可用券, 尾款不可用券
+		smallProgram->app:通过unionId调用已有接口查询已发放的电子券
+		app-->smallProgram:
+		alt 如果用户点击可用电子券时
+			smallProgram->app:调用已有接口, 验证电子券是否过期, 如果已过期则修改券状态=已过期
+			app-->smallProgram
+		end
+		note right smallProgram: 根据现有收银系统用券规则, 验证该电子券是否可用
+	end
+	/'------------------------用券-----------------end----'/
+	
+	/'------------------------选择微信/支付宝------------------start--'/
+	group 选择微信/支付宝 付款方式
+		smallProgram->smallProgram:选择支付方式\n微信／支付宝
+	end
+	/'------------------------选择微信/支付宝------------------end--'/
+
+	
+	/'------------------------生成预支付订单-----------------start--'/
+	group 生成预支付订单, 获取支付二维码
+		smallProgram->app: 获取支付二维码
+		activate app
+			app->app: 获取支付二维码
+			activate app
+				note over app
+					请求支付领域层必要参数：
+						1. 商户订单号out_trade_no = 合同号-微信/支付宝-生成商户订单次数-5位随机数
+						( 比如: 微信商户订单号: 151200111-W-01-46812, 支付宝商户订单号:  151200111-A-01-46812 )
+						2. 通知地址: 域名从配置文件中获取, 地址=域名/ReceiveCiticNotice
+						3. 附加数据attach = orderNum=订单号#orderId=订单主键
+										#paymentId=付款期数表主键#source=order(订单)/hot(爆款商品)#payType=1/2(1微信,2支付宝)
+						4. 订单总金额total_fee = 单位为分
+						5. 终端IP spbill_create_ ip = 获取应用层服务器的IP地址
+						6. 商品描述 body = 请参考设计文档说明; 
+				end note
+				
+				group 撤销上一个未支付的订单
+					note over app: 根据主键查询付款期数表\nWHERE 主键 AND 状态=未付款 AND 商户号存在
+					
+					alt 如果以上查询存在数据
+						app->citic: 请求查询订单接口查询中信该笔订单状态
+						citic-->app:
+						alt 如果查询接口返回状态 = 未支付状态
+								app->citic: 请求中信撤销订单接口
+								citic-->app:
+						else 否则如果查询状态 = 支付中
+							citic -[#blue]->app: <font color=blue><b>支付中...
+							app-[#blue]->smallProgram: <font color=blue><b>用户支付中, 不可重复支付
+						end /'状态是未支付'/
+					end /'存在在中信未付款的订单'/
+				end /'撤销上一个未支付的订单'/
+				
+				group 生成预支付订单
+					app->citic: 调用生成生成预制支付订单接口
+					citic-->app: 返回支付二维码地址
+				end
+				
+				group 更新订单付款期数表的商户订单号
+					app->order:orderPayment.update()
+						note right app: UPDATE orderPayment SET \n商户订单号, 支付二维码地址 WHERE 主键
+					order-->app:修改结果
+				end
+				
+				group 处理用券数据
+					alt 如果来源source = 订单 AND 有用券数据
+						app->order: 新增券使用码到订单用券信息表中
+						order-->app: res
+						app->ticketMain: 修改券状态 = 已使用
+						ticketMain-->app:修改结果
+					end  
+				end 
+				
+			app-->app: 返回支付二维码地址
+			deactivate app
+			
+		app-->smallProgram:返回<font color=red>支付二维码链接地址
+		deactivate app
+	end
+	/'------------------------生成预支付订单-----------------end---'/
+	
+	/'------------------------生成支付-----------------start---'/
+	group 生成支付二维码
+		smallProgram->smallProgram:根据<font color=red>二维码链接地址</font>\n生成支付图片二维码
+	end
+	smallProgram-->顾客:展示支付二维码
+	deactivate smallProgram
+@enduml

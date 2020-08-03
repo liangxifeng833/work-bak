@@ -1,0 +1,91 @@
+@startuml
+title CM1-获取支付方式字典
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "payDictionary\n支付方式字典C" as orderC  #00FF00
+participant "PayDictionaryAction\n商户数据A" as orderA  #FFFFFF
+participant "PayTypeDao\n支付方式表D" as paytypeD  #FFFFFF
+participant "PaymentTypeDao\n附加支付方式表D" as otherD  #FFFFFF
+participant "Common\n公共信息类L" as common  #FFFFFF
+participant "tradecardBlacklistDao\n购物券黑名单表D" as blackD  #FFFFFF
+
+
+view->orderC:index_get()
+activate orderC
+	/'===========验证参数=============='/
+	group 验证参数
+		note over orderC
+			接收参数：
+				 $params = this->get("params");
+				 参数下标说明：
+				 $params[orderNumber] = 订单编号（即合同号）		 
+		end note
+	end
+	note over orderC
+		验证token
+	end note
+	
+	
+	/'===========处理逻辑=============='/
+	group 查询支付方式
+		orderC->orderA:get(params)
+		activate orderA
+		note over orderA:验证参数
+		/'=========查询该商户是否在购物券黑名单中================start==='/
+		group 查询该商户是否在购物券黑名单中
+			orderA->orderA:obj->_isUsingTrade(orderNumber)\n该商商户是否在购物券黑名单中
+			note over orderA: 验证参数
+			activate orderA
+				group 查询商户信息
+						orderA->common:getMerchantByContract(orderNumber,1)
+						common->orderA:merchantArr
+				end
+				
+				group
+					note over orderA
+						组合参数：
+							WHERE 'tradecard_merchant_id'= $merchantArr[展位号]
+					end note
+					orderA->blackD: get(list,参数)
+					blackD-->orderA:blackRes
+				end
+				
+				alt blackRes 如果在黑名单中
+					orderA-->orderA:true
+				else
+					orderA-->orderA: false
+				end
+			deactivate orderA
+		end
+		/'=========查询该商户是否在购物券黑名单中================end==='/
+		
+			group 查询普通支付方式
+				alt this->_isUsingTrade(orderNumber) 如果在黑名单中
+					note over orderA
+						组合查询参数
+							WHERE s_name IN (cash,cheque,bank,fu_card)
+					end note
+				else
+					note over orderA
+						组合查询参数
+							WHERE s_name IN (cash,cheque,bank,trade,fu_card)
+					end note
+				end
+				orderA->paytypeD:get(list,参数)
+				paytypeD-->orderA: payTypeRes
+			end
+
+			group 查询第三方支付方式
+				orderA->otherD:get(list)
+				otherD-->orderA: otherRes
+			end
+			
+			orderA-->orderC: res = array(state=>1, commPays=>payTypeRes, otherPays=>otherRes)
+		deactivate orderA
+	end
+	
+orderC-->view:res
+deactivate orderC
+
+@enduml

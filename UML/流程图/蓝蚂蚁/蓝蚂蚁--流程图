@@ -1,0 +1,31 @@
+@startuml
+title 蓝蚂蚁--流程图
+
+
+|mis系统|
+start
+:员工扫码;
+:员工表绑定openId;
+|管理端小程序|
+:进入首页;
+:根据不同角色ID显示不同模块;
+:编辑人员创建主题;
+if(经理审核主题)then(yes)
+	:编辑人员添加文章;
+	note
+		选择标签
+		上传图片
+	end note
+	if(经理或编辑主管审核文章)then(审核通过)
+		:文章直接发布;
+		end
+	else
+		:文章审核驳回;
+		end
+	endif
+else
+	:审核失败原因;
+	end
+endif
+
+@enduml

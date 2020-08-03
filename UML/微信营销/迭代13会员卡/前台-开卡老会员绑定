@@ -1,0 +1,57 @@
+@startuml
+title 前台-开卡老会员绑定
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "OldMemberBind\n老会员绑定显示C" as C  #00FF00
+participant "MemberAction\n会员A" as A  #FFFFFF
+participant "WechatMemberCardSDK\n微信会员卡相关sdk" as openSDK  #FFFFFF
+
+
+group 老会员初始页面
+	view->C:index()
+	activate C
+		note over C:将code参数传递到html页面(注意：不解码)
+	C-->view:display(html)
+	deactivate C
+end
+
+group 异步验证老会员
+	view->C:ajaxCheck()
+	activate C
+		C->A:checkOldMember(手机号,isSync=1需要同步老会员信息)
+		A-->C:checkRes
+		C-->view:
+		alt  如果不是老会员 
+			note  left  view: 页面提示用户注册老会员
+		end
+	deactivate C
+end
+
+group 显示老会员信息
+	view->C:show()
+	activate C
+		note over C:将编码code传递到该页面
+		C->A:oldMemberShow()
+		activate A
+			/'--------- 解码code-----------------'/	
+			group 解码code
+				A->openSDK:cardDeCode()
+				openSDK-->A:$code
+			end
+			/'--------- 解码code-----------------'/			
+			group 通过手机号查询老会员信息
+				A->A:getOldMemberByPhone(手机号)
+				activate A
+				A-->A:查询到的老会员信息
+				deactivate A
+			end
+		A-->C: 老会员信息\n解码加的trueCode\ncard_id(userRow属性中获取)
+		deactivate A
+		note over C: 注册jssdk类
+		C-->view: display() 在html页面中判断code为空则调用jssdk发卡，否则直接激活操作
+	deactivate C
+end
+
+
+@enduml

@@ -1,0 +1,83 @@
+@startuml
+title 批量提报-非BLL\n
+
+actor html #red
+/'-------------定义参与者别名 -------------------'/
+participant "batchSubmitProduct\n提报商品C" as submitC #FFFFFF
+participant "product_mdl\n商品M" as proM #FFFFFF
+participant "AutoCheck\n自动审核L" as autoL #FFFFFF
+participant "checkProducts\n审核商品C" as bll  #00FF00
+
+html->submitC:submitMain()
+activate submitC
+/'===验参==='/
+alt parent::!_checkParam()
+		note over submitC:  系统提示：参数错误
+end
+
+/'===验证蓝景分类==='/
+alt !parent::_checkLjType()
+ 	note over submitC:系统提示： 所选择的蓝景分类不存在
+end
+
+/'===验证商户商品分类==='/	
+alt !parent::_checkMerchantType()
+	note over submitC:系统提示： 验证商品分类失败	
+end 
+
+/'========通过商品分类查询商品========'/
+submitC->submitC:parent::_getProFromType()
+activate submitC
+submitC-->submitC: 需要提报的商品数量 count 
+deactivate submitC
+
+alt cout<=0
+	note over submitC:系统提示：该分类下无可提报商品
+end
+
+/'=== 修改商品状态==='/	
+group 修改商品状态为待审核
+	submitC->submitC:_editStatus()
+	activate submitC
+			note over submitC
+				//查询条件为新增商品
+				where = array(product_status=0)
+				//根据商品分类做whereIn查询
+				whereIn=array(product_typeid, this->_merchantTypeIds)
+			end note
+		submitC->proM:updateNew(where,whereIn,data=array(product_status=1))
+		proM-->submitC:boolean
+	submitC-->submitC:boolean
+	deactivate submitC
+end
+
+alt !_editStatus()
+ note over submitC:系统提示：提报失败
+end
+
+/'====自动审核===='/
+group 自动审核
+	submitC->submitC:_autoCheck()
+			activate submitC
+			 /'------验证是否自动审核--------'/
+			 submitC->autoL:isAutoCheck()\n验证是否自动审核
+			 autoL-->submitC:boolean
+			 
+			 alt isAutoCheck()
+			 		note over submitC
+					 		组织调用bll自动审核接口参数
+					 		$arr[params] = array(ljyunId=>云编号,proId=>0);
+					 	end note
+			 	submitC->bll:index_post()
+			 	bll-->submitC:boolean
+			 end
+		submitC-->submitC:boolean
+	 	deactivate submitC
+end
+
+submitC-->html:
+deactivate submitC
+
+
+
+@enduml

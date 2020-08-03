@@ -1,0 +1,20 @@
+@startuml
+title 验证发券员工-时序图
+
+actor library #red
+/'-------------定义参与者别名 -------------------'/
+participant "CheckSendEmploy\n发券API" as sendC  #FFFFFF
+participant "ruleEmployRelation\n发券规则与员工关系表" as rer  #FFFFFF
+
+library->sendC:index(发券规则主键，员工表主键)
+activate sendC
+				sendC->rer:getList()\n查询发券规则与员工关系表
+					note right sendC: WHERE 规则主键 AND 用户主键
+				rer-->sendC:员工关系obj
+				alt 员工关系obj 为空
+					sendC-->library: 该员工无权发券
+				else
+					sendC-->library: 该员工有权发券
+				end
+deactivate sendC
+@enduml

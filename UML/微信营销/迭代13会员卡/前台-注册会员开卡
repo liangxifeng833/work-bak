@@ -1,0 +1,41 @@
+@startuml
+title 前台-注册会员开卡
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "RegisterMember\n注册会员C" as C  #00FF00
+participant "MemberAction\n会员A" as A  #FFFFFF
+participant "WechatMemberCardSDK\n微信会员卡相关sdk" as openSDK  #FFFFFF
+participant "MemberBatch\n会员卡批次表" as batch  #FFFFFF
+
+view->C:index()
+activate C
+	/'------------------去微信获取开卡组件url--------------------------'/
+	group 去微信获取开卡组件url
+	C->A:toWechatGetUrl()
+	activate A
+		alt this->userRow[card_id] 为空
+			A-->C:用户没有设置会员卡
+		end
+		
+		alt this->userRow[open_card_module_url]如果开卡url 为空 则去微信查询url
+			note over  A
+				data[card_id] = $this->userRow[card_id]
+			end note 
+			A->openSDK:getOpenCardUrl(data)	
+			openSDK-->A:openUrl		
+			group 修改会员卡批次中 开卡url
+				A->batch:save()
+				batch-->A:boolean
+			end
+		else 如果开卡url 非空, 直接使用该地址
+			note over A: openUrl = this->userRow[open_card_module_url]
+		end
+	A-->C:openUrl
+	note over C: 跳转到openUrl
+	deactivate A
+	/'------------------去微信获取开卡组件url--------------------------'/
+C-->view:
+deactivate C
+end
+@enduml

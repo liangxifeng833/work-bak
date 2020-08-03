@@ -1,0 +1,23 @@
+@startuml
+title 新增会员卡编号
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "AddMemberNumber\n新增会员卡编号C" as createC  #00FF00
+participant "AddMemberNumberAction\n新增会员卡编号A" as memberA  #FFFFFF
+participant "MemberNumber\n会员卡编号表A" as batch  #FFFFFF
+
+group 新增操作
+	view->createC:indexPost()
+	activate createC
+		createC->memberA:create(params)
+		activate memberA
+			memberA->batch:add()
+			batch-->memberA:boolean
+		memberA-->createC:boolean
+		deactivate memberA
+	createC-->view:
+	deactivate createC
+end
+
+@enduml

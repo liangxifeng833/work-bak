@@ -1,0 +1,52 @@
+@startuml
+title 从微信获取最新券状态更新到本地
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "ModifyStatusByWehcat\n从微信获取最新券状态更新到本地C" as batchC  #00FF00
+participant "ModifyStatusByWehcatAction\n从微信获取最新券状态更新到本地A" as batchA  #FFFFFF
+participant "Coupon\n电子券表" as batch #FFFFFF
+participant "WechatOneCouponSDK\n微信单张券处理类" as sdk #FFFFFF
+view->batchC:index_post(params)
+activate batchC
+	batchC->batchA:get(params)
+	activate batchA
+				group 通过券主键查询券信息
+					batchA->batchA:getCouponById(couponId)
+					activate batchA
+						batchA->batch:where(id=couponId)->select()
+						batch-->batchA: couponRow
+					deactivate batchA
+				end
+				
+				alt couponRow[status] != 正常
+					batchA-->batchC: 券状态无需更新
+				end
+				
+				group 去微信获取券最新状态
+					batchA->sdk:getCouponByCode(couponRow[card_id], couponRow[code]) 
+					sdk-->batchA:json
+				end
+				
+				alt 0==json.errcode 无异常
+					note over batchA: data[status] = data[status]  = json.user_card_status
+					group 修改本地券状态
+						batchA->batchA: _modifyCouponById(couponId,data)
+						activate batchA
+								activate batchA
+									note over batchA
+										组合参数
+										 $map[id] = 券表主键	 
+										 data[last_time] = 当前时间
+									end note
+							batchA->batch: save()
+							batch-->batchA:boolean
+						deactivate batchA
+					end
+				end
+	batchA-->batchC:
+	deactivate batchA
+	batchC-->view: 
+deactivate batchC
+
+@enduml

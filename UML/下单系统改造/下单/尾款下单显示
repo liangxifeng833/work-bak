@@ -1,0 +1,139 @@
+@startuml
+title 尾款下单显示
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "finalOrder\n尾款下单C" as finalC #FFFFFF
+participant "finalOrderAction\n尾款下单A" as finalA #FFFFFF
+participant "orderDao\n订单表D" as orderD #FFFFFF
+participant "orderPayemnt\n付款期数表D" as payD #FFFFFF
+
+view->finalC:index_get()
+
+activate finalC
+	/'===========验证参数=============='/
+	group 验证参数
+		note over finalC
+			接收参数：
+				 $params = this->get("params");
+			         验证参数$params 非空
+		end note
+	end
+	note over finalC
+		验证token
+	end note
+	
+	/'===========初始化===========start==='/
+	group 初始化
+		finalC->finalA:__construct(param[ljyunId], params[orderId])
+			activate finalA
+			note over finalA
+				this->_ljyunId =params[ljyunId]          云编号
+				this->_orderId = params[orderId]       订单主键
+			end note
+			/'===========查询订单===========start==='/
+			group 查询订单
+				finalA->finalA:_getOrder()
+				activate finalA
+					note over finalA
+						组合查询参数
+						WHERE order_id = this->_orderId
+						ORDER BY order_id DESC LIMIT 1
+					end note
+					finalA->orderD:get(list, 参数)
+					orderD-->finalA:orderArr
+					alt empyt(orderArr)
+						finalA-->finalA: false
+					else
+						note over finalA: 赋值订单信息\nthis->_orderArr = orderArr
+						finalA-->finalA:true
+					end
+				deactivate finalA
+			end 
+			/'===========查询订单===========end===='/
+			
+			/'===========查询付款期数===========start==='/
+			group 查询付款期数
+				finalA->finalA:_getPay(status=1)
+				activate finalA
+					note over finalA
+						组合查询参数
+						WHERE order_id = this->_orderId 
+						AND status=status 已收款
+						ORDER BY order_id ASC
+					end note
+					finalA->payD:get(list,参数)
+					payD-->finalA:payArr
+					alt empyt(payArr)
+						finalA-->finalA: false
+					else
+						note over finalA: 赋值已付款记录\nthis->_payArr = payArr
+						loop this->_payArr as val 循环计算已付款总额
+							note over finalA
+								已付款总额
+								this->_paidPrice += val[account_payable_discount]
+							end note
+						end
+							note over finalA
+							剩余款总额　＝　合同总额-已付款总额
+							this->_surplusPrice = this->_orderArr[pact_value] - this->_paidPrice 
+							end note
+						finalA-->finalA:true
+					end
+				deactivate finalA
+			end 
+			/'===========查询付款期数===========end===='/
+		
+		finalA-->finalC:obj
+		deactivate finalA
+	end
+	/'===========初始化===========end===='/
+	
+	
+	group 查询尾款
+		finalC->finalA:get() 尾款订单显示
+		activate finalA
+			group 验证参数
+				alt empty(this->_ljyunId) || empty(this->_orderId))
+					finalA-->finalC: res = array(state=>2, 参数错误)
+				end
+			end
+			
+			/'===========验证是否可以付尾款===========start==='/			
+			group 验证
+				
+				finalA->finalA: _checkOrder()
+				activate finalA
+					alt 1==this->_order[full_payment]
+						finalA-->finalA: false 全额付款不允许付尾款
+					else
+						finalA-->finalA: true
+					end
+				deactivate finalA
+			end
+		  /'===========验证是否可以付尾款===========end==='/	
+	
+			alt !_checkOrder()	
+				finalA-->finalC: res = array(state=>3, 无权下尾款)
+			else
+				note over finalA
+					//组合页面需要的数据
+					data = array(
+						orderArr => this->_orderArr     订单信息
+						paidArr =>   this->_payArr　　 已付款信息
+						surplusPrice=>this->_surplusPrice　剩余未支付金额
+					)
+				end note
+				finalA-->finalC: res = array(state=>1, data)
+			end		
+		deactivate finalA
+	end
+	alt  isset(res[state])
+		finalC-->view: res
+	else
+		finalC-->view: array(加载action信息异常！)
+	end
+
+deactivate finalC
+
+@enduml

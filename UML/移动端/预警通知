@@ -1,0 +1,27 @@
+@startuml
+title 预警通知
+|mis系统|
+start
+:审核成功;
+:计算预警开始和截止日期;
+:组织数据;
+note left
+	预警开始日期
+	预警截止日期
+	消息对象
+end note
+
+| 消息系统|
+:写入通知系统;
+fork
+	:新增;
+fork again
+	:删除;
+end fork
+
+|云平台|
+:读取通知系统;
+:做后续操作;
+end
+ 
+@enduml

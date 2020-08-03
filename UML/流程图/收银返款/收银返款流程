@@ -1,0 +1,62 @@
+@startuml
+title 收银返款流程
+
+
+|收银系统|
+start
+: 收款/退款成功后;
+: product_conume表一条记录;
+  fork
+    :现金/购物券/电子券\n（单条数据）;
+  fork again
+    :银行卡\n（多条数据）;
+  fork again
+  	:福卡\n（多条数据）;
+  fork again
+  	:支票\n（多条数据）;
+  fork again
+  	:第三方支付卡\n（多条数据）;
+  fork again
+  	:微信\n（多条数据）;
+  fork again
+  	:支付宝\n（多条数据）; 	 	
+  end fork
+  
+  :当班结算;
+  note left
+  	结算后product_consume状态
+  	consume_state=2（已结算） 
+  end note
+
+
+
+|财务系统|
+#yellow:销售凭证审核;
+note right
+	查询已结算的product_conume数据
+	<font color="red">最终结算额＝
+			( product_conume中实付额 - 
+			各种支付方式手续费总和  + 
+			product_conume卖场承担额 )
+end note
+
+:审核操作;
+fork
+	:新增记录到remit_merchant\n商户返款记录表\n一条producnt_consume对应该表一条记录\n该表<font color=red>结算总额\nremit_total_value＝以上计算方式;
+fork again
+	:修改product_conume状态\nconsume_state=3已审;
+fork again
+	:修改当班提交结账单表\noperator_form_list\n状态operator_state=2已审;
+end fork
+
+|对账系统|
+:商户确认;
+:修改商户结算表\nremit_merchant状态\nremit_state＝１已确认;
+
+|财务系统|
+:财务返款;
+:修改商户结算表\nremit_merchant状态\nremit_state＝2 已结算;
+:修改product_conume状态\nconsume_state＝4 已结算;
+:新增结账单记录表merchant_document_from一条记录;
+end
+@enduml

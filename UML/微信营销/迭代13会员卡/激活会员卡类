@@ -1,0 +1,68 @@
+@startuml
+title 激活会员卡类
+/'-------------定义参与者别名 -------------------'/
+participant "激活会员卡" as C  #00FF00
+participant "ActivateMemberCard\n激活会员卡类" as A  #FFFFFF
+participant "WechatMemberCardSDK\n微信会员卡相关sdk" as openSDK  #FFFFFF
+participant "MemberCard\n会员卡表" as card  #FFFFFF
+participant "MemberBatchStatics\n会员卡批次统计表" as static  #FFFFFF
+
+
+	C->A:main(params)
+	activate A
+		note over A
+			参数说明：
+				params[batch_id] 会员卡批次主键
+				params[card_id] 微信会员卡card_id
+				params[code] 微信code码(解码后的)
+				params[member_number] 会员卡卡面编号
+				params[user_opneid] 用于open_id
+				params[source] 领卡来源, 1开卡组件,  2二维码,3jssdk
+				
+		end note
+		/'-----------------激活会员卡------------start-------------'/
+		group 查询是否激活
+			A->openSDK:getMemberInfo(data)
+			openSDK-->A:json
+		end
+		alt json->has_active=true 如果已激活则无需进行操作
+			A-->C:true
+		end
+		
+		group 激活会员卡
+			note over A: 注意指定卡号：membership_number = member_number\n只需要code和member_number
+			A->openSDK:activateCard(data)
+			openSDK-->A:json
+		end
+		
+		/'-----------------激活会员卡--------------end----------'/		
+		group 修改数据库操作
+			note over A: 开启事务
+			group 查询会员卡表是否存在该code
+				A->card:where(code=$code and open_id and card_id)->find()
+				card-->A:cardRow
+			end
+			alt !cardRow如果不存在则新增
+				group 新增一条记录到会员卡表
+						note over A: 注意：has_active=1已激活　状态正常
+						A->card:add()
+						card-->A:addRes
+				end	
+			else 否则存在则修改
+				group 修改会员卡数据
+						note over A: 注意：has_active=1已激活, member_num会员卡卡号
+						A->card:save()
+						card-->A:updateRes
+				end					
+			end
+			
+			group 修改批次统计表的激活数量+1, 
+				note over A: addRes如果新增会员卡成功, 剩余库存 - 1
+				A->static:save()
+				static-->A:boolean
+			end
+			
+			note over A: 提交事务
+		end
+	deactivate A
+@enduml

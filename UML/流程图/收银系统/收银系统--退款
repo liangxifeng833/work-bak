@@ -1,0 +1,135 @@
+@startuml
+title 退款--流程图
+
+
+|view|
+start
+	:桌面\nreceivables_desk.php;
+	if($_SEIION[userid] == 1992 或 2762)then(yes)
+		:$flag = 1 代表财务退;
+		:finance_refund.php;
+		:验证当班结算;
+		:退款确认\n查询订单,付款期数等信息;
+		:选择退款期数;
+	else (no)
+		:$flag = 0  代表收银员退;
+		:refund.php;
+		:退款确认\n查询订单,付款期数等信息;
+		:选择退款期数;
+	endif
+	
+		:<font color=red>处理退款其他业务罗辑\ngetRefundOther.php;
+		note right
+			验证门槛合同和爆款商品退款规则
+			如果是门槛合同, 则验证爆款商品必须已退
+			如果是爆款商品合同则需要到财务退, 
+				并且财务需要先手动冲红关联的门槛合同扣款记录
+				否则不让退
+		end note
+		if(收银退或财务退)then(收银退)
+			:refund_goods_complete.php;
+			:获取合同和收款数据;
+			:pact_refund.php;
+			:循环退款;
+			fork
+				:微信/支付宝;
+				:调用BLL->java申请退款;
+				:退款成功修改对应\nannal表的退款交易号等字段;
+			fork again
+				:银行卡;
+				if(收银监管)then(yes)
+					:输入银行卡号;
+				else(no)
+					:调用post机退款;
+				endif
+			fork again
+				:其他退款方式;
+			end fork
+			:循环退款页面成功后;
+			:跳转到退款完成页面\nrefund_finish.php;
+			
+			group 退款大保存前的业务逻辑
+				:refund_finish_action.php;
+				:查询合同收券/发券信息\nsysinc/ticket_function.ticketSelect();
+				:调用BLL->DAL事务\n修改券状态和收券记录状态;
+				note right
+					 过期的改为已过期
+					 未过期的改为已发放
+					 修改合同收券记录状态 status= 1已退
+				end note
+				if(合同收过券且未过期)then(yes)
+					:给顾客发短信\n提示：到小程序中查看自己的电子券;
+				endif
+				
+				if(该合同发过券?)then(yes)
+					:调用BLl->DAL事务\n修改券状态;
+					note right
+						已使用的券的不做处理
+						未使用改为已作废 
+					end note
+				endif
+			end group
+			
+			group 退款大保存操作
+				:refund_finish_action.php;
+				:BLL->DAL事务冲红数据;
+				note right:冲红product_conume数据\n冲红各支付方式数据
+				:BLL修改订单付款期数表状态=已退;
+				:BLL修改订单表状态=已退\n注意:部分付款需判断历史期数;
+			end group
+			
+			group 退款保存后其他业务逻辑
+				:refund_finish_action.php;
+				if(家装合同?)then(no)
+					:还原会员积分;
+				endif
+				
+				
+				if(家装合同)then(yes)
+					:打印退款小票;
+				else(no)
+					group <font color=red><b>处理发券数据
+						if (合同有发过券并且为已使用状态)then(yes)
+						:提示收银员先收回券面值的现金;
+						endif
+					end group
+					:打印退款小票;
+				endif
+			end group	
+			
+		else(财务退)
+			:finance_refund_goods_complete.php;
+			:获取合同和收款数据;
+			:finance_pact_refund.php;
+			:循环退款;
+			fork
+				:微信/支付宝;
+				:与收银员退款一致;
+			fork again
+				:银行卡;
+				:输入银行卡号;
+			fork again
+				:其他退款方式;
+			end fork
+			:循环退款页面成功后;
+			:跳转到退款完成页面\nfinance_refund_finish.php;		
+			
+			:finance_refund_finish_action.php;
+			:验证是否财务退款;
+			:<font color=red><b>大保存前的业务罗辑与收银退款完全一致;	
+			:调用财务退款大保存;
+			note right
+				财务退款大保存对于银行卡手续费的处理
+					1. 借记卡不退手续费
+					2. 贷记卡退部分手续费
+					3. 外卡手续费全退
+				<font color=red><b>注意:由于中信银行更换账户行为,导致2018-04-14之前的微信支付宝
+				<font color=red><b>不能退款,故现将微信支付宝金额转为现金金额
+			end note
+			:保存后的业务逻辑与收收银退款完全一致;
+			:财务退款只打印小票不打合同;
+		endif
+
+	
+end
+@enduml

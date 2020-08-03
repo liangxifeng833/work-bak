@@ -1,0 +1,69 @@
+@startuml
+title 退款查询卡充值记录Action-时序图
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "API" as C  #00FF00
+participant "RefundGetCardPriceRecordAction\n退款查询卡充值记录Action" as A  #FFFFFF
+participant "diningCardDao\n卡主表" as card  #FFFFFF
+participant "diningCardPriceDao\n卡充值记录表" as recharge  #FFFFFF
+
+view->C:index_**()
+activate C	
+		/'===========构造器=============='/
+		group 构造器
+			C->A:__construct(卡号)
+			activate A
+				note over A: this.cardNum = 卡号
+			A-->C:obj
+			deactivate A	
+		end 
+		/'===========处理逻辑=============='/
+		C->A:obj.mainGet()
+		activate A
+			/'============通过卡号查询卡主表信息=============='/
+			group 通过卡号查询卡主表信息
+				A->A:getCardInfo()
+				activate A
+					A->card:get()\n查询newest_refund_card_price_id\n关联卡充值记录表dining_card_price最新退卡记录主键
+					card-->A: cardInfo卡信息
+				deactivate A
+			end
+			/'============通过卡号查询卡主表信息=============='/
+			
+			/'============查询卡充值记录表=============='/
+			group 根据卡号查询卡充值记录表
+				A->A:getCardPriceRecord()
+				activate A
+					note over A
+						查询条件 WHERE card_num = 卡号 AND 
+						主键 > cardInfo[newest_refund_card_price_id] 最新退卡记录主键 AND
+						opeation_status(操作状态)  IN (办卡,  充值)  AND
+						type(卡类型) IN (顾客卡, 展员卡)	
+					end note
+					A->recharge:get()
+					recharge-->A:rechargeInfo充值记录
+				deactivate A
+			end
+			/'============查询卡充值记录表=============='/
+			
+			/'============生成返回数据================'/
+			group 生成返回数据
+				A->A:createReturn()
+				activate A
+					loop 卡充值记录数据
+						note over A
+							根据需求组织在页面上显示数据的顺序
+						end note
+					end
+					note over A: 将卡主表数据组织到返回数据中
+				 A-->A:最终返回数据
+				deactivate A
+			end 
+			/'============生成返回数据================'/			
+		A-->C:最终返回数据
+		deactivate A	
+C-->view:res
+deactivate C
+
+@enduml

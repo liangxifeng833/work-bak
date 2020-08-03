@@ -1,0 +1,228 @@
+@startuml
+title 卖场促销类
+
+actor DiscountAction #red
+/'-------------定义参与者别名 -------------------'/
+participant "MartDiscount\n卖场促销类L" as d #FFFFFF
+participant "ActivitySetDao\n卖场促销表D" as saleD #FFFFFF
+participant "DirectSaleDateDao\n卖场促销间断日期表D" as saleDateD #FFFFFF
+participant "MerchantBlacklistDao\n卖场促销商户黑名单表D" as saleBlackD #FFFFFF
+participant "DirectAreaSetDao\n卖场促销折扣表D" as saleAreaD #FFFFFF
+participant "DirectCopingSetDao\n卖场促销分摊设置表D" as saleShareD #FFFFFF
+participant "ProductConumeDao\n合同收款表D" as consumeD #FFFFFF
+
+
+
+
+DiscountAction->d:__construct(ljyunId,price)
+activate d
+note over d:parent::__construct(ljyunId,price)
+d-->DiscountAction:obj
+deactivate d
+
+DiscountAction->d:get()
+activate d
+	/'==== 验证参数===='/
+	group 验证参数
+		alt !parent::_checkPrarm()
+			d-->DiscountAction: res = array(state=>2,参数丢失)
+		end
+	end
+
+	/'===================== 查询卖场促销信息=============start========'/
+	group 查询卖场促销信息 
+		d->d:_getMart()
+		activate d
+			note over d
+				组合查询参数：
+					field => activity_id 查询活动表主键 
+					where 条件如下：
+						activity_start_time<=当前时间 
+						AND activity_end_time>=当前时间
+					ORDER BY activity_id DESC LIMIT 1
+			end note
+			d->saleD:get(list,参数)
+			saleD-->d:saleRow
+			alt saleRow
+				note over d: 活动主键赋值\n this->_saleId = saleRow->activity_id
+				d-->d:true
+			else  如果根据连续如期未查到活动, 则查询间断日期表
+				note over d
+					组合查询参数：
+					field =>activity_id 查询活动表主键 
+					where  direct_sale_date = 当前日期
+					ORDER BY direct_sale_date_id DESC LIMIT 1
+				end note
+				d->saleDateD:get(list,参数)
+				saleDateD-->d:dateRow
+				alt dateRow
+					note over d: 活动主键赋值\n this->_saleId = saleRow->activity_id
+					d-->d:true
+				else
+					d-->d:false
+				end
+			end
+		deactivate d
+	end 
+	/'===================== 查询卖场促销信息=============end========'/
+	
+	alt !_getMart()
+		d-->DiscountAction: res = array(state=>0, 无卖场促销信息)
+	end
+	
+	/'===================== 查询商户黑名单=============start========'/
+	group 查询商户黑名单
+		d->d:_getBlack()
+		activate d
+					note over d
+						组合查询参数：
+						field =>activity_id 查询活动表主键 
+						WHERE blacklist_company_show = 展位号
+						AND blacklist_activity_id＝this->_saleId
+						ORDER BY blacklist_id DESC LIMIT 1
+					end note
+			d->saleBlackD:get(list,参数)
+			saleBlackD-->d:blackRow
+				
+			alt blackRow
+				d-->d:true
+			else
+				d-->d:false
+			end		
+		d-->d:
+		deactivate d
+	end
+	/'===================== 查询商户黑名单=============end========'/
+	alt _getBlack()
+		d-->DiscountAction: res = array(state=>0, 该商户在黑名单中)
+	end
+	
+	/'=====================查询折扣信息=============start========'/
+	group 查询折扣信息
+		d->d:_getDiscount()
+		activate d
+					note over d
+						组合查询参数：
+						field =>area_agio优惠折扣, 
+						　　　area_merchant_value商户分摊折扣,
+						　　　area_min_value打折最低金额，
+						　　　area_once_max_value 单笔最高优惠
+						WHERE area_word = substr(展位号,0,1)  
+						AND area_activity_id＝this->_saleId
+						ORDER BY area_id DESC LIMIT 1
+					end note
+			
+			/'================查询折扣比例==============='/		
+			d->saleAreaD:get(list,参数) 查询折扣比例
+			saleAreaD-->d:discountArr
+	
+			alt discountArr
+				/'================查询商城封顶额==============='/	
+					note over d
+						组合查询参数：
+						field =>coping_company_value 商城封顶额, 
+						WHERE coping_merchant_id = 展位号  
+						AND coping_activity_id＝this->_saleId
+						ORDER BY coping_id DESC LIMIT 1
+					end note
+				d->saleShareD:get(list,参数) 查询商城封顶额
+				saleShareD-->d:copingArr
+				alt  !copingArr
+					d-->d:false
+				end
+				note over d
+					折扣数组赋值
+					 this->_discountArr = discountArr[0]
+					 组合封顶额
+					 this->_discountArr->coping_company_value = copingArr->coping_company_value
+					折扣赋值
+					this->_discount = 1- this->_discountArr->area_agio
+				end note
+				d-->d:true
+			else
+				d-->d:false
+			end		
+		deactivate d
+	end
+	/'=====================查询折扣信息=============end========'/
+	alt !_getDiscount()
+		d-->DiscountAction: res = array(state=>3, 卖场促销折扣获取失败)
+	end
+	alt this->_price < $this->_discountArr[area_min_value] 应付额<打折最低金额则不打折
+		d-->DiscountAction: res = array(state=>0, 应付额<打折最低金额则不打折)
+	end
+	/'=====================生成折后金额=============start========'/
+	note over d
+		 生成折后金额, Util::dealDecimal()四舍五入
+		 this->_discountPrice = Util::dealDecimal(this->_discount*this->_price)
+	end note
+	/'=====================生成折后金额=============end========'/
+	
+	/'======================生成分摊所需数据=============start========'/
+	group 生成分摊所需数据
+		d->d:_createShare()
+		activate d
+			note over d
+					打折省掉的钱 = 订单本期应付额 - 折后额
+					agioPrice  = $this->_price - $this->_discountPrice
+					如果达到則打折省掉的钱=单笔最高优惠额
+					agioPrice = agioPrice >= this->_discountArr[area_once_max_value] ?  this->_discountArr[area_once_max_value] :agioPrice 
+			end note
+
+			note over d
+					商户承担额 = 打折省掉的钱 * (商户分摊比例 / 区域分摊比例)
+					merchantAgio = Util::dealDecimal(agioPrice * (this->_discountArr[area_merchant_value]/this->_discountArr[area_agio])
+					卖场承担额 = 打折省掉的钱 - 商户分摊额
+					martAgio = agioPrice - merchantAgio
+			end note
+					
+			group 查询商户已经承担的金额
+				note over d
+					组合查询参数：
+						 field＝> sum(consume_company_value) as martTotal 查询总计承担过的金额
+						 WHERE consume_merchant_show = 展位号　
+						 AND consume_activity_id =  this->_saleId
+				end note
+				d->consumeD:get(list,参数)
+				consumeD-->d:martTotal
+			end
+			note over d
+					卖场剩余承担的额度 = 卖场封顶额 - 卖场已承担金额
+					surplusPrice  = this->_discountArr[coping_company_value] -  martTotal	
+			end note 
+			
+			alt surplusPrice>0 如果卖场剩余承担额度存在
+				note over d
+					卖场承担额超出卖场剩余承担额度, 卖场承担 = 剩余承担额度
+					martAgio = martAgio >  surplusPrice ? surplusPrice : martAgio
+					商户承担额度　
+					merchantAgio = agioPrice－martAgio
+				end note
+			else
+				note over d
+					全部由商户承担	
+					martAgio = 0
+					merchantAgio = agioPrice
+				end note
+			end
+			note over d
+				组合付款期数表数据 discountArr = array(
+					ljyun_id=>this->_ljyunId
+					account_payable=>this->_price , 应付额
+					account_payable_discount=>this->_discountPrice,折后应付额
+					discount_merchant=>商户承担额, merchantAgio
+					discount_market=>卖场承担额, martAgio
+					discount_type=>2,2代表卖场促销
+					discount_id=>this->_saleId, 促销活动表主键
+					member_id =>0,
+					discount_proportion=>this->_discount，比如：0.99代表99折,
+					 )
+			end note
+		d-->d: discountArr
+		deactivate d
+	end
+	/'=====================生成分摊所需数据==============end========'/
+d-->DiscountAction: res = array(state=>1, discountArr => discountArr)
+deactivate d
+
+@enduml

@@ -1,0 +1,108 @@
+@startuml
+title 创建微信卡券-时序
+
+actor 微信卡券应用层 #red
+/'-------------定义参与者别名 -------------------'/
+participant "WechatCardController\n创建微信卡券对外接口" as index #00FF00
+participant "InsertWechatCardServiceImpl\n创建微信卡券实现类" as A  #FFFFFF
+participant "ticketBatch\n券平台:券批次表" as batch  #FFFFFF 
+participant "saleWechat\n促销平台:促销活动表" as sale  #FFFFFF 
+participant "wechatCard\n微信卡券表" as card  #FFFFFF 
+participant "createCardImpl\n微信端创建卡券实现类" as requestW  #FFFFFF 
+participant "微信服务器" as wechat  #FFFFFF 
+微信卡券应用层->index: createCard()
+activate index
+	
+	index->A:createCard()
+	activate A
+	
+		group 验证
+		A->A:check(微信卡券实体)
+		activate A
+			group 验证非空字段
+			A->A:checkParam(微信卡券实体)
+				activate A
+					note over A: 验证非空字段\n优惠说明不可超过300个汉字\n使用须知不可超过300个汉字
+					group 验证标题不可超过9个汉字或18个英文字母
+						A->A:checkCardTitleSize()
+					end
+				A-->A: DomainResponse
+				deactivate A
+			A-->A:DomainResponse
+			deactivate A
+			end
+			
+			group 验证批次是否在数据库中存在
+				A->A:checkBatch(券批次主键)
+				activate A
+					A->batch:getOne(券批次主键)\n请求券平台领域层
+					batch-->A:券批次信息
+					alt 券批次信息为空
+						A-->A:关联批次在数据库中不存在
+					else 验证券批次信息中促销活动编号存在
+						A-->A: 该批次已经被促销活动关联
+					end 
+				deactivate A
+			end
+			
+			group 验证促销活动是否存在，并且活动未开始
+				A->A:checkSale(促销活动主键)
+				activate A
+					A->sale: getOne(促销活动主键)\n通过主键去促销平台查询促销活动
+					sale-->A:促销活动信息
+					alt 促销活动信息＝null
+						A-->A:关联促销活动在数据库中不存在
+					end
+					alt 判断活动开始日期　> 当前时间
+						A-->A:关联的促销活动已开始
+					end 
+					alt  判断活动截止时间 < 当前时间
+						A-->A:关联的促销活动已结束
+					end
+				deactivate A
+			end
+			
+			group 验证券批次和促销活动是否创建过微信卡券
+				A->A:checkWechatCard(券批次主键，促销活动主键)
+				activate A
+					A->card: getList()\n关键券批次主键和促销活动主键查询微信卡券表
+					card-->A:微信卡券信息
+					alt 微信卡券信息 != null
+						A-->A:该批次或活动已经创建过微信卡券
+					end
+				deactivate A
+			end
+		end /'验证结束'/
+		
+		
+		group 请求微信创建卡券
+			A->requestW:doPost()
+			activate requestW
+				requestW->wechat:post()
+				wechat-->requestW:json
+			requestW-->A:json
+			alt 如果请求微信失败
+				A-->index:将失败原因返回给应用层
+			end 
+			deactivate requestW
+		end
+		note over A: 开启事务
+		group 新增卡券数据到本地数据库wechat_card
+			A->card:insert()
+			 note right A: insert into wechat_card
+			card-->A:json
+		end
+		
+		group 根据主键修改券批次信息的促销活动编号字段
+			A->batch:update
+				note right A: update ticket_batch set 促销编号 where 主键
+			batch-->A:json
+			alt 如果修改失败
+				note over A: 手动回滚事务
+			end
+		end
+		A-->index:DomainResponse
+	deactivate A
+	index-->微信卡券应用层:DomainResponse
+deactivate index
+@enduml

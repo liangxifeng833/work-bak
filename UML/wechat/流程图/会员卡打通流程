@@ -1,0 +1,98 @@
+@startuml
+title 会员卡打通流程
+
+|公众号|
+start
+: 用户中心(自定义菜单);
+
+  fork
+    :会员中心;
+    end;
+  fork again
+    :员工中心;
+    end;
+  fork again
+  	:注册成为会员;
+    note right
+	   通过card_id获取开卡组件url
+	    开卡组件开卡( 跳转型 )
+	   end note
+  end fork
+  
+  fork
+  	/'----------------注册新会员-----------------start------------------------------'/
+  	:注册新会员;
+  	:填写个人资料;
+  	:将个人资料提交给微信;
+	 fork
+	 	group <font color=blue>触发领取事件
+		 	 :将会员卡code入会员卡表;
+		 	 :修改库存和领取数量;
+		 	 end
+	 	 end group
+	 fork again
+		group 微信回调	
+			if(验证是否线下老会员)then(是)
+				:去微信激活;
+				:<font color=red>重定向到会员中心;
+			else(否)
+				if(是否有导入新卡号)then(是)
+					fork
+						:入队;
+						:出队请求回调url;
+						:<font color=green>回调url接口激活会与卡;	
+						end
+					fork again
+					:<font color=red>重定向到会员中心;
+					end fork
+				else(否)
+					:将code指定为number;
+					:<font color=green>接口激活;
+					:<font color=red>重定向到会员中心;
+				endif
+			endif
+		end group
+	  fork end
+ /'----------------注册新会员------------------end------------------------------'/
+ 
+/'----------------老会员绑定---------------start---------------------------------'/
+  fork again
+  	:用户点击老会员绑定链接;
+  	:输入手机号页面;
+  	note right: 将编码code带入到html页面
+  	:用户输入手机号;
+  	note right:有短信验证码
+  	:异步验证老会员信息;
+	if(是否是老会员)then(是)
+		:跳转到老会员显示信息页面;
+		note left:注意将编码后的code传入到该页面
+		:解码code;
+		:在html页面判断code;
+		if(code是否为空)then(是)
+			:调用jssdk发卡;
+			/'-------------------用户领卡------------------------start----'/
+			:用户领卡;
+			note right:(1)与扫描二维码效果相同\n(2)区别就是outer_str\n(3)扫码outer_str=member-qrcode\n(4)jssdk,outer_str=member-jssdk
+			:<font color=blue>领取事件;
+			:将code入库;
+			if(outer_str==member-jssdk(jssdk发卡的老会员))then(是)
+				:<font color=green>接口激活;
+				end
+			endif	
+			end
+			/'-------------------用户领卡-------------------------end----'/
+		else(否)
+			:<font color=green>接口激活;
+			:<font color=red>重定向到会员中心;
+		endif		
+		
+	else(否)
+		:页面提示用户注册新会员;
+		end
+	endif
+  end fork
+/'----------------老会员绑定---------end-----------------------------------------'/
+:会员中心;
+ end
+
+@enduml

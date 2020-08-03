@@ -1,0 +1,45 @@
+@startuml
+title 尾款收款api
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "finalPayment\n尾款收款C" as orderC  #00FF00
+participant "FinalPaymentAction\n尾款收款	A" as orderA  #FFFFFF
+
+view->orderC:index_post()
+activate orderC
+	/'===========验证参数=============='/
+	group 验证参数
+		note over orderC
+			接收参数：
+				 $params = this->get("params");
+		end note	
+	end
+	note over orderC
+		验证token
+	end note
+	
+	/'===========构造方法======start========'/	
+	group 初始化
+		orderC->orderA:__construct()
+		activate orderA
+			note over orderA: parent::__construct(合同号，款台号，操作人员id)
+			orderA-->orderC: obj
+		deactivate orderA
+	end
+	/'===========构造方法======end========'/	
+	
+	note over orderA: 尾款合同额 obj->contractValue = 0;
+	/'===========处理逻辑=============='/
+	orderC->orderA:obj->post(params)
+	activate orderA
+		note over orderA: 验证参数
+		orderA->orderA:main(params)
+		activate orderA
+			orderA-->orderA: res
+		deactivate orderA
+		orderA-->orderC:res
+	deactivate orderA
+orderC-->view:data
+deactivate orderC
+
+@enduml

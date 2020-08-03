@@ -1,0 +1,52 @@
+@startuml
+title 电子券过期处理action
+
+actor action #red
+/'-------------定义参与者别名 -------------------'/
+participant "CouponExpireAction\n电子券批次统计A" as batchA  #FFFFFF
+participant "CouponBatch\n电子券批次表" as batch #FFFFFF
+participant "Coupon\n电子券表" as coupon #FFFFFF
+
+
+action->batchA:batchExpire(batchId)
+activate batchA
+	group 通过主键查询批次表
+		batchA->batchA:getBatchById(batchId)
+		activate batchA
+			batchA->batch:where(id = id )->find()
+			batch-->batchA:batchRow
+		deactivate batchA
+	end
+	group 验证批次是否过期
+		batchA->batchA:checkExpire(batchRow)
+		activate batchA
+			note over batchA
+				分别根据日期类型(顺延或连续)
+				判断是否过期
+			end note
+			alt 过期
+				batchA-->batchA: expired
+			else 没过期
+				batchA-->batchA: noExpired
+			end
+		deactivate batchA
+	end
+	group 过期要修改该批次下正常和转赠中的状态为已过期
+		alt checkExpire() == 'expired'
+			batchA->batchA:_modifyCoupon(batchId)
+			activate batchA
+				note over batchA
+					组合参数:
+						$map[batch_id] = batchId
+						$map[status] in (NORMAL, GIFTING) //正常,转赠中
+						data[status] = EXPIRE 已过期
+				end note
+				batchA->coupon:where($map)->data()->save()
+				coupon-->batchA: boolean
+			deactivate batchA
+		end
+	end
+	batchA-->action: 过期返回expired 没过期返回noexpired
+deactivate batchA
+
+@enduml

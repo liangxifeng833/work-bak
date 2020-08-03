@@ -1,0 +1,119 @@
+@startuml
+title 微信或支付宝收款Action-时序图
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "API" as C  #00FF00
+participant "WechatOrAlipayAction\n微信或支付宝支付Action" as A  #FFFFFF
+participant "CreatePayNumber\n生成商户订单号" as create  #FFFFFF
+participant "CreateHandleFee\n生成手续费类" as fee  #FFFFFF
+participant "RemoteRequestPay\n远程请求线下支付类" as remote  #FFFFFF
+
+participant "WechatAnnalDao\n微信收款表" as cDao  #FFFFFF
+participant "AlipayAnnalDao\n支付宝收款表" as aDao  #FFFFFF
+view->C:index_**()
+activate C	
+		/'===============构造器================='/
+		group 构造器
+			C->A:__construct(type=微信支付宝标识)
+			activate A
+				note over A
+					this.type = type 1:微信 2:支付宝
+				end note
+			A-->C:obj
+			deactivate A			
+		end
+		/'===============构造器================='/
+	
+		/'===========处理逻辑=============='/
+		C->A:obj.mainPost(editCardData,  addCardPriceData)	
+			note over A
+				//需要修改卡主表dining_card数据
+				<font color="red">this.editCardData = editCardData
+				//需要新增的卡充值记录表dining_card_price数据
+				<font color="red">this.addCardPriceData = addCardPriceData			
+			end note
+		activate A				
+		
+		
+		
+		/'-------------------生成商户订单号-------------------------'/
+		group 生成商户订单号
+			A->create:diningRechargePayNum(W/A)
+			activate create
+				note over A: 规则: 卡号-W/A-年月日十分秒  ( W=微信, A=支付宝)
+			create-->A:	
+			deactivate create
+		end
+		/'-------------------生成商户订单号-------------------------'/
+		
+	
+		/'-------------------去远程请求支付-------------------'/
+		group 去远程请求支付
+			A->A:remoteRequestPay()
+			activate A
+				note over A: <font color="red">注意:屏蔽信用卡支付
+				A->remote:根据this.type区分wechatPay()或aliPay()
+				activate remote
+				remote-->A:支付结果数据
+				deactivate remote
+			A-->A:支付结果数据
+			deactivate A
+			
+			alt 支付失败
+				A->C:支付失败
+			end
+		end
+		/'-------------------去远程请求支付-------------------'/
+
+		/'-------------------计算手续费-------------------------'/
+		group 计算手续费
+			A->fee:mainGet(wechat/alipay, 付款额)
+			activate fee
+			fee-->A:计算后的手续费
+			deactivate fee
+		end
+		/'-------------------计算手续费-------------------------'/		
+	
+	
+	/'----------------新增返回支付数据库到数据库---------------'/
+	group 新增返回支付数据库到数据库	
+	  alt this.type == 1 微信
+			A->A:addWechat(支付结果数据)
+			activate A
+				A->cDao:add()
+			cDao-->A:json
+			A-->A:新增主键
+			note over A:<font color="red">this.wechtId = 新增主键(微信主键)
+			deactivate A
+		else this.type == 2 支付宝
+			A->A:addAlipay(支付结果数据)
+			activate A
+				A->aDao:add()
+				aDao-->A:json
+			A-->A:新增主键
+			note over A:<font color="red">this.alipayId = 新增主键 (支付宝主键)
+			deactivate A
+		end
+		
+		alt 如果新增数据失败
+			A-->C:支付成功,但是入库失败
+		end
+	end
+	/'----------------新增返回支付数据库到数据库---------------'/
+	
+	/'----------------执行事务---------------'/	
+	group 执行事务
+		A->A:parent::tctPay()
+		alt 如果事务执行失败
+			A-->C:支付和入库成功, 执行事务失败
+		end
+	end
+	
+			
+		A-->C:支付成功
+		deactivate A
+C-->view:res
+deactivate C
+
+@enduml

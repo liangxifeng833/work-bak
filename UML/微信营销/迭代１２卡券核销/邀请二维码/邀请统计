@@ -1,0 +1,29 @@
+@startuml
+title  邀请二维码统计
+
+|会员中心|
+start
+:扫描二维码图片;
+
+|微信|
+:关注;
+:取unionid;
+
+|平台|
+:保存粉丝数据;
+:保存粉丝与公众账号关系数据;
+:触发事件（邀请关注）;
+fork 
+:ToUserName;
+fork again
+:FromUserName(openId)->unionId;
+fork again
+:Event;
+fork again
+:个性化参数(邀请人的unionId);
+end fork
+:保存统计信息;
+:发放奖励;
+end
+	
+@enduml

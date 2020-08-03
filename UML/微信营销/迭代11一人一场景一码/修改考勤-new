@@ -1,0 +1,41 @@
+@startuml
+title 修改考勤
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "ModifyTask\n修改考勤C" as taskC  #00FF00
+participant "CreateTaskAction\n修改考勤A" as taskA  #FFFFFF
+participant "Tasck\n考勤表" as task  #FFFFFF
+
+group 根据主键查询任务
+view->taskC:indexGet()
+activate taskC
+
+		taskC->taskA:get(id)
+		activate taskA
+			group 查询任务
+				taskA->task:find()
+				task-->taskA:taskRow
+			end	
+		taskA-->taskC:taskRow
+		deactivate taskA
+
+	taskC-->view:taskRow
+deactivate taskC
+end
+
+
+group 修改操作
+	view->taskC:indexPut()
+	activate taskC
+		taskC->taskA:modify()
+		activate taskA
+			taskA->task:save()
+			task-->taskA:boolean
+		taskA-->taskC:
+		deactivate taskA
+	taskC-->view:
+	deactivate taskC
+end
+
+@enduml

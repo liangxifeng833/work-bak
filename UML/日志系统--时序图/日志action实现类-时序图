@@ -1,0 +1,42 @@
+@startuml
+title 日志action实现类-时序图
+
+actor subClass #red
+/'-------------定义参与者别名 -------------------'/
+participant "LogAction" as C  #FFFFFF
+participant "Kafka" as A  #FFFFFF
+
+subClass->C:doLog(map)
+activate C
+	/'===========验证参数=============='/
+	note over C
+		验证必要参数
+	end note	
+	
+	/'==========获取平台标识=============='/
+	group 获取平台标识
+		C->C:_getPrefix($request_id)\n分割用户唯一标识获取平台标识
+		activate C
+			note over C
+				String[] values = value.split("-");
+				分割$request_id后返回，返回分割后第一个值
+				return values[0]
+			end note
+			C-->C:表前缀
+		deactivate C	
+		note over C
+			this._platform = 平台标识
+		end note 
+	end
+
+/'==========作为生产者向kafka对应主题新增对象=============='/
+group 作为生产者向kafka对应主题新增对象
+	C->A:add(logTableObject, platform, logTableType)
+	
+	A-->C:
+end	
+
+C-->subClass:
+deactivate C
+
+@enduml

@@ -1,0 +1,250 @@
+@startuml
+title CM4-获取某一合同已收款方式
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "payType\n获取支付方式C" as payTypeC  #00FF00
+participant "PayTypeAction\n获取支付方式A" as payTypeA  #FFFFFF
+participant "PayTypeDao\n支付方式表D" as paytypeD  #FFFFFF
+participant "ProductConsumeDao\n合同收款表D" as consumeD  #FFFFFF
+
+participant "PayformListDao\n现金购物券表D" as payformD  #FFFFFF
+participant "ChequeAnnalDao\n支票表D" as chequeD  #FFFFFF
+participant "BankAnnalDao\n银行卡表D" as bankD  #FFFFFF
+participant "BlessAnnal\n福卡表D" as blessD  #FFFFFF
+participant "PaymentWay\n其他支付方式表D" as paywayD  #FFFFFF
+participant "PaymentTypeDao\n附加支付方式表D" as otherD  #FFFFFF
+participant "PayTicketRecodeDao\n合同收券记录	表D" as ticketD  #FFFFFF
+
+view->payTypeC:index_get()
+activate payTypeC
+	/'===========验证参数=============='/
+	group 验证参数
+		note over payTypeC
+			接收参数：
+				 $params = this->get("params");
+				 参数下标说明：
+				 $param[contractNum] = 订单编号（即合同号）		 
+		end note
+	end
+	note over payTypeC
+		验证token
+	end note
+	
+	/'===========处理逻辑=============='/
+	
+	/'===============初始化================start'/
+	group 初始化
+		payTypeC->payTypeA:__construct()
+		activate payTypeA
+			payTypeA->payTypeA:getPayNames()
+			activate payTypeA
+						group 查询支付方式名称
+							note over payTypeA
+								组合查询条件
+									SELECT pay_name, s_name 
+							end note
+							payTypeA->paytypeD: get(list,参数)
+							paytypeD-->payTypeA: typeArr
+	
+							loop typeArr as val
+								note over payTypeA
+									//支付名称数组赋值 
+									this->_payNameArr[val->s_name] = val->pay_name
+								end note
+							end
+							payTypeA-->payTypeA:
+						end
+			deactivate payTypeA	
+		payTypeA-->payTypeC:obj
+		deactivate payTypeA
+	end
+	/'===============初始化================end'/
+	
+	payTypeC->payTypeA:obj->get(contractNum)
+	activate payTypeA	
+		/'====验证参数======start=='/
+		group 验证参数
+			alt empty(contractNum)
+				payTypeA-->payTypeC: res = array(state=>2, 参数错误)
+			end
+		end
+		/'====验证参数======end=='/
+		
+		/'====查询收款合同信息======start=='/
+		group 查询收款合同信息,电子券
+			payTypeA->payTypeA:getProductConume(contractNum)
+			activate payTypeA
+				note over payTypeA
+					组合查询参数
+						WHERE consume_pact_id = contractNum AND consume_back = 0 (排除退款) 
+						ORDER BY consume_id DESC 
+				end note
+				payTypeA->consumeD:get(list,参数)
+				consumeD-->payTypeA: consumeArr
+				payTypeA-->payTypeA: consumeArr
+			deactivate payTypeA
+		end
+		alt empyt(consumeArr)
+			payTypeA-->payTypeC: res = array(state=>3, 未查到合同信息)
+		end
+		/'====查询收款合同信息======start=='/
+		
+		/'====查询支付方式======start=='/
+		group 循环合同信息查询支付方式
+			loop consumeArr as val
+				payTypeA->payTypeA:getPaysByConsumeId(val->consume_id)\n通过合同主键查询各支付方式
+				note over payTypeA: this->_payTypeArr = array() 将付款方式数组初始化赋值为空
+				/'===查询现金======start=='/
+				group 查询现金
+					activate payTypeA
+						note over payTypeA						
+							组合查询参数
+								SELECT payform_cash as price 
+								WHERE  payform_consume_id = consumeId
+						end note
+						payTypeA->payformD:get(list,参数)
+						payformD-->payTypeA:cashArr
+												
+						/'=============生成最终支付方式数组===========start==='/
+						group 生成最终支付方式数组
+							payTypeA->payTypeA: _createPayArr(cashArr=支付方式查询结果,  this->_payNameArr[cash])
+							activate payTypeA
+							alt is_array(payArr) && !empty(payArr)
+							loop cashArr as val						
+								note over payTypeA
+									//卡号
+									cardNum = isset($val->card) ? val->card : '';
+									//组合支付方式数组，（支付名，卡号，金额）
+									this->_payTypeArr[] = array('payName'=>payName, cardNum=>cardNum,price=>val->price,upperPrice=>大写金额)
+								end note	
+							end /'-loop-'/
+							end /'-alt-'/
+							payTypeA-->payTypeA:
+							deactivate payTypeA
+						end
+						/'=============生成最终支付方式数组===========end==='/
+				end
+			/'===查询现金======end=='/
+			
+			/'====查询合同收券记录表ticket===========start=='/			
+		   group 查询合同收券记录表ticket
+		   		note over payTypeA
+		   			组合参数
+		   				select ticket_usecode as card 
+		   				WHERE pact_id = consumeId AND status=0(正常状态)
+		   		end note
+		   		payTypeA->ticketD:get(参数)
+		   		ticketD-->payTypeA:ticketArr
+				alt !isset(ticketArr->status)
+					loop ticketArr as val 循环其他支付方式
+						note over payTypeA							
+							去券主表查找券面额后组合val->price = 券面额
+							ticketPrice += val->price
+							tickets[] = val
+						end note
+						payTypeA->payTypeA: _createPayArr(tickets,电子券)
+					end /'loop'/
+				end /'alt'/
+		   end
+			/'====查询合同收券记录表ticket============end=='/			
+
+			/'====查询购物券===========start=='/
+			group 查询购物券
+				note over payTypeA						
+					组合查询参数
+						SELECT payform_trade  as price 
+						WHERE  payform_consume_id = consumeId
+				end note
+				payTypeA->payformD:get(list,参数)
+				payformD-->payTypeA: tradeArr
+				note over payTypeA:tradeArr[0]->price = tradeArr[0]->price(购物券金额)-ticketPrice(电子券金额)
+				payTypeA->payTypeA: _createPayArr(tradeArr,this->_payNameArr[trade])
+
+			end 
+			/'====查询购物券===========end==='/	
+			
+			/'====查询银行卡===========start=='/
+			group 查询银行卡
+				note over payTypeA						
+					组合查询参数
+						SELECT  value AS price ,fact_id AS card
+						WHERE  consume_id = consumeId
+				end note
+				payTypeA->bankD:get(list,参数)
+				bankD-->payTypeA: bankArr
+				payTypeA->payTypeA: _createPayArr(bankArr,this->_payNameArr[bank])
+			end 
+			/'====查询银行卡===========end==='/	
+			
+			/'====查询支票==============start=='/
+			group 查询支票
+				note over payTypeA						
+					组合查询参数
+						SELECT cheque_value AS price, cheque_fact_id AS card
+						WHERE  cheque_consume_id = consumeId
+				end note
+				payTypeA->chequeD:get(list,参数)
+				chequeD-->payTypeA: chequeArr
+				payTypeA->payTypeA: _createPayArr(chequeArr,this->_payNameArr[cheque])
+			end 
+			/'====查询支票==============end==='/
+			
+			
+			/'====查询福卡==============start=='/
+			group 查询福卡
+				note over payTypeA						
+					组合查询参数
+						SELECT value AS price, fact_id AS card
+						WHERE  consume_id = consumeId
+				end note
+				payTypeA->blessD:get(list,参数)
+				blessD-->payTypeA: blessArr
+				payTypeA->payTypeA: _createPayArr(blessArr,this->_payNameArr[fu_card])
+			end 
+			/'====查询福卡==============end==='/
+			
+			/'====查询其他支付方式==============start=='/
+			group 查询其他支付方式
+				note over payTypeA						
+					组合查询参数
+						SELECT  way_value AS price, way_cardid AS card, way_type
+						WHERE  way_fid = consumeId
+				end note
+				payTypeA->paywayD:get(list,参数)
+				paywayD-->payTypeA: otherArr
+				
+				alt !isset(otherArr->status)
+					loop otherArr as val 循环其他支付方式
+						note over payTypeA
+							//组合查询参数
+							SELECT  type_name
+							WHERE  id = val->way_type
+							
+							data[] = val
+						end note
+						payTypeA->otherD: get(list,参数)
+						otherD-->payTypeA:otherName
+						payTypeA->payTypeA: _createPayArr(data,otherName->type_name)
+					end /'loop'/
+				end /'alt'/
+				
+				
+			end 
+			/'====查询其他支付方式==============end=='/
+			
+		payTypeA-->payTypeA: payTypeArr=>this->_payTypeArr
+		note over payTypeA:循环中组合返回值　returnArr[val->consume_id] =  payTypeArr		
+	end /'循环'/
+		/'====查询支付方式======end=='/	
+	deactivate payTypeA
+end
+
+			
+		payTypeA-->payTypeC:res = array(state=>1,payTypeArr=>returnArr)
+			
+	deactivate payTypeA
+payTypeC-->view:res
+deactivate payTypeC
+
+@enduml

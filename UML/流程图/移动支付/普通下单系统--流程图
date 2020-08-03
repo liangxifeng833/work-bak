@@ -1,0 +1,42 @@
+@startuml
+title 普通下单系统--流程图
+
+
+|展员|
+start
+:是否与蓝景装饰合作\n该页面初始化redis数据;
+note right
+	 订单
+	 订单商品
+	 付款期数
+end note
+:选择商品\n<font color=red>该商品从product_view视图中获取;
+
+:加入购物车redis数据;
+:选择付款方式;
+
+if(如果有卖场促销)then(yes)
+	:计算卖场促销折扣;
+else(no)
+	if(会员卡)then(yes)
+		:计算会员卡折扣;
+	endif
+endif
+
+if(存在折扣)then(yes)
+	:修改付款期数redis hash;
+endif
+
+:获取商户合同号\n采用悲观锁在DAL做的处理;
+:生成正式订单;
+note right
+	生成
+		订单主表,
+		订单商品表,
+		付款期数表数据
+end note
+:生成合同扣费数据;
+note right:deduct_record表
+end
+
+@enduml

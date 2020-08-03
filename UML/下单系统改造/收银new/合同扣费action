@@ -1,0 +1,107 @@
+@startuml
+title 合同扣费action
+
+actor api #red
+/'-------------定义参与者别名 -------------------'/
+participant "ContractDeductAction\n合同扣费A" as orderC  #00FF00
+participant "MerchantPactDeductDao\n合同扣费比例表D" as deductD  #FFFFFF
+participant "DeductTypeDao\n扣款类型字典表D" as dictionaryD  #FFFFFF
+participant "DeductRecord\n扣款明细表D" as recordD  #FFFFFF
+
+api->orderC:main(params)
+activate orderC
+	note over orderC
+		验证参数
+		this->source = params[source]	 扣费来源　(如果来源是合同号,merchant_pact_list  代表生成合同号产生的费用)
+		this->price = params[price] 付款额 ( 如果来源是合同号,下单最后的本期折后额 )
+		this->sourceId = params[sourceId] 扣费来源表主键 ( 如果来源是合同号产生则是 merchant_pact_list 表主键)
+	end note
+	
+	/'=========查询合同扣费比例表=======start======='/	
+	group 查询合同扣费比例表
+		orderC->orderC: getDeduct()
+		activate orderC
+			note over orderC
+				组合参数：
+					获取合同扣费比例表记录，记录只有一条
+					WHERE deduct_id = 2 LIMIT 1
+			end note
+			orderC->deductD:get(list,参数)
+			deductD-->orderC:deductObj
+			orderC-->orderC: deductObj
+		deactivate orderC
+		alt !deductObj
+			orderC-->api: 异常返回合同扣费比例获取失败
+		end
+	end
+	/'=========查询合同扣费比例表=======end======='/	
+	
+	/'=========查询扣款类型字典表=======start======='/	
+	group 查询扣款类型字典表
+		orderC->orderC: getDictionary(this->source)
+		activate orderC
+			note over orderC
+				组合参数：
+					WHERE type_name =  source
+					LIMIT 1
+			end note
+			orderC->dictionaryD:get(list,参数)
+			dictionaryD-->orderC:dictionaryObj
+			orderC-->orderC: dictionaryObj
+		deactivate orderC
+		alt empty(dictionaryObj->type_name)
+			orderC-->api: 异常返回扣款类型字典表数据获取失败
+		end
+	end
+	/'=========查询扣款类型字典表=======end======='/	
+	
+	/'=========组合扣费明细数据=======start======='/	
+	group 组合扣费明细数据
+		orderC->orderC:createRecordData(deductObj, dictionaryObj)
+		activate orderC
+			alt deductObj->deduct_type==1 固定扣款
+				note over orderC: deductPrice = deductObj->deduct_fixed_charge
+			end
+			
+			alt deductObj->deduct_type==2 按比例扣款
+				note over orderC
+					contractPayment = $this->price*deductObj->deduct_percent;
+					deductPrice= contractPayment<deductObj->deduct_percent_max ? contractPayment : deductObj->deduct_percent_max;
+				end note
+			end			
+			note over orderC
+			 data = array(
+			 		deduct_type => dictionaryObj->id
+			 		deduct_cause_id => this->sourceId
+			 		deduct_charge=>deductPrice
+			 		deduct_add_time=>当前时间
+			 )
+			 end note
+			 orderC-->orderC:data
+		deactivate orderC
+		alt !data
+			orderC-->api: 异常返回组合扣费明细数据失败
+		end
+	end
+	/'=========组合扣费明细数据======end======='/		
+	
+	
+	/'========新增扣费明细表数据=======start======='/	
+	group 新增扣费明细表数据
+		orderC->orderC: addRecode(data)
+		activate orderC
+			orderC->recordD: add(data)
+			recordD-->orderC:res
+			orderC-->orderC: 成功:true 失败:false
+		deactivate orderC
+		alt !addRecode()
+			orderC-->api: 异常返回新增扣费明细表数据失败
+		else
+			orderC-->api: res = array(state=>1)
+		end
+	end
+	/'========新增扣费明细表数据=======end======='/	
+
+deactivate orderC
+
+@enduml

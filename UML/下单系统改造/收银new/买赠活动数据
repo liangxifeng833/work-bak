@@ -1,0 +1,89 @@
+@startuml
+title 买赠活动数据
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "saleGiftData\n买赠活动数据C" as orderC  #00FF00
+participant "SaleGiftDataAction\n买赠活动数据A" as orderA  #FFFFFF
+
+participant "saleGiftDateDao\n买赠活动日期表D" as dateD  #FFFFFF
+participant "saleGiftBaseDao\n买赠活动表D" as baseD  #FFFFFF
+participant "saleGiftBlacklistDao\n买赠活动黑名单表D" as blackD  #FFFFFF
+
+participant "MerchantDataAction\n商户数据A" as merchantA  #FFFFFF
+
+view->orderC:index_get()
+activate orderC
+	/'===========验证参数=============='/
+	group 验证参数
+		note over orderC
+			接收参数：
+				 $params = this->get("params");
+				 参数下标说明：
+				 $params[orderNumber] = 订单编号（即合同号）		 
+		end note
+	end
+	note over orderC
+		验证token
+	end note
+	
+	
+	/'===========处理逻辑=============='/
+	orderC->orderA:obj->get(orderNumber)
+	note over orderA: 验证参数
+	activate orderA
+					group 查询买赠活动日期表
+						note over orderA
+							组合参数：
+								WHERE date_item = date('Y-m-d',time())  LIMIT 1
+						end note
+						orderA->dateD: get(list, 参数)
+						dateD-->orderA: dateObj
+					end
+					
+						alt dateObj->base_id 存在买赠活动
+							/'====查询买赠活动基本信息======start=='/
+							group 查询买赠活动基本信息
+								note over orderA
+									组合参数：
+										WHERE base_id = dateObj->base_id 	
+										LIMIT 1
+								 end note
+								orderA->baseD: get(list, 参数)
+								baseD-->orderA:baseObj
+							end
+						end
+						/'====查询买赠活动基本信息======end=='/
+						alt !baseObj
+							orderA-->orderC: 买赠活动基本信息查询异常
+						end		
+						note over orderA: returnArr[saleGiftName] = baseObj->base_name\n买赠活动名称
+						
+						group 查询商户数据获得展位号
+							orderA->merchantA: get()
+							merchantA-->orderA:merchantArr
+						end
+							
+							/'====查询买赠黑名单信息======start=='/
+							group 查询买赠黑名单信息
+								note over orderA
+									组合参数：
+										WHERE base_id = dateObj->base_id 	
+										AND merchant_showid = this->merchantArr[展位号]
+										LIMIT 1
+								end note								
+								orderA->blackD: get(list,参数)
+								blackD-->orderA: blackObj
+								alt blackObj->blacklist_id 如果该商户存在黑名单中
+									 note over orderA:returnArr[isBlack] = 1;
+								else 如果该商户不存在黑名单中
+									note over orderA: returnArr[isBlack] = 0;
+								end
+							end					
+							/'====查询买赠黑名单信息======end=='/
+	orderA-->orderC:returnArr
+	deactivate orderA
+orderC-->view:returnArr
+deactivate orderC
+
+@enduml

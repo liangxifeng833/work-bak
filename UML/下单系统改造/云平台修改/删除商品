@@ -1,0 +1,93 @@
+@startuml
+title 删除商品-非BLL\n
+
+actor html #red
+/'-------------定义参与者别名 -------------------'/
+participant "delProduct\n商品修改C" as del #FFFFFF
+participant "product_mdl\n商品M" as proM #FFFFFF
+participant "extrapro_mdl\n商品附表M" as exM #FFFFFF
+participant "AutoCheck\n自动审核L" as autoL #FFFFFF
+participant "checkProducts\n审核商品C" as bll  #00FF00
+
+/'==================初始化===================='/
+group 初始化
+	html->del:__construct()
+	activate del
+		note over del
+			parent::__construct()
+		end note
+	del-->html	
+	deactivate del
+end
+
+/'==================申请删除===================='/
+html->del: delControl()
+activate del
+
+group 验证参数
+		note over del 
+			判空并过滤参数：商品主键proId
+		end note
+end
+		
+group 验证商品可否被删
+		/'------验证商品可否被删--------'/
+		del->del:_checkPro()\n验证商品可否被删
+		activate del
+			alt this->_proArr['product_status'] == 3 
+				note over del: 待删除状态不允许再次删除操作
+				del-->del:false
+			else
+				del-->del:true
+		deactivate del
+		alt !_checkPro()
+			note over del: 系统提示：该商品已为待删商品
+		end
+end
+
+alt  this->_proArr['product_status'] !=0 非新增商品
+	group 修改商品状态
+		/'------修改商品状态--------'/
+		 del->del:_editStatus()
+		 activate del
+		 	del->proM:update(this->_proId,array('product_status'=>3))
+		 	note over del: 注意：修改状态为3,待删除
+		 	proM-->del:boolean
+			alt true==boolean
+				del-->del:true
+			else
+				del-->del:false
+			end
+		 deactivate del
+	end
+else
+	group 状态为新增,则将商品直接私有库删除
+		del->del:_delProduct()
+		activate del
+			del->proM:del(this->_proId)
+			proM-->del:boolean
+		del-->del:boolean
+		deactivate del
+	end
+	
+end
+		
+
+
+alt !_editStatus() 修改状态失败
+	note over del
+		系统提示：删除操作失败
+		终止程序
+	end note
+end
+	
+/'====自动审核===='/
+group 自动审核
+ 	del->del:parent::_autoCheck()
+end
+			
+	del-->html:
+	deactivate del
+end
+
+@enduml

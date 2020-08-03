@@ -1,0 +1,67 @@
+@startuml
+title 打印对账单
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "printRemitBill\n打印对账单C" as printC  #00FF00
+participant "PrintRemitBillAction\n打印对账单A" as printA  #FFFFFF
+participant "ReturnPriceAction\n商户返款A" as remitA  #FFFFFF
+participant "ProductConumeDao\n合同收款记录表D" as consumeD  #FFFFF
+participant "RemitMerchantDao\n商户返款记录表" as remitD  #FFFFFF
+
+
+view->printC:index_get()
+activate printC
+/'===========验证参数=============='/
+group 验证参数
+	note over printC
+		接收参数：
+			 $params = this->get("params");
+		         验证参数$params 非空
+	end note
+end
+note over printC
+	验证token
+end note
+
+/'===========处理逻辑=============='/
+group 处理逻辑
+	printC->printA:main($params)
+	activate printA
+		note over printA
+			参数说明:
+				$params[merchantId] = 商户基础信息表merchant_info主键
+				$params[consumeIds] = product_consume表主键数组
+				$params[startDate] = 对账开始日期
+				$params[endDate] = 对账截止日期
+		end note
+		note over printA: 验证参数
+		
+		/'====== 查询商户信息======'/
+		group 查询商户信息
+			printA->remitA: getMerchantById(merchantId)
+			remitA-->printA:merchantRow
+			alt !merchantRow
+				printA-->printC: 商户信息丢失
+			end
+		end
+		
+		/'====== 查询销售详情======'/
+		group  查询销售详情
+			loop consumeIds as v 循环查询组合页面销售及返款数据
+				printA->consumeD:SELECT 销售时间,合同号,实付额 WHERE consume_id = v
+				printA->remitD: SELECT 企业分摊, 手续费, 结算额 WHERE remit_consume_id = v
+				note over printA
+					 组合页面数据
+					 	 <font color=red><b>注意: 循环中如果查询不到数据,或数据异常程序不可终止,要用5个中横线代替
+				end note
+			end
+		end
+		
+		
+		printA-->printC:
+	deactivate printA
+end
+printC-->view:
+deactivate printC
+@enduml

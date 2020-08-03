@@ -1,0 +1,82 @@
+@startuml
+title 顾客-使用班车小程序流程图
+|微信客户端|
+start
+:登录微信客户端;
+group顾客可多种途径找到小程序
+fork
+:关注公众号;
+:菜单导航-免费班车;
+fork again
+:搜索小程序名称;
+fork again
+:小程序使用历史记录;
+fork again
+:筛5公里范围内的小程序;
+end fork
+end group
+:进入小程序;
+fork
+group去程
+	if(用户是否允许获取其地理位置) then(yes)
+		:自动获取城市;
+		:自动获取距离最近商城;
+		:推荐最近的班车线路、班次及停车站点;
+		if(用户是否接受推荐) then(yes)
+		else(no)
+			:进入目标商城的所有线路列表;
+			:手动选择某条线路某个班次及某个站点;
+		endif
+	else(no)
+		:手动选择城市;
+		:手动选择目标商城;
+		:进入目标商城的所有线路列表;
+		:手动选择某条线路某个班次及某个站点;
+	endif
+:预约指定班次指定站点的座位;
+:填写预约人信息;
+note right:姓名、手机号、短信验证，可同时视为用户注册
+:确认预约座位数量;
+	if(是否满足预约座位数) then(yes)
+	else(no)
+	:减少座位数或改变班次;
+	endif
+	if(是否同时预约返程) then(yes)
+		if(是否回到当前位置) then(yes)
+		:预约有空座的返程班次;
+		else(no)
+		:选择返程某条线路某个班次及到达站点;
+		:预约有空座的返程班次;
+		endif
+	else(no)
+	endif
+:预约成功提示;
+note right:可以是多种形式：短信通知、二维码、编号
+if(是否如约上车) then(yes)
+:核对预约成功信息（检票）;
+else(no)
+	if(是否在班次发车之前取消预约) then(yes)
+	:可成功取消预约;
+	else(no)
+	:用户爽约次数加1;
+	:通知用户爽约规则;
+	:累计指定爽约次数则禁止该用户预约;
+	endif
+endif
+end group
+
+
+fork again
+group返程
+if(是否已成功预约了返程) then(yes)
+:核对预约成功信息（检票）;
+else(no)
+	:重新预约返程;
+	:与“去程”流程保持一致;
+	:......;
+endif
+end group
+end fork
+end
+ 
+@enduml

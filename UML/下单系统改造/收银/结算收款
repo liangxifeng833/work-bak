@@ -1,0 +1,94 @@
+@startuml
+title 结算收款显示
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "basePayment\n收银结算C" as paymentC  #00FF00
+participant "BasePaymentAction\n收银结算A" as paymentA  #FFFFFF
+
+note over paymentC,paymentA  #aqua
+	注意：
+		1. 本接口是在原程序基础上进行修改
+		2. 所以会省略原程序已有的业务逻辑
+end note
+
+view->paymentC:payStartInit_get()\n结算显示请求接口
+activate paymentC
+	note over paymentC: 37行查询订单修改
+	/'=========初始化收银结算Action=====================start===='/
+	group 初始化收银结算Action
+		paymentC->paymentA:__construct(orderNumber)
+		activate paymentA
+		paymentA-->paymentC:obj
+		note over paymentA: this->contractData = obj
+		deactivate paymentA
+	end
+	/'=========初始化收银结算Action=====================end===='/
+	
+	/'=========查询订单基本信息=======================start===='/
+	group 查询订单基本信息
+		paymentC->paymentA:getBaseOrder()
+		activate paymentA
+			group 验证订单日期和是否收款
+				note over paymentA: checkRes = parent::check()
+				alt  1 != checkRes[state] 验证失败
+					paymentA-->paymentC: res = array(state=>2,订单验证失败)
+				end
+			end
+			paymentA-->paymentC:res=array(state=>1)
+		deactivate paymentA
+	end
+	note over paymentC
+		４６行修改
+		商户ｋ代码 $ljKid = this->contractData->merchantArr[lj_kid]
+ 
+		//组合订单信息
+		$orderObj = this->contractData->orderHandle->orderObj
+		注意：$orderObj->notPayObj->account_payable_discount 是最终要付的款
+		
+		７２行变量修改为
+		$copeValue =  $orderObj;
+	end note
+	/'=========查询订单基本信息=====================end===='/	
+paymentC-->view:res
+deactivate paymentC
+
+
+/'================计算付款处理接口============================start==='/
+view->paymentC:payEndSubmit_post()\n计算付款处理接口
+activate paymentC
+	note over paymentC
+		１．_getNeedData() 查询基本数据私有方法修改：
+			查询基本数据的时候将查询订单数据修改为以上查询方式
+			也就是 this->orderBase = this->contractData->orderHandle->orderObj		
+			254到256行查询卖场促销分摊去掉
+			260到262行查询会员卡分摊去掉
+		
+		２．特别注意： _addProductConsume()合同表入数据方法修改：
+			//重新定义变量$favourableValue 
+			$favourableValue = $junkZhou = (object)array(
+					id => 0,
+					order_id => 0,
+					account_payable => 0,
+					account_payable_discount => 0,
+					discount_type => 0,
+					discount_id => 0,
+					discount_proportion => 0,
+					discount_market => 0,
+					discount_merchant=>0);
+			根据$this->orderBase->notPayObj->discount_type判读卖场促销与会员卡
+			//合同额
+			consume_pact_value=>$this->orderBase->pact_value
+			//应付额
+			consume_cope_value=>$this->orderBase->notPayObj->account_payable_discount
+			//实付额
+			consume_fact_value=>$this->factValue
+		３．_modifyOrder()修改订单状态
+				status=>1已付款
+				return this->contractData->orderHandle->updateStatus(status)
+	end note
+	paymentC-->view:
+deactivate paymentC
+/'================计算付款处理接口============================end===='/
+
+@enduml

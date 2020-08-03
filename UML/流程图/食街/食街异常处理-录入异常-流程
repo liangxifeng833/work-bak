@@ -1,0 +1,60 @@
+@startuml
+title 食街异常处理-录入异常-流程
+
+	
+|食街充值系统|	
+
+start
+
+:异常录入;
+:区分微信支付宝;
+note left: 通道号前四位=1000代表微信\n2000代表支付宝
+
+:区分异常类型;
+note left: 根据页面参数区分\n1: 办卡异常\n2: 充值异常\n3: 退款异常
+
+|本地数据库|
+if(正向办卡或充值异常)then(yes)
+:查询异常记录表;
+note left
+	where 异常类型 
+	and 支付类型 
+	and 卡号 
+	and 通道号 
+end note
+	if (存在异常记录)then(yes)
+		:返回已经录入过异常;
+		end
+	else(no)
+		:查询微信/支付宝表;
+		note left
+			where 卡号 
+			and  通道号
+		end note
+		if(存在数据)then(yes)
+			:返回已经录入过异常;
+			end
+		endif
+	endif
+else(no)
+:查询异常记录表;
+note left
+	where 异常类型 
+	and 支付类型 
+	and 卡号 
+	and 通道号 
+	and 补录状态＝未补录
+end note
+	if (存在异常记录)then(yes)
+		:返回已经录入过异常;
+		end
+	else
+		:因为同一笔正向记录可以退多笔\n同一个通道号在移动支付表中本身就有记录\n所以无需验证该表数据;
+	endif
+endif
+:add到异常记录表数据;
+end
+
+
+
+@enduml

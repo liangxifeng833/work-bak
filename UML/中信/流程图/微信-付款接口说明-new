@@ -1,0 +1,61 @@
+@startuml
+title 中信银行-微信付款接口流程
+|收银台|
+start
+	:收银员扫码;
+	|BLL（可连外网）|
+	:付款;
+	
+	#HotPink:请求支付API;
+	note left
+		post XML 参数注意：
+				商户的订单号out_trade_no必须全局唯一
+				调试和生产环境,都需要使用唯一的订单号
+				当发起支付返回失败需要再次重新发起时,
+				一定要用原订单的out_trade_no 
+				而不能重新生成新的订单号发起支付
+	end note
+	
+	|威富通（中信）|
+	:接收付款数据;
+	
+	|BLL（可连外网）|
+	/'返回xml数据判断是否支付成功'/
+	:返回xml数据;
+		if (return_code!=SUCCESS ?) then (yes)
+			#red:通信异常;
+			:返回收银台;
+  			
+		elseif(return_code=SUCCESS  and result_code = SUCCESS? ) then(yes)
+  			#green:支付成功;
+  			:返回收银台;
+  		else
+  			if(err_code = USERPAYING  ?)then(no)
+  				#HotPink:重新发起支付API;
+  				end;
+  			else(yes)
+  				#HotPink:查询订单API\n每10秒一次，查询三次;
+  				if(三次查询返回成功标识 ? )then(no)
+  					#HotPink:调用撤销订单API关单;
+  				else(yes)
+  					#green:支付成功;	
+  					:返回收银台;
+  					end
+  				 /'--三次查询返回成功标识--'/
+  				endif
+  			/'--need query = Y--'/
+  			endif
+  			
+  			/'-----冲正后如果用户支付成功,微信支付系统会将此订单资金退还给用户----start-'/
+  			if(撤销后用户支付成功 ? )then(yes)
+  					:系统会将此订单资金退还给用户;
+  			else(no)
+  				:不做任何处理;
+  			endif
+  			/'-----冲正后如果用户支付成功,微信支付系统会将此订单资金退还给用户----end-'/
+  			#red:撤销成功后, 该笔订单不能在发起支付;
+  		/'---status != 0 ? ---'/
+		endif
+	/'返回xml数据判断是否支付成功'/
+end
+@enduml

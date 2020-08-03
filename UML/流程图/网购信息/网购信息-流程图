@@ -1,0 +1,13 @@
+@startuml
+title 网购信息-流程图
+
+
+|云平台|
+start
+:选择商品;
+:填写网购信息;
+:选择分类;
+
+
+end
+@enduml

@@ -1,0 +1,55 @@
+@startuml
+title 折扣抽象类
+
+actor subClass #red
+/'-------------定义参与者别名 -------------------'/
+participant "DiscountAbstract\n折扣抽象类L" as a #ADD8E6
+participant "MerchantOnlineAction\n公共信息类L" as common #FFFFFF
+
+group 初始化构造
+	subClass->a:__construct()
+	activate a
+		note over a
+			//云编号赋值
+			this->_ljyunId = ljyunId 
+			//付款额
+			this->_price = price 
+		end note
+		group 获取商户信息
+			a->a:_getMerchant()
+			activate a
+				a->common:getMerchantByYunId(ljyunId)
+					note over common
+						注意：查询在租商户
+						返回：
+							array(合同签订表主键
+							商户名
+							k代码
+							展位号)
+					end note
+				common-->a:merchantArr 
+			a-->a:merchantArr
+			deactivate a
+			
+			note over a
+				//赋值商户信息
+				this->_merchantArr = merchantArr
+			end note
+		end
+	a-->subClass:obj
+	deactivate a
+end
+
+group 验证参数
+	subClass->a:_checkParam()\n验证参数
+		activate a
+		alt empty(this->_ljyunId || this->_merchantArr || this->_price)
+			a-->subClass:false
+		else
+			a-->subClass:true
+		end
+		deactivate a
+end
+
+
+@enduml

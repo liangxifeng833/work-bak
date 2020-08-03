@@ -1,0 +1,158 @@
+@startuml
+title 生成邀请二维码
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "CreateInviteQrcode\n生成邀请二维码C" as codeC  #00FF00
+participant "CreateInviteQrcodeAction\n生成邀请二维码A" as codeA #FFFFFF
+participant "InviteQrcode\n邀请二维码表M" as codeM #FFFFFF
+participant "WechatServerApi\n微信接口类api" as wechat #FFFFFF
+participant "Wechat\n微信账号表M" as wechatM #FFFFFF
+participant "Member\n平台会员表M" as memberM #FFFFFF
+
+
+
+view->codeC:index()
+activate codeC
+	/'===========验证参数=============='/
+	group 验证参数
+		note over codeC
+			接收参数：
+			         参数说明:
+			         $_GET[appId]          = 应用id
+			         $_GET[memberId] = 平台会员主键
+		end note
+	end
+	
+	codeC->codeA:index($appId,$memberId)
+	activate codeA
+		alt empty($appId || $memberId)
+			codeA-->codeC: res=array(state=>2, 参数错误)
+		end
+	
+		/'========通过appId查询微信信息=====================start==='/
+		group 通过appId查询微信信息
+			codeA->codeA:getWechat(appId)
+			activate codeA
+				codeA->wechatM:where('app_id = 参数appId')->find()
+				wechatM-->codeA:wechatRow
+				alt !wechatRow
+					codeA-->codeA:false
+				else
+					codeA-->codeA:wechatRow
+				end
+			deactivate codeA	
+		end
+		/'========通过appId查询微信信息=====================end==='/
+		alt !getWechat()
+			codeA-->codeC:res=array(state=>5,  获取微信信息异常)
+		else
+			note over codeA: this->_wechatArr = wechatRow
+		end
+		
+		/'========通过memberId查询平台会员信息=====================start==='/
+		group 通过memberId查询平台会员信息
+			codeA->codeA:getMember(memberId)
+			activate codeA
+				note over codeA
+					组合查询条件
+					where = "member_id = 参数memberId' AND status=1(正常)"
+				end note
+				codeA->memberM:where(where)->order(member_id DESC)->find()
+				memberM-->codeA:memberRow
+				alt !memberRow
+					codeA-->codeA:false
+				else
+					codeA-->codeA:memberRow
+				end
+			deactivate codeA
+		end
+		/'========通过memberId查询平台会员信息=====================end==='/
+		alt !getMember()
+			codeA-->codeC:res=array(state=>4, 获取微信信息异常) 
+			else
+				note over codeA: this->_memberArr = memberRow
+		end	
+		
+		/'========查询该会员是否已经生成过邀请=====================start==='/
+		group 查询该会员是否已经生成过邀请
+			codeA->codeA:getInvite($this->_wechatArr[wechat_id],memberId)
+			activate codeA
+				note over codeA: 条件是：where = wechat_id = wechatId AND member_id = memberId
+				codeA->codeM:where(where)->find()
+				codeM-->codeA:inviteRow
+				alt !inviteRow
+					codeA-->codeA:false
+				else
+					alt inviteRow->expire_timestamp < time() 如果ticket过期
+						codeA->wechat:createQrcodeTicket(memberId, this->_expireSeconds)
+						wechat-->codeA:ticket
+						note over codeA
+							修改数据
+							$data[qrcode_ticket] = ticket
+							$data[expire_timestamp] =  time()+(this->_expireSeconds-86400),邀请二维码ticket过期时间戳
+						end note
+						codeA->codeM:where('id='inviteRow->id)->save($data);
+						codeM-->codeA:boolean
+						note over codeA
+							对inviteRow的qrcode_ticket赋值为修改后的ticket
+						end note
+					end
+					codeA-->codeA:inviteRow
+				end
+			deactivate codeA
+		end
+		/'========查询该会员是否已经生成过邀请=====================end==='/
+		alt !inviteRow
+			codeA-->codeC: res = array(state=>3, 查询邀请信息异常)			
+		end
+		alt !empty(inviteRow) 
+			codeA-->codeC: res = array(state=>1,inviteRow邀请信息,会员信息,公众号信息 )			
+		end
+		
+	
+ 	/'========通过应用appId和平台会员主键memberId获取ticket=========start==='/	
+	group 生成ticket
+		codeA->wechat:createQrcodeTicket(memberId,this->_expireSeconds)
+		wechat-->codeA:ticket
+		alt !ticket
+			codeA-->codeC:res=array(state=>6, ticket获取失败)
+		end
+	end
+ 	/'========通过应用appId和平台会员主键memberId获取ticket=========end==='/	
+ 
+  	/'========向邀请二维码表中新增数据============================start==='/		
+ 	group 向邀请二维码表中新增数据
+ 		codeA->codeA:addQrcode(ticket)
+ 		activate codeA
+ 			note over codeA
+ 				组合入参:
+ 					data[wechat_id]  = this->_wechatArr[id]微信表主键
+ 					data[invite_name] =  this->_memberArr[name]邀请人姓名
+ 					data[member_id] = this->_memberArr[member_id]
+ 					data[add_time] = 当前时间
+ 					data[qrcode_ticket] = ticket 邀请二维码ticket
+ 					data[expire_time] = time()+(this->_expireSeconds-86400),邀请二维码ticket过期时间戳
+ 			end note
+	 		codeA->codeM:data(data)->add()
+	 		codeM-->codeA:boolean
+	 		alt boolean
+	 			codeA-->codeA: data
+	 		else
+	 			codeA-->codeA:false
+	 		end
+ 		deactivate codeA
+ 	end
+   	/'========向邀请二维码表中新增数据============================end==='/	
+   	alt !addQrcode()	
+   		codeA-->codeC:res=array(state=>7,生成二维码失败)
+   	else
+   		codeA-->codeC: res= array(state=>1,data,inviteRow邀请信息,会员信息,公众号信息)
+   	end
+   	deactivate codeA
+ 	
+ 	codeC-->view:res	
+	
+deactivate codeC
+
+@enduml

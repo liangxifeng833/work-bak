@@ -1,0 +1,197 @@
+@startuml
+title 财务退款保存-时序图
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "financeRefund\n财务退款C" as orderC  #00FF00
+participant "FinanceRefundAction\n财务退款A" as orderA  #FFFFFF
+participant "WechatAlipayToCashRefund\n微信&支付宝转换为现金退款A" as wtoC  #FFFFFF
+
+view->orderC:index_post()
+activate orderC
+	/'===========验证参数=============='/
+	group 验证参数
+		note over orderC
+			接收参数：
+				 $params = this->get("params");
+		end note
+	end
+	note over orderC
+		验证token
+	end note
+	
+	/'===========构造方法======start========'/	
+	group 初始化
+		orderC->orderA:__construct(操作人员id,收银款台号,合同收款表主键)
+		activate orderA
+			note over orderA: parent::__construct(操作人员id,收银款台号,合同收款表主键)
+			orderA-->orderC: obj
+		deactivate orderA
+	end
+	/'===========构造方法======end========'/	
+	
+	
+	/'===========处理逻辑=============='/
+	orderC->orderA:obj->post(params)
+	activate orderA
+		note over orderA: 验证参数
+
+		group 验证必须是财务
+				alt !parent::check()
+					orderA-->orderC:异常返回, 该账号不是财务专用账号
+				end
+				alt this->consumeObj->consume_state==1
+					orderA-->orderC:异常返回, 该合同当班未提交, 不能财务退货
+				end
+		end		
+		
+		note over orderA: this->consumeBack = 2  //代表财务退款
+		
+		group 获取银行卡冲红记录
+			orderA->orderA:getRefundBank()
+			activate orderA
+				note over orderA
+					组合查询参数:
+						WHERE consume_id = this->consumeId
+				end note
+				orderA->BankAanalDao:get(list,参数)\n查询银行卡数据
+				BankAanalDao-->orderA:bankArr
+				alt !bankArr 如果无银行卡数据
+					orderA-->orderA: this->bandRefundArr = array()
+				end 
+				loop bankArr as val 循环组合冲红银行卡数据
+					/'============借记卡===========start====='/
+					group 借记卡不退手续费
+						alt val->type = 借记卡
+							note over orderA: 退手续费:charge = '0.00'; \n 未退手续费: cwCharge = val->charge*-1  
+						end
+					end
+					/'============借记卡===========end====='/
+					
+					/'============ 贷记卡===========start====='/
+					group  贷记卡退部分手续费
+						alt val->type = 贷记卡
+							note over orderA
+								组合参数:
+									SELECT pay_value, brand_fee
+									WHERE s_name = borrow 查询贷借卡手续费和品牌费率
+									LIMIT 1		
+							end note
+							orderA->PayTypeDao: get(list,参数)
+							PayTypeDao-->orderA:borrowCard
+							
+							note over orderA
+								 退手续费 = 消费金额 * (手续费 - 品牌手续费)
+								charge = -1 * floatOff ( val->value * (borrowCard->pay_value - borrowCard->brand_fee))
+								未退手续费 = 手续费 - 退回手续费 
+								cwCharge = -1 * (val->charge + charge)
+							end note  
+						end
+					end
+					/'============ 贷记卡===========end====='/
+
+					/'============ 外卡===========start====='/		
+					group 外卡手续费全退			
+						alt  val->type = 外卡
+							note over orderA:退手续费  charge = val->charge * -1;   \n 未退手续费: cwCharge = '0.00'
+						end
+					end
+					/'============ 外卡===========start====='/	
+					
+					group 组合银行卡冲红数据
+						note over orderA
+							bankData[] = array(fact_id=>val->fact_id卡号,
+									   value=>val->value*-1金额,
+									   charge=>charge手续费，
+									   size=>val->size,
+									   autonum=>val->autonum，
+									   cw_back_charge=cwCharge,
+									   type=>val->type)
+						end note
+						note over orderA: this->cashBankTotalPrice += val->value; 累加银行卡和现金消费总额
+					end
+				end /'loop'/
+				note over orderA: this->bankRefundArr = bankData 银行卡最终入表数据
+				orderA-->orderA: bandData
+			deactivate orderA
+		end
+		
+		group 调用抽象类中main方法处理退款操作 
+		orderA->orderA:main()
+		end
+			
+		group <font color="blue">处理合同收款时间＜2018-4-14 00:00:00的\n<font color="blue">微信支付宝退款数据转换为现金退款
+			orderA->wtoC: doMain(负向记录consumeId, \n正向合同数据this->consumeObj, \n需冲红的各支付方式：this->refundArr)
+			activate wtoC
+				alt 如果consumeObj->consume_date付款时间 >= 2018-4-14 00:00:00
+					wtoC-->orderA: 无需处理微信或支付宝转现金退款
+				end
+				alt 如果需冲红的各支付方式数组中不包含微信和支付宝数据
+					wtoC-->orderA: 无需处理微信或支付宝转现金退款
+				end 
+				alt 如果需冲红的各支付方式数组中包含微信
+					loop refundArr[微信数组]
+						note over wtoC
+							计算微信手续费 wechatCharge++;
+							计算微信付款额 wechatValue++;
+						end note
+ 					end
+				end
+				alt 如果需冲红的各支付方式数组中包含支付宝
+					loop refundArr[支付宝数组]
+						note over wtoC
+							计算支付宝手续费 alipayCharge++;
+							计算支付宝付款额 alipayValue++;
+						end note
+ 					end
+				end
+				note over wtoC:微信支付宝手续费 wechatAlipaycharge  = 微信手续费＋支付宝手续费；
+				note over wtoC:微信支付宝付款额 wechatAlipayValue  = 微信付款额＋支付宝付款额；
+				
+				group 组合微信支付宝退款转现金事务所需数据
+					note over wtoC
+
+						1．组合修改product_conume的实付额consume_fact_value字段
+								consumeFactValue = consumeObj-> consume_fact_value ＋ wechatAlipaycharge
+								注意：wechatAlipaycharge是负值
+								//将需要修改的负向实付额改为负值
+								consumeFactValue = -consumeFactValue 
+						2．判断如果需冲红的各支付方式有现金支付数组中payform_cash!=0
+						　　	则 cashPrice =  payform_cash + 微信支付宝付款额 
+								否则　cashPrice　＝　微信支付宝付款额；
+						 3.   组合dal事务所需参数：dalArr = array(
+						 			"consumeId"=>负向记录consumeId
+						 			"consumeFactValue"=>实付额
+						 			"cashPrice"=>修改的现金金额cashPrice
+						 			//修改现金表数据
+						 			"updateCashArr"=>array(payform_consume_id=>负向记录consumeId，payform_cash=>现金金额cashPrice)
+						 			//新增现金表数据
+						 			"addCashArr"=>array(payform_cash=>现金金额cashPrice，
+						 												payform_operator_id=>操作人员主键
+						 												payform_pact_id=>合同号
+						 												payform_consume_id=>负向记录consumeId			
+						 							)
+						 )	
+					end note
+				end
+				
+				group 调用dal事务处理
+					orderA->wtoC: doMain(dalArr)
+						note over wtoC
+							事务处理罗辑：
+								１．根据负向consumeId修改实付额字段consume_fact_value
+								２．通过负向consumeId查询微信和支付宝表数据，如果查询成功则遍历通过主键删除
+								３．判断参数 addCashArr 如果非空则，新增现金表.payform_list，根据updateCashArr修改现金表数据payform_cash字段
+						end note
+					wtoC-->orderA:
+				end
+				
+				orderA-->wtoC: res
+			deactivate wtoC
+		end
+		
+	
+	deactivate orderA
+orderC-->view:res
+deactivate orderC
+
+@enduml

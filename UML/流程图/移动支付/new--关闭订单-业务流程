@@ -1,0 +1,76 @@
+@startuml
+title  关闭订单-业务流程
+
+actor 顾客小程序 #red
+/'-------------定义参与者别名 -------------------'/
+participant "顾客小程序应用层" as app
+participant "orderOnline\n订单表" as order
+participant "orderPayment\n订单付款期数表" as payment
+participant "domain_mobile_pay\n移动支付领域层" as pay
+participant "orderUseTicket\n订单用券信息表" as useTicket
+
+ 顾客小程序->app:CloseOrder.index_post()
+ activate app
+ note over app
+ 	必要参数: 
+ 		订单号:orderNum
+ 		顾客手机号: phone
+ end note
+ 
+ group 组合订单数组
+ 	alt 如果参数手机号存在, 则通过手机号查询该用户未付款订单
+ 		app->order:getList()\n查询条件 WHERE 手机号 AND 未付款
+ 		order-->app: orders
+ 	else 否则如果参数订单号存在
+ 		note over app: 1.先验证该订单为未付款\n 2.然后将订单号定义为数组
+ 	end
+ end 
+ 
+ group 循环未支付订单查询结果,修改订单为关闭状态
+ 	loop 查询到的未支付订单orders
+ 			alt 如果订单pay_type=线下订单 AND 参数订单号为空
+ 				note over app: continue; 终止本次循环, 线下订单不需要关闭
+ 			end
+ 			app->payment: getList()\n查询条件 WHERE 订单主键 ORDER BY 主键 asc LIMIT 1
+ 			payment-->app:payment
+ 			alt 如果存在付款期数数据 and 状态=未付款
+ 			
+ 				group 从配置文件获取过期时间
+	 					note over app: 过期时间 = 从配置文件获取线上订单过期时间
+ 				end
+ 				
+ 				alt (订单表的下单时间 > 过期时间 OR 参数中订单号存在) 
+ 				
+ 				group 远程查询中信订单是否支付成功, 未付款则撤销订单
+ 					alt 付款期数表中 <font color=red>商户号</font> 存在	
+  							app->pay:去中信查询微信支付宝订单状态\n注意:区分微信/支付宝
+ 							pay-->app:	
+ 							alt 如果查询状态 = 未付款
+ 							  	app->pay:撤销订单接口\n注意:区分微信/支付宝
+ 								pay-->app:		
+ 							end
+ 					end				
+ 				end 
+	
+ 					 group 修改订单状态=关闭
+  						app->order: update()\n修改订单状态status=关闭状态
+ 						order-->app:修改结果				
+ 					end
+ 					
+ 					group 恢复电子券状态
+ 						app->useTicket: 查询该合同单的对应付款期数的用券信息
+ 						useTicket-->app: 用券码
+ 						loop 循环用券码
+ 							app->ticketMain: 修改电子券状态=已发放
+ 							ticketMain-->app:修改结果
+ 						end
+ 					end
+ 	end
+ end
+ 
+ app--> 顾客小程序:
+ deactivate app
+
+
+
+@enduml

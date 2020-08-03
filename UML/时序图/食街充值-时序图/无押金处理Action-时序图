@@ -1,0 +1,103 @@
+@startuml
+title 无押金处理Action-时序图
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "noDepositDeal\n无押金处理" as C  #00FF00
+participant "NoDepositDealAction\n无押金处理Action" as A  #FFFFFF
+participant "diningCardDao\n卡主表" as card #FFFFFF
+participant "diningCardPriceDao\n充值记录表" as cardPrice #FFFFFF
+
+view->C:index_post()
+activate C	
+
+	
+		/'===========处理逻辑=============='/
+		C->A:mainPost(params)	
+			note over A
+				参数说明：
+						params[cardNum] = 卡号
+			end note
+		activate A		
+		/'----------------验证卡内余额---------------'/	
+		group 查询卡主表获取
+			A->card:getList()
+				note right A: SELECT 押金，卡类型,dining_card_price最新退卡记录主键  WHERE  卡号 LIMIT 1;
+			card-->A:卡主表数据
+			alt 卡主表数据无数据
+				A-->C:　该卡号在卡主表中无数据
+			end
+		end
+		
+		group 查询充值记录表押金记录
+			 A->cardPrice:getList()
+			 	note right A: SELECT card_price_id WHERE 卡号 \nAND card_price_id>卡主表中的新退卡记录主键 \nAND 押金标识=1 
+			 cardPrice-->A:充值记录表数据 
+		end
+		
+		alt 充值记录表数据有数据
+			A->C: 充值记录表有押金数据可以继续进行操作
+		end
+		
+		group 该卡无押金记录，补充押金记录
+			A->cardPrice: add()
+				note right A
+					 //新增一条押金记录，数据如下：
+		        	number => 历史数据无充值和办卡记录，手动添加, //小票流水号
+				        card_num => params[cardNum], //卡号
+				        type => 卡类型，从卡主表数据中获取, //1顾客卡 2展员卡 3员工卡
+				        price =>押金，从卡主表数据中获取, 
+				        opeation => 0, //操作员主键
+				        date => 2014-09-01 00:00:00, //时间
+				        opeation_status => 1, //1办卡 2退卡 3充值 4补贴
+				        is_account_status => 2, //1未结算 2已结算
+				        account_price_id => 0, //每日充值账款结算表主键
+				        pay_type => 3, //1微信 2支付宝 3现金
+				        charge => 0, //手续费
+				        refund_flag => 0, //0:未退,1:已退
+				        deposit_flag => 1, //0:非押金 1:押金
+				        mobile_pay_id => 0, //移动收款方式表主键
+				end note
+			cardPrice-->A:新增押金结果
+		end
+		
+		group 如果卡主表中卡余额＞０ 还需要补办卡数据
+			alt 如果卡主表中卡余额＞０
+						group 查询充值记录表充值记录
+						 A->cardPrice:getList()
+			 				note right A: SELECT card_price_id WHERE 卡号 \nAND card_price_id>卡主表中的新退卡记录主键 \nAND opeation_status=３充值
+						 	cardPrice-->A:充值记录表数据 
+						end /'---查询充值记录表押金记录----'/
+						alt 如果无充值数据 OR（有充值记录 && 充值金额<卡主表中的卡余额）\n则新增一条办卡记录
+							note over A						
+									如果无充值数据：新增办卡金额　＝　卡主表中卡余额
+									有充值记录 && 充值金额<卡主表中的卡余额：新增办卡金额　＝　卡主表中的卡余额－充值金额
+							end note 
+							A->cardPrice:add()
+								note right A
+									 //新增一条办卡记录，数据如下：
+						        	number => 历史数据无充值和办卡记录，手动添加, //小票流水号
+								        card_num => params[cardNum], //卡号
+								        type => 卡类型，从卡主表数据中获取, //1顾客卡 2展员卡 3员工卡
+								        price =>新增办卡金额
+								        opeation => 0, //操作员主键
+								        date => 2014-09-01 00:00:00, //时间
+								        opeation_status => 1, //1办卡 2退卡 3充值 4补贴
+								        is_account_status => 2, //1未结算 2已结算
+								        account_price_id => 0, //每日充值账款结算表主键
+								        pay_type => 3, //1微信 2支付宝 3现金
+								        charge => 0, //手续费
+								        refund_flag => 0, //0:未退,1:已退
+								        deposit_flag => 1, //0:非押金 1:押金
+								        mobile_pay_id => 0, //移动收款方式表主键
+								end note								
+							cardPrice-->A:新增办卡结果
+						end 
+			end /'----如果卡主表中卡余额---'/
+		end
+		A-->C:充值记录表有押金数据可以继续进行操作
+		deactivate A	
+C-->view:res
+deactivate C
+
+@enduml

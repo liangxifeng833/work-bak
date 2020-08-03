@@ -1,0 +1,27 @@
+@startuml
+title 审计日志消费者-时序图
+
+actor AuditCustomer #red
+/'-------------定义参与者别名 -------------------'/
+participant "Kafka" as C  #00FF00
+participant "CustomerImpl" as log  #FFFFFF
+
+
+AuditCustomer->C:get(topic)
+activate C	
+	/'===========实例审计日志实体=============='/
+	group 实例审计日志实体
+		C->log:
+		log-->C: this.logTableObject  = auditLogObj
+	end
+C-->AuditCustomer:msg
+deactivate C
+	
+group 调用父类的doLog方法写日志
+	AuditCustomer->log:doLog()
+	activate log
+	log-->AuditCustomer:
+	deactivate log
+end
+
+@enduml

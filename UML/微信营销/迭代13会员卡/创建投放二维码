@@ -1,0 +1,74 @@
+@startuml
+title 创建投放二维码
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "CreateMemberQrcode\n创建会员卡投放二维码C" as C  #00FF00
+participant "CreateMemberQrcodeAction\n创建会员卡投放二维码A" as A  #FFFFFF
+participant "WechatCouponIssueSDK\n微信投放卡券接口SDK" as sdk  #FFFFFF
+participant "IssueMemberBatch\n会员卡批次投放表" as send  #FFFFFF
+
+group 初始化查询
+view->C:index()
+activate C
+	C->A:get()
+	activate A
+		group 查询会员批次
+			A->A:getMemberBatch()	
+			activate A
+				note over A:查询已审核通过的会员卡批次 limit 1
+			A-->A:batchRow
+			deactivate A	
+		end
+		group 查询批次投放二维码
+			A->A:getIssueQrcode(batchId)	
+			activate A
+				note over A:qrcodeRow
+			A-->A
+			deactivate A	
+		end
+		A-->C:array_merge(batchRow,qrcodeRow)
+	deactivate A
+C-->view:array
+deactivate C
+end
+
+group 创建投放二维码
+	view->C:indexPost()
+	activate C
+		C->A:create(params)
+		activate A
+			group 查询会员批次和投放二维码信息
+				A->A:get()
+				activate A
+				A-->A:arr
+				deactivate A
+			end
+			note over A: 注意：投放标识data[outer_str] = 'member-qrcode'	
+			A->sdk:IssueCouponQrcode(data)
+			sdk-->A:json
+			
+			note over A: 注意：过期时间为当前时间+365天的时间戳
+			alt 如果第一次投放,则新增投放数据
+				A->send:add()
+				send-->A:boolean
+			else 否则修改投放数据
+				A->send:save()
+				send-->A:boolean			
+			end
+		A-->C:
+		deactivate A
+	C-->view:
+	deactivate C
+end
+
+group 下载二维码图片
+	view->C:downLoad()
+	activate C
+		C->A:get()
+		A-->C:array
+	C-->view:
+	deactivate C
+end
+
+@enduml

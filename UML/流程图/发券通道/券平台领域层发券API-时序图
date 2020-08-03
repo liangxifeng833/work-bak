@@ -1,0 +1,63 @@
+@startuml
+title 券平台领域层发券API-时序图
+
+actor 领域层或应用层 #red
+/'-------------定义参与者别名 -------------------'/
+participant "SendTicket\n券平台领域层发券API" as send  #FFFFFF
+participant "memberInfoBase\n会员表" as member  #FFFFFF
+participant "TicketBatch\n券批次表" as batch  #FFFFFF
+participant "TicketMain\n券主表" as ticket  #FFFFFF
+
+
+
+
+领域层或应用层->send:send()
+activate send
+	group 参数说明
+		note over send
+			data[batch][][批次主键=>发券数量]
+			data[unionId]=微信unionid
+			data[phone] = 领券人手机号
+		end note
+	end
+	
+	
+	group 查询member_info_base判断是否会员
+		alt 领券人手机号 为空 || unionId为空
+			note right send:如果手机号为空则通过unionid查询\n如果unionid为空，则通过手机号查询
+			send->member:getList()\n通过
+			member-->send:会员信息
+		end
+		alt 会员信息 存在
+			note over member:获取用户手机号或unionid
+		end
+	end
+	
+	loop 循环批次主键数组
+		send->batch:getOne()通过批次主键查询批次
+		batch-->send:批次obj
+		
+		alt 验证该批次券如果过期
+			send-->领域层或应用层:券已过期不可发放，事务回滚
+		end
+		
+		alt 如果券未发放数量不足
+			send-->领域层或应用层:该批次券已发完，事务回滚
+		end
+		
+		send->ticket:update()
+			note right send
+				修改券主表的 状态=已发放
+				修改券使用码字段
+				券使用对象字段 = 领券人手机号
+				unionid字段　WHERE 主键 AND 乐观锁字段(发券状态=未发放)
+			end note
+		ticket-->send:修改结果
+		alt 修改失败
+			send-->领域层或应用层:券状态修改失败，事务回滚
+		end	
+	end 
+
+send-->领域层或应用层:发券成功返回对应券批次，使用码，面额，券表主键，券有效期，是否是会员(手机号 unionid)
+deactivate send
+@enduml

@@ -1,0 +1,60 @@
+@startuml
+title 审核商品-BLL
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "checkProducts\n审核商品C" as checkC  #00FF00
+participant "CheckProductsAction\n审核商品A" as checkA #FFFFFF
+participant "ProductDao\n私有库商品D" as proD #FFFFFF
+participant "processCheckProduct\nDAL存储过程" as porcessP #FFFFFF
+
+
+view->checkC:index_post()
+activate checkC
+
+/'===========验证参数=============='/
+group 验证参数
+	note over checkC
+		接收参数：
+			$params = this->post("params");
+		      验证参数$params 非空
+	end note
+end
+note over checkC
+	验证token
+end note
+	
+/'===========调用Action处理罗辑=============='/
+	group 调用Action处理罗辑
+	checkC->checkA:check()
+	activate checkA
+	
+	/'===========验证参数=============='/
+	group 验证参数
+		note over checkA
+			判断参数：云编号ljyunId非空
+			this->_ljyunId = 参数ljyunId
+			this->_proId = 参数商品主键proId
+		end note
+	end
+	checkA->proD:checkPro()\n审核商品
+	activate proD
+		note over proD
+			组织存储过程参数 
+			array(params=>array(ljyunId,proId))
+		end note
+		proD->porcessP:index_put()\n调用存储过程处理	
+		porcessP-->proD:json
+		alt json->status==1
+			proD-->checkA:true
+		else
+			proD-->checkA:false
+		end
+	deactivate proD
+	checkA-->checkC:boolean
+	deactivate checkA
+end
+
+checkC-->view:	
+deactivate checkC
+@enduml

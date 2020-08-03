@@ -1,0 +1,89 @@
+@startuml
+title 爆款商品-点击预定-流程
+
+actor 顾客小程序 #red
+/'-------------定义参与者别名 -------------------'/
+participant "HotRuleController\n爆款商品预定规则Api" as app
+participant "HotRuleAction\n爆款商品预定规则Action" as action
+participant "GetHotDataByDB\n获取爆款商品和促销活动数据" as getProduct
+participant "CheckRuleCommon\n爆款商品公共验证规则" as commonRule
+participant "GetHotProductByConfig\n爆款商品配置文件" as hconfig
+participant "CreateHotRecord\n生成爆款商品预定记录Library" as createRecord
+
+ 顾客小程序->app:index_post()
+ activate app
+ 	note over app
+		必要参数: 
+			爆款商品主键 (必填)
+			促销活动主键 (必填)
+			手机号 (选填)
+			<font color=blue>unionid (必填)
+	end note
+	
+	 /'=====start============================='/
+	app->action:indexPost()
+	activate action
+		group 从DB中获取爆款商品和促销活动数据
+			action->getProduct: getAll(爆款商品主键)
+			getProduct-->action: 爆款商品对象 和 促销活动对象
+		end
+		
+		group 验证促销时间
+			action->commonRule:checkSaleDate(促销活动对象)
+				note right action: 验证当前时间 > 活动开始时间 \n且 < 活动截止时间
+			commonRule-->action
+			alt 不在活动时间
+				action-->app: 该爆款商品不在活动时间内
+			end
+		end
+		
+		group 验证库存
+			action->commonRule:checkStock()验证库存
+			commonRule-->action:
+			alt 如果没有库存
+				action-->app: 无库存
+			end
+		end
+		
+		group 读取爆款商品配置文件获取对应爆款商品规则名
+			action->hconfig: getHotPro() 获取爆款商品配置数据
+			hconfig-->action: 爆款商品数组 hotArr
+			note right action: 通过爆款商品主键获取对应爆款商品对应规则名\n  规则名 =  hotArr[rule]
+		end
+		
+		group 验证购买数量
+			action->hconfig: getSale() 获取促销活动配置数据
+			hconfig-->action: 促销活动数组 saleArr		
+			note right  action
+					读取该促销活动下, 同一个手机号最多能购买几种商品  $typeNum
+					读取该促销活动下, 同一种商品，一个手机号能买几件 $type
+				end note
+				action->commonRule:checkBuyNum(促销活动主键, <font color=blue>unionid</font>, $typeNum, $type)
+					note left commonRule
+						通过入参查询爆款商品预定记录表获取验证
+					end note
+				commonRule-->action:  验证结果
+				alt 如果验证失败
+					action-->app: 返回失败原因
+				end
+		end
+		
+		
+		group 无规则及门槛业务逻辑
+			
+			alt  规则名== "no" 代表无规则及门槛
+					action->createRecord: mainPost()\n生成爆款商品预定记录表数据
+					note right action: <font color=blue>注意: 无门槛的情况,  预定记录表对于人员信息的录入说明:\n   unionid 字段和预订人名称(微信用户昵称)必须录入, 手机号字段不需要填写. 
+					createRecord-->action: true/false
+					action-->app: 预定结果
+			end
+		end
+		
+		group 有预定规则以及门槛逻辑
+			action-->app: <font color=red><b>规则接口名称 = \n HotProContractRule
+			app--> 顾客小程序: 规则接口名称 = HotProContractRule\n前端页面显示的内容\n需要从该 规则接口请求获取
+		end
+ 	deactivate action
+ 	 /'======end============================'/ 
+ deactivate app
+@enduml

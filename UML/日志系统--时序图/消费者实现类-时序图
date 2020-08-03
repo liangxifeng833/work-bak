@@ -1,0 +1,31 @@
+@startuml
+title 消费者实现类-时序图
+
+actor subClass #red
+/'-------------定义参与者别名 -------------------'/
+participant "CustomerImpl" as C  #FFFFFF
+participant "DriverDao" as A  #FFFFFF
+
+subClass->C:doLog()
+activate C		
+/'========== 根据配置文件中的driver_type属性区分不同存储资源=============='/	
+group 根据配置文件中的driver_type属性区分不同存储资源
+	alt LogConfig.drive_type==1 代表mongoDB
+		note over C:driverDao = MongoDao
+	else LogConfig.drive_type==2 代表Mysql
+		note over C:driverDao = MysqlDao
+	else  LogConfig.drive_type==2 代表文件存储
+		note over C:driverDao = FileDao
+	end
+end 
+
+/'==========存储log日志信息=============='/
+group 存储log日志信息
+	C->A:add()
+	A-->C:
+end	
+
+C-->subClass:
+deactivate C
+
+@enduml

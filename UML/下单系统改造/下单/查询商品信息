@@ -1,0 +1,142 @@
+@startuml
+title 查询商品信息
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "getProducts\n查询商品C" as proC  #00FF00
+participant "GetProductsAction\n查询商品A" as proA  #FFFFFF
+participant "ProductTypeDao\n商品分类表D" as typeD  #FFFFFF
+participant "ProductViewDao\n商品主表D" as proD  #FFFFFF
+participant "OfferDao\n商品报价D" as offerD  #FFFFFF
+
+view->proC:index_get()
+activate proC
+	/'===========验证参数=============='/
+	group 验证参数
+		note over proC
+			接收参数：
+				 $params = this->get("params");
+			         验证参数$params 非空
+		end note
+	end
+	note over proC
+		验证token
+	end note
+	
+	/'===========处理逻辑=============='/
+	proC->proA:get($params)
+	activate proA
+		/'======验证参数========='/
+		group 过滤并验证参数
+			alt empty($params[ljyunId])
+				proA-->proC:res=array(state=>2参数错误)
+			else
+				note over proC
+					注意：$params下标说明如下
+						ljyunId 云编号
+						typeId  分类主键
+						proName 商品名称
+						proModel 商品型号　
+						
+					属性云编号赋值
+					this->_ljyunid = (int)$params[ljyunId]
+				end note
+			end
+		end
+		
+		/'=========通过分类主键获取该分类下叶子结点主键=============='/
+		alt !empty($params[typeId]) 通过分类主键获取该分类下叶子结点主键
+			/'======查询商品分类叶子结点主键====='/
+					proA->proA:getProTypeLeafId(typeId)
+					activate proA
+						note over proA
+							组合参数：
+								ljyunId => this->_ljyunId
+								field=>pt_left,pt_right
+								where条件如下：
+									pt_id = typeId
+								order by pt_id desc limit 1
+						end note
+						proA->typeD:get(list,参数)
+						typeD-->proA:typeRow
+							alt !typeRow
+								proA-->proA:false
+							end
+							alt typeRow[pt_right]-typeRow[pt_left]==1
+								note over proA
+									说明是叶子结点，组合分类id一维数组
+									typeIds[] =array( typeArr[pt_id]);
+								end note
+							else
+								note over proA
+									组合参数：查询该分类结点的子孙结点
+									where = pt_right<typeRow[pt_right] 
+									AND pt_left>typeRow[pt_left]' 
+								end note
+								proA->typeD:get('list',参数)
+								typeD-->proA:typeArr
+								alt !typeArr
+									proA-->proA: false
+								end
+								/'---循环该分类下所有子孙结点---'/
+								loop typeArr as val -循环该分类下所有子孙结点
+									alt val[pt_right] - val[pt_left] == 1 叶子结点
+										note over proA
+											//赋值叶子结点主键数组
+											typeIds[] =array( val[pt_id]);
+										end note
+									end
+								end
+							end
+							proA-->proA:true
+						deactivate proA
+			alt !getProTypeLeafId()
+				proA-->proC:res=array(state=>3 商品分类查询异常)
+			else
+				note over proA
+					//组合查询商品视图条件
+					conditions[] = array(product_typeid IN typeIds)
+				end note
+			end			
+		end
+		
+
+		/'========= 组合商品名称查询条件=============='/
+		alt $params[proName] 如果商品名非空
+			note over proA
+				//组合查询商品视图条件
+				conditions[] = array( product_name like %$params[proName] % )	
+			end note
+		end
+		/'=========组合商品型号查询条件=============='/
+		alt $params[proModel] 如果商品名非空
+			note over proA
+				//组合查询商品视图条件
+				conditions[] = array( product_model like %$params[proModel] % )	
+			end note
+		end
+		
+		
+		group 最后组合商品视图条件
+			note over proA
+				conditions[order] = product_id desc
+				conditions[ljyunId] = this->_ljyunId
+			end note
+		end
+		
+		/'============================查询商品视图=============================='/
+		group 查询商品视图
+			proA->proA:getProView(conditions)
+			activate proA
+				proA->proD:get(list, conditions)
+				proD-->proA:proArr
+			proA-->proA: proArr
+			deactivate proA
+		end
+	proA-->proC:res=array(state=>1, proArr=>proArr)
+	deactivate proA
+	
+proC-->view:res
+deactivate proC
+
+@enduml

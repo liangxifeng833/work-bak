@@ -1,0 +1,17 @@
+@startuml
+title 微信用户请求抽象类操作
+
+actor subClass #red
+/'-------------定义参与者别名 -------------------'/
+participant "RequestAbstruct\n微信用户请求抽象类L" as index #ADD8E6
+subClass->index: __construct(userMsgObj,requestedMsg=null)
+activate index
+	note over index 
+		//当前用户发送的信息
+		this.userMsgObj = userMsgObj
+		//用户已请求过的信息
+		this.requestedMsg = requestedMsg 
+	end note
+index-->subClass:obj
+deactivate index
+@enduml

@@ -1,0 +1,61 @@
+@startuml
+title 微信&支付宝收款后新增数据-时序图
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "addWechatOrAlipayData\n新增微信或支付宝数据接口C" as C  #00FF00
+participant "AddWechatOrAlipayDataAction\n新增微信或支付宝数据Action" as A  #FFFFFF
+participant "CreateHandleFee\n生成手续费类" as fee  #FFFFFF
+participant "PayTypeDao\n支付方式表" as pDao  #FFFFFF
+participant "WechatAnnalDao\n微信收款表" as cDao  #FFFFFF
+participant "AlipayAnnalDao\n支付宝收款表" as aDao  #FFFFFF
+
+view->C:index_post()
+activate C
+	/'===========验证参数=============='/
+		note over C
+			参数说明: params[type] = 1 微信, 2 支付宝	
+			
+			验证token规则：
+			  md5(类名+方法名+casher)
+		end note
+	
+	
+	/'===========处理逻辑=============='/
+	C->A:mainPost(params)
+	activate A
+		group 计算手续费
+			A->fee:mainGet(wechat/alipay, curPrice)
+			activate fee
+					fee->pDao:select pay_value where s_name = wechat/alipay
+					pDao-->fee:pay_value
+					note over fee
+						手续费计算规则请查看开发指导文档
+					end note
+			fee-->A:计算后的手续费
+			deactivate fee
+			
+
+		end
+
+		alt params[type] == 1 微信
+			A->A:addWechat(data)
+			activate A
+				A->cDao:add()
+			cDao-->A:json
+			deactivate A
+		else params[type] == 2 支付宝
+			A->A:addAlipay(data)
+			activate A
+				A->aDao:add()
+				aDao-->A:json
+			deactivate A
+		end	
+		
+	
+		A-->C:
+	deactivate A
+C-->view:
+deactivate C
+
+@enduml

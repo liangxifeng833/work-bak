@@ -1,0 +1,60 @@
+@startuml
+title 查询用户信息
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "getUser\n查询用户C" as userC  #00FF00
+participant "GetUserAction\n查询用户A" as userA  #FFFFFF
+participant "UserDao\n查询用户C" as userD  #FFFFFF
+
+
+view->userC:index_get()
+activate userC
+/'===========验证参数=============='/
+group 验证参数
+	note over userC
+		接收参数：
+			 $params = this->get("params");
+		         验证参数$params 非空
+	end note
+end
+note over userC
+	验证token
+end note
+
+/'===========处理罗辑=============='/
+group 处理逻辑
+	userC->userA:get($params)
+	activate userA
+		/'====验证参数===='/
+		alt empty($params[ljyunId]) || empty($param[userName] || empty($param[password]))
+			userA-->userC:res=array(state=>2参数错误)
+		end
+		
+		/'====查询用户===='/
+		note over userA
+			组合参数
+			ljyunId=>$params[ljyunId] //云编号
+			where 条件如下：
+				userName=>trim($param[userName]) ,  //用户名
+				password=>md5(trim($param[password])))    //密码
+			order by user_id desc LIMIT 1
+		end note
+		userA->userD:get(list,参数)
+		userD-->userA:userRow
+		
+		alt (!userRow)
+			 userA-->userC: res=array(state=>3 用户信息获取失败)
+		else
+			userA-->userC:res=array(state=>1, userInfo=>userRow)
+		end
+	deactivate userA
+end
+
+alt isset(res[state] && isset[status]
+	userC-->view: res
+else
+	userC-->view: 调用Action异常
+end
+deactivate userC
+@enduml

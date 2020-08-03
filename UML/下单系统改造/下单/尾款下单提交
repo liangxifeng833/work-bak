@@ -1,0 +1,170 @@
+@startuml
+title 尾款下单提交
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "finalOrder\n尾款下单C" as finalC #FFFFFF
+participant "FinalOrderAction\n尾款下单A" as finalA #FFFFFF
+participant "OrderDao\n订单表D" as orderD #FFFFFF
+participant "OrderPayemnt\n付款期数表D" as payD #FFFFFF
+participant "UniquenessDao\n唯一识别码redisD" as uniqueD #FFFFFF
+participant "PaymentDao\n付款期数redisD" as payR #FFFFFF
+participant "DiscountActionFinalOrder\n促销折扣A" as discountA #FFFFFF
+
+view->finalC:index_post()
+
+activate finalC
+	/'===========验证参数=============='/
+	group 验证参数
+		note over finalC
+			接收参数：
+				 $params = this->post("params");
+			         验证参数$params 非空
+		end note
+	end
+	note over finalC
+		验证token
+	end note
+	
+	/'==================尾款下单=============start====='/
+	group 尾款下单新增redis
+		finalC->finalA:addReids(payPrice) 尾款下单
+		activate finalA
+			group 验证参数
+				alt empty(this->_ljyunId) || empty(this->_orderId) || empty(payPrice))
+					finalA-->finalC: res = array(state=>2, 参数错误)
+				end
+			end
+	
+			alt !_checkOrder() || payPrice 本期付款额 > this->_surplusPrice 剩余付款额
+				finalA-->finalC: res = array(state=>3, 无权下尾款)
+			else
+				/'==============redis中付款期数hash新增记录=======start==='/
+				group redis中付款期数hash新增记录
+					note over finalA
+						组合redis中付款期数hash数据 
+						payArr = array(
+							ljyun_id => this->_ljyunId
+							account_payable=>this->payPrice , 应付额
+							account_payable_discount=>this->payPrice,折后应付额
+							discount_merchant=>0,商户承担额
+							discount_market=>0, 卖场承担额为
+							discount_type=>0,
+							discount_id=>0, 促销表主键为０
+							member_id=>this->_orderArr[member_id], 会员卡主键
+							discount_proportion=>1，比如：1代表不打折
+						 )
+					end note
+				
+				
+					/'===========获取订单唯一标识码=============='/
+					finalA->uniqueD:get(0) 获取order唯一标识码
+					uniqueD-->finalA: uniqueCode
+					alt !uniqueCode()
+						finalA-->finalC: res = array(state=>4, 订单唯一码获取失败)
+					end
+				
+					/'===========向redis中新增付款期数信息=============='/
+					finalA->payR:add(uniqueCode,payArr)
+					payR-->finalA:boolean
+				end
+				/'==============redis中付款期数hash新增记录=======end==='/
+				
+				alt !boolean
+					finalA-->finalC: res = array(state=>5, redis付款期数新增失败)
+				else
+					finalA-->finalC: res = array(state=>1, orderIncrementId=>uniqueCode)
+				end
+			end		
+		deactivate finalA
+	end
+	/'==================尾款下单=============end====='/
+	
+
+	
+	alt  1!=res[state]  action返回错误
+		finalC-->view: res
+	else
+	group 处理促销折扣
+		/'==============促销折扣计算==============start==='/
+		group 初始化促销折扣action
+			finalC->discountA: __construct(res[orderIncrementId])
+			discountA-->finalC:obj
+		end
+		group 获取折扣
+			finalC->discountA: index()\n初始化促销折扣action
+			discountA-->finalC:discountRes
+		end
+		alt 1!=discountRes[state]
+			finalC-->view: discountRes
+		end
+	end
+	/'==============促销折扣计算==============end===='/
+		
+		/'==============尾款下单新增/修改mysql===========start==='/
+		group 尾款下单新增/修改mysql
+			finalC->finalA:addMysql(discountRes[orderIncrementId])
+			activate finalA
+				/'======验证参数======start==='/
+				alt empty(discountRes[orderIncrementId]) 如果订单自增id为空
+					finalA-->finalC: res = array(state=>2, 新增mysql时参数丢失)
+				end
+				/'======验证参数======end==='/
+				
+				/'======从redis中查询本期应信息======start==='/
+				group 从redis中查询本期应付信息
+					finalA->payR:get(discountRes[orderIncrementId])
+					payR-->finalA:payRedisArr
+					alt empty(payRedisArr)
+						finalA-->finalC: res = array(state=>3, redis中本期应付信息获取失败)
+					end
+				end 
+				/'======从redis中查询本期应付额======end===='/
+				
+				/'======从mysql中查询未收款信息======end===='/
+				alt _getPay(status=0) 如果在mysql中存在查询未收款信息
+					group 修改数据
+						note over finalA
+							组合参数
+							param = WHERE id = this->_payArr[id]
+							this->_payArr 付款期数对象所有属性赋值为 redis中付款期数信息payRedisArr中数据
+						end note
+						finalA->payD:set(param,this->_payArr)
+						payD-->finalA: setRes
+						alt !setRes
+							finalA-->finalC: res = array(state=>4, 尾款下单失败)
+						else
+							finalA-->finalC: res = array(state=>1, array(合同号=>this->_orderArr[pact_number], 实付额=>payRedisArr[account_payable_discount]) )
+						end
+					end
+				else
+					group 新增数据
+						finalA->payD:__construct()
+						payD-->finalA:payObj
+						note over finalA
+							组合参数
+							payObj对象属性赋值为 redis中付款期数信息payRedisArr中数据
+						end note		
+						finalA->payD:add(payObj)
+						payD-->finalA: addRes		
+						alt !addRes
+							finalA-->finalC: res = array(state=>5, 尾款下单失败)
+						else
+							finalA-->finalC: res = array(state=>1, array(合同号=>this->_orderArr[pact_number], 实付额=>payRedisArr[account_payable_discount]) )
+						end		
+					end
+				end
+			deactivate finalA
+		end
+		/'==============尾款下单新增/修改mysql============end==='/
+		
+		alt !isset(res[state])
+			finalC-->view: array(state=>100,处理付款期数新增mysql Action异常！)
+		else
+			finalC-->view: res
+		end
+	end
+
+deactivate finalC
+
+@enduml

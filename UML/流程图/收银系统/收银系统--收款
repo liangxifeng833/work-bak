@@ -1,0 +1,158 @@
+@startuml
+title 收款--流程图
+
+
+|view|
+start
+:登录;
+note right:收银员userid,uname, tname, deskId\n收银监管：adminUname, adminTname,adminUserId
+	fork
+		group 普通收款合同验证
+			:query_contract.php;
+			:输入合同验证合同单;
+			:查询订单数据;
+			if(收银员)then(yes)
+				:只能收当天的订单;
+			elseif(收银监管)then(yes)
+				:无收款时间限制;
+			endif
+		end group
+		group 合同确认
+			: order_confirm.php;
+			note right: 查询订单数据\n查询商户数据\n查询会员数据
+			:<font color=red>下一步->其他逻辑页面\n payOther.php;
+			note right: 当前为判断爆款商品合同单\n关联的门槛合同是否已退款\n如果退款则不允许收款
+		end group
+	fork again
+		group 收尾款合同验证
+			:final_order_inquiry.php;
+			:查询订单数据;
+			:获取尾款支付期数数据;
+			:验证该合同是否退款;
+		end group
+		group 尾款合同确认
+			:final_order_confirm.php;
+			note right: 查询订单数据\n查询商户数据\n查询会员数据
+		end group
+		
+	fork again
+		group 手工收款, 输入信息 
+				:manual_receivables.php;
+				:输入合同号,手机号\n
+					<font color=red>问题: 当前合同号已10位, 该页面依然验证9位,程序走不通
+					展位号,合同额,应付额\n
+					测量日期,安装日期;
+				:新增手工收款表数据order_manual;
+		end group
+	end fork
+
+group 收款菜单 
+	:收款页面\nsettlement_receivables.php\npayType=1正常收,2手工收,3尾款收;
+	:页面初始化获取:;
+	fork
+		:查询订单数据\nBLL接口中\n如果订单中优惠类型=卖场促销\n则查询单笔最高优惠;;
+	fork again
+		:商户数据;
+	fork again
+		:查询该合同历史收款数据\nproduct_consume表数据\n查询每个consumeId的各种支付方式;
+	fork again
+		:查询付款方式字典;
+	end fork
+	
+
+	if(蓝景装饰合作)then(yes)
+			:电子券收款\npaypoop_html/ticket_pay.php;
+			:ajax调用BLL验证\n电子券状态已使用/作废/过期/黑白名单\n返回券信息;
+			:验证电子券用券条件:排他/累加等;
+	else(no)
+		if(尾款)then(yes)
+			:不允许电子券收款\n其他方式可以收款;
+		else(no)
+			:全部支付方式均可收款;
+			fork
+				:支付宝\npaypop_html/ali_pay_scan.php;
+				:ali_pay_ajax.php异步请求BLL支付;
+				:新增alipay_annal数据表数据;
+			fork again
+				:微信\npaypop_html/wechat_pay_scan.php;
+				:wechat_pay_ajax.php异步请求BLL支付;
+				:新增wechat_annal数据表数据;
+			fork again
+				:银行卡支付\n驱动pos机刷卡;
+			fork again
+				:其他支付方式;
+			end fork
+			if(移动支付)then(yes)
+				:成功返回交易号transaction_id;
+			elseif(银行卡)then(yes)
+				:pos机返回交易号;
+			elseif(其他支付方式)then(yes)
+				:收银员手动输入编号和金额;
+			endif
+		endif
+	endif
+end group
+	
+
+group 收款大保存	
+	:大保存\nsettlement_receivables_action.php;
+	:调用BLL接口保存;
+	:调用DAL事务新增数据;
+	note right
+		新增product_conume表数据
+		新增payform_list表（现金，购物券，电子券）
+			payform_trade　＝　电子券+购物券总额
+			payform_trade_fee = 购物券手续费+电子券商户分摊额
+		新增银行卡等其他支付方式
+		修改微信/支付宝关联consumeId
+	endnote
+	:BLL修改订单付款期数状态=已付款\n并关联付款consumeId;
+	:BLL修改订单表中付款状态=已付款\n尾款需判断之前期数;
+end group
+	
+group  <font color=blue><b>收款大保存后的其他业务逻辑	
+	:settlement_receivables_action.php;
+	:大保存之后的逻辑;
+	:处理会员信息;
+	if(是否会员)then(yes)
+		:更新会员信息\n<font color=red>注意:关联老会员信息;
+	else(no)
+		:新增会员\n<font color=red>注意: 关联老会员信息;
+		:发短信;
+	endif
+	
+	:处理券信息;
+	:用券处理;
+	:BLL->DAL事务中操作\n tctChangeTicketState.index_put();
+	note right: 修改券状态\n新增合同收券记录表数据;
+	
+	if(非尾款 && 时间在大鲸鱼活动指定310行)then(yes)
+		:<font color=red><b>调用应用层联单发券;
+	endif
+	
+	if(<font color=red><b>1==2 and  非尾款 325行)then(yes)
+		:根据合同号/手机号进行发券\n指定某个批次和数量发券;
+		:绑定合同发券记录\n合同发券记录表新增数据;
+	endif
+	
+	if(如果有用券信息)then(yes)
+		:调用应用层核销卡券;
+		:核销日志\nnew_payment/wechat_cancel_log.php;
+	endif
+	
+	:收款成功打印;
+	if(尾款)then(yes)
+		:打印小票;
+	else(no)
+		if(家装合同)then(yes)
+			:只打小票;
+		else(no)
+			:打印合同;
+			:打印小票;
+		endif
+	endif
+end group
+
+	
+end
+@enduml

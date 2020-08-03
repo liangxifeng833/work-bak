@@ -1,0 +1,59 @@
+@startuml
+title 收银监管--微信或支付宝收款Action-时序图
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "展员/顾客办卡/充值controller" as C  #00FF00
+participant "WechatOrAlipayAdminAction\n收银监管微信或支付宝支付Action" as A  #FFFFFF
+participant "CreateHandleFee\n生成手续费类" as fee  #FFFFFF
+participant "CiticExceptionRecordDao\n异常记录表Dao" as eDao  #FFFFFF
+view->C:index_**()
+activate C	
+		/'===========处理逻辑=============='/
+		C->A:mainPost(editCardData,  addCardPriceData，异常记录主键)	
+			note over A
+				//需要修改卡主表dining_card数据
+				<font color="red">this.editCardData = editCardData
+				//需要新增的卡充值记录表dining_card_price数据
+				<font color="red">this.addCardPriceData = addCardPriceData			
+			end note
+		activate A				
+		
+		/'-------------------计算手续费-------------------------'/
+		group 计算手续费
+			A->fee:mainGet(wechat/alipay, 付款额)
+			activate fee
+			fee-->A:计算后的手续费
+			deactivate fee
+		end
+		note over A: $this->addCardPriceData['charge'] = 手续费
+		/'-------------------计算手续费-------------------------'/		
+		
+		group 判断办卡还是充值（参考wechatOrAlipayAction）
+			A->A:checkOpeation()			
+		end
+	
+	/'----------------执行事务---------------'/	
+	group 执行事务
+		A->A:parent::tctPay()
+		alt 如果事务执行失败
+			A-->C:支付和入库成功, 执行事务失败
+		end
+	end
+	
+	group 修改异常记录表　
+			A->eDao: update()
+				note over A
+					//修改收银监管补录结果
+					UPDATE citic_exception_record  SET patch_result＝１已补录
+					WHERE  id = 异常记录主键
+				end note
+			eDao-->A: res
+		end
+			
+		A-->C:res
+		deactivate A
+C-->view:res
+deactivate C
+
+@enduml

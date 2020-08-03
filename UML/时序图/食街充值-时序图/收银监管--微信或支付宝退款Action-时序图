@@ -1,0 +1,48 @@
+@startuml
+title 收银监管--微信或支付宝退款Action-时序图
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "顾客/展员退款controller" as C  #00FF00
+participant "AdminWechatOrAliRefundAction\n收银监管微信或支付宝退款Action" as A  #FFFFFF
+participant "CreateHandleFee\n生成手续费类" as fee  #FFFFFF
+participant "CiticExceptionRecordDao\n异常记录表Dao" as eDao  #FFFFFF
+view->C:index_**()
+activate C	
+		/'===========处理逻辑=============='/
+		C->A:mainPost($params)	
+		activate A				
+		
+
+		/'-------------------计算手续费-------------------------'/
+		group 计算手续费
+			A->fee:mainGet(wechat/alipay, 本次退款额params['curRefundPrice'])
+			activate fee
+			fee-->A:计算后的手续费
+			deactivate fee
+		end
+		note over A: $params['charge'] = 手续费
+		/'-------------------计算手续费-------------------------'/		
+	   
+	
+		group 执行父类退款主方法
+			A->A: parent::mainPost($params);
+		end
+		
+		group 修改异常记录表　
+			A->eDao: update()
+				note over A
+					//修改收银监管补录结果
+					UPDATE citic_exception_record  SET patch_result＝１已补录
+					WHERE  id = $param[异常记录主键]
+				end note
+			eDao-->A: res
+		end
+	
+			
+		A-->C:res
+		deactivate A
+C-->view:res
+deactivate C
+
+@enduml

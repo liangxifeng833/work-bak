@@ -1,0 +1,36 @@
+@startuml
+title 订单打通-业务流程
+
+actor 顾客 #red
+/'-------------定义参与者别名 -------------------'/
+participant "顾客小程序" as smallProgram 
+participant "下单系统公有库\n订单总表" as order
+group 订单查询
+	顾客->smallProgram:待付款订单\n已付款订单查询
+	activate smallProgram
+	note over smallProgram
+		<font color=red>订单打通需要做原架构调整
+		<font color=red>将订单，商品等数据做统一处理
+	end note
+		smallProgram->order:通过<font color=red>手机号</font>获取
+		order-->smallProgram:订单数据
+	smallProgram-->顾客
+	deactivate smallProgram
+end
+
+group 电子签名
+
+顾客->smallProgram:<font color=red>待付款订单</font>电子签名
+activate smallProgram
+	smallProgram->第三方签名平台:电子签名
+	第三方签名平台-->smallProgram
+	alt 如果已签名成功
+		note over smallProgram:线上支付
+	end
+smallProgram-->顾客	
+deactivate smallProgram
+
+
+end
+
+@enduml

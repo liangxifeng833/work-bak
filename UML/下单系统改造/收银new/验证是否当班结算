@@ -1,0 +1,49 @@
+@startuml
+title CM5-验证是否当班结算
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "checkCurSettlement\n验证当班结算C" as orderC  #00FF00
+participant "CheckCurSettlementAction\n验证当班结算A" as orderA  #FFFFFF
+participant "ContractPaysAction\n同付款方式数据A" as consumeA  #FFFFFF
+
+view->orderC:index_get()
+activate orderC
+	/'===========验证参数=============='/
+	group 验证参数
+		note over orderC
+			接收参数：
+				 $params = this->get("params");
+				 参数下标说明：
+				 $params[consumeId] = 合同收款表主键	 
+				 $params[userId] = view层登录userid	 
+		end note
+	end
+	note over orderC
+		验证token
+	end note
+	
+	
+	/'===========处理逻辑=============='/
+	orderC->orderA:check(params)
+	activate orderA
+		note over orderA: 验证参数
+		orderA->consumeA: getByconsumeId(params[consumeId])\n通过主键查询合同收款信息
+		consumeA-->orderA: consumeArr
+		
+		note over orderA
+			//财务人员退款专用，1992=>quanling  , 2762=>dupeng
+			$userIds = unserialize(USER_ID)
+		end note
+		alt  in_array(params[serId],$userIds) 如果是财务账号
+			alt 0==$consume[0]->consume_back && 1==$consume[0]->consume_state 
+				orderA-->orderC: 异常返回：该合同没有当班结算，不能通过财务退款
+			end 
+		else
+			orderA-->orderC: 异常返回：该合同不是财务账号
+		end
+	deactivate orderA
+orderC-->view:
+deactivate orderC
+
+@enduml

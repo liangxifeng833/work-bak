@@ -1,0 +1,61 @@
+@startuml
+title 线下异常同步-新增支付信息到本地数据库-时序图
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "AddPayToLocalServlet\n中信支付接口C" as C  #00FF00
+participant "AddPayToLocalAction\n中信支付A" as A  #FFFFFF
+participant "PayAction\n支付A" as payA  #FFFFFF
+participant "WechatAnnalDao\n微信收款表" as cDao  #FFFFFF
+
+	
+view->C:doPost()
+activate C
+	/'===========验证参数=============='/
+	note over C
+		验证token规则：
+			md5(类名+方法名+casher)
+	end note
+	
+	
+	
+	/'===========处理逻辑=============='/
+	C->A:add(request,response)
+	activate A
+		note over A: 验证参数
+			group 去中信服务器查询
+				A->payA:queryRequest()
+				activate payA
+				payA-->A:xml
+				deactivate payA
+			end
+			
+			alt 根据交易号中信服务器查询支付结果未支付成功
+				A-->C:中信服务器查询失败
+			end
+			
+			group 根据中信返回的支付号做拆分，获取合同号
+				alt 获取的合同号和request参数传递的合同号不等
+					A-->C:查询失败
+				end
+			end
+			
+			group 根据交易号查询本地支付宝或微信数据库
+				A->cDao:getList()
+				cDao-->A:res
+			end
+			
+			alt  如果查询到数据,并且支付成功，并且consume_id=0
+				A-->C:支付成功
+			end			
+
+			group 新增支付宝/微信收款表数据
+				A->payA:saveData()
+				payA-->A:boolean
+			end
+		A-->C:支付成功
+	deactivate A
+C-->view:支付成功
+deactivate C
+
+@enduml

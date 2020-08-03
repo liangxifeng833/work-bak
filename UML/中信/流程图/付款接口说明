@@ -1,0 +1,65 @@
+@startuml
+title 中信银行收款接口流程
+|收银台|
+start
+	:收银员扫码;
+	|BLL（可连外网）|
+	:付款;
+	
+	#HotPink:请求支付API;
+	note left
+		post XML 必要参数：
+			接口类型：付款
+			商户号（由财付通分配）
+			商户订单号（我们的合同号）
+			总金额（付款额）
+			终端IP
+			授权码（扫码得到的值）
+			订单生成时间
+			失效时间（下单当天）
+			随机字符串
+			签名
+	end note
+	
+	|威富通（中信）|
+	:接收付款数据;
+	
+	|BLL（可连外网）|
+	/'返回xml数据判断是否支付成功'/
+	:返回xml数据;
+		if (status!=0 ?) then (yes)
+			#red:通信异常;
+			:返回收银台;
+  			
+		elseif(status=0  and result_code = 0 ? ) then(yes)
+  			#green:支付成功;
+  			:返回收银台;
+  		else
+  			if(need query = Y ?)then(no)
+  				#HotPink:调用冲正API关单\n<font color=red><b>24小时内的单子才可冲正;
+  			else(yes)
+  				#HotPink:查询订单API\n每10秒一次，查询三次;
+  				if(三次查询返回成功标识 ? )then(no)
+  					#HotPink:调用冲正API关单;
+  				else(yes)
+  					#green:支付成功;	
+  					:返回收银台;
+  					end
+  				 /'--三次查询返回成功标识--'/
+  				endif
+  			/'--need query = Y--'/
+  			endif
+  			
+  			/'-----冲正后如果用户支付成功,微信支付系统会将此订单资金退还给用户----start-'/
+  			if(冲正后用户支付成功 ? )then(yes)
+  					:威富通系统会将此订单资金退还给用户;
+  			else(no)
+  				:不做任何处理;
+  			endif
+  			/'-----冲正后如果用户支付成功,微信支付系统会将此订单资金退还给用户----end-'/
+  			#red:冲正返回成功后, 该笔订单不能在发起支付??;
+  		/'---status != 0 ? ---'/
+		endif
+	/'返回xml数据判断是否支付成功'/
+end
+@enduml

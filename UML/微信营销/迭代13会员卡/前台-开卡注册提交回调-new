@@ -1,0 +1,122 @@
+@startuml
+title 前台-开卡注册提交回调
+
+actor wechat #red
+/'-------------定义参与者别名 -------------------'/
+participant "MemberCallBack\n微信会员卡开卡后回调C" as C  #00FF00
+participant "MemberAction\n会员A" as A  #FFFFFF
+participant "WechatFansRelation\n用户主体关系表" as rel  #FFFFFF
+participant "QueueSdk.php\n入队列类" as q  #FFFFFF
+participant "WechatMemberCardSDK\n微信会员卡相关sdk" as openSDK  #FFFFFF
+participant "OldMember\n老会员表" as old  #FFFFFF
+participant "WarningAction\n报警A" as warn  #FFFFFF
+participant "MemberNumber\n会员卡号表" as num  #FFFFFF
+participant "ActivateMemberCard\n激活会员卡类" as activate  #FFFFFF
+
+wechat->C:index()
+activate C
+	C->A:wechatCallBack()
+	activate A
+		note over A
+			微信返回参数：
+				encrypt_code 编码后的code, 注意：需要urldecode
+				card_id
+				openid
+				activate_ticket = 获取用户开卡信息的凭证, 注意：需要urldecode
+		end note
+
+		/'--------- 解码code-----------------'/	
+		group 解码code
+			A->openSDK:cardDeCode()
+			openSDK-->A:$code
+		end
+		/'--------- 解码code-----------------'/			
+		group 通过activate_ticket查询开卡信息
+			A->openSDK:getOpenCardInfo(data)
+			openSDK-->A:userInfo
+		end
+		
+		/'------------------------修改微信主体关系表------------------start--------'/
+		group 修改微信主体关系表
+			note over A
+				注意修改字段为：
+					is_member=1是会员
+					修改手机号
+					员工标识改为非员工
+			end note
+			A->rel:where(openId)->save()
+			rel-->A:boolean
+		end
+		/'--------------------------修改微信主体关系表--------------end---------'/
+		
+		
+		/'--------- 验证是否是线下老会员------------------'/
+		group 验证是否是线下老会员
+			A->A:checkOldMember(手机号)
+			activate A
+				/'--------- 通过手机号查询老会员信息------------------'/
+				group 通过手机号查询老会员信息
+					A->A:getOldMemberByPhone(手机号)
+					activate A
+						A->old:where(phone=手机号)->find()
+						old-->A:oldRow
+					deactivate A
+				end
+				/'--------- 通过手机号查询老会员信息------------------'/
+				alt oldRow如果是老会员 AND 未绑定状态
+					group 修改老会员表状态为已绑定
+						A->old:save()
+						old-->A:boolean
+					end	
+					A-->A:true	
+				else
+					A-->A:false				
+				end
+			deactivate A
+		end
+		/'--------- 验证是否是线下老会员------------abc------'/	
+		alt checkOldMember() == true  如果是线下老会员直接激活
+			/'--------- 查询是否导入新会员卡-----------------'/		
+			group 激活会员卡
+				A->activate:main(params)
+				activate-->A:
+			end
+			A-->C:直接返回，controler跳转到会员中心
+			/'-----------------激活会员卡------------start-------------'/
+		end
+		
+		/'================================不是老会员======================='/		
+		/'--------- 查询是否导入新会员卡-------------start----'/		
+		group 查询是否导入新会员卡
+				note over A: 主键倒序取一条
+				A->num:order->(id desc)->find()
+				num-->A:numRow
+		end
+		/'--------- 查询是否导入新会员卡-----------end------'/
+		
+		alt numRow AND 0==numRow[status]如果存在未领取的卡号, 去队列获取number
+				note over A
+					$data = array(                                                                                                                                      
+					     "queueName" => "default",
+					     "jobsName" => "PHP_job",
+					     "queueLenLimit" => 10000,
+					     "params"=> array("url"=>"域名/mobile/queueGetMemberNum/index/encrypt_code/*/card_id/*/open_id/*/batch_id/","params"=>array("name"=>""))
+					);
+				end note
+				A->q:Enqueue($data)
+		A-->C:controller跳转到会员中心
+		else numRow AND 0!=numRow[status]如果存在，并且没有未领取的卡号
+			A->C:异常返回, 提示需要商户添加会员卡号信息
+		else 否则不存在未领取的卡号
+			note over A:将member_number = code
+			group 激活会员卡
+				A->activate:main(params)
+				activate-->A:
+			end
+			/'-----------------激活会员卡------------start-------------'/
+		end
+		A-->C:controller跳转到会员中心
+	deactivate A
+	C-->wechat:
+deactivate C
+@enduml

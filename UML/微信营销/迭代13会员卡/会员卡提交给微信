@@ -1,0 +1,109 @@
+@startuml
+title 会员卡提交给微信
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "MemberSubmitWechat\n会员卡提交给微信C" as C  #00FF00
+participant "MemberSubmitAction\n会员卡提交给微信A" as A  #FFFFFF
+participant "MemberCardAction\n会员卡A" as memberA  #FFFFFF
+participant "WechatMemberCardSDK\n微信会员卡相关sdk" as openSDK  #FFFFFF
+participant "WechatCouponSDK\n微信券接口SDK" as couponSDK  #FFFFFF
+
+group 初始化查询
+view->C:indexPost()
+activate C
+	C->A:main(id)
+	activate A
+		group 通过主键查询会员卡批次表
+			A->memberA:getMemberBatch(id)
+			memberA-->A:batchRow
+		end
+		alt !(未发布/已审核本地已修改/审核驳回 )
+			A-->C:无权提审			
+		end
+		group 向微信提审
+			group 上传logo和背景图片到微信
+				A->couponSDK:uploadLogo()
+				couponSDK-->A:
+			end
+			note over A
+				注意，具体提审数据格式
+				{
+				    "card": {
+				        "card_type": "MEMBER_CARD",
+				        "member_card": {
+				            "background_pic_url": "http://mmbiz.qpic.cn/mmbiz_jpg/stllGQ2sGe0yjmFgUNbgI0xLAicowpz6s6MU1NrgxCqCbcQuCql5iaQJF2iaFzzGEgKwIOqE89vMIZNibccDngiacgA/0",
+				            "base_info": {
+				                "logo_url": "http://mmbiz.qpic.cn/mmbiz_jpg/stllGQ2sGe0yjmFgUNbgI0xLAicowpz6sDe99jh8TvqFVY0WujU275q7SMia5IejmNO0IqyaDWCuUF0SLMrszichg/0",
+				                "brand_name": "海底捞",
+				                "code_type": "CODE_TYPE_TEXT",
+						"code_type":"CODE_TYPE_QRCODE",
+				                "title": "海底捞会员卡",
+				                "color": "Color010",
+				                "notice": "请给商户服务台出示二维码",
+				                "service_phone": "020-88888888",
+				                "description": "不可与其他优惠共用",
+				                "date_info": {
+				                    "type": "DATE_TYPE_PERMANENT"
+				                },
+				                "sku": {
+				                    "quantity": 100000000
+				                },
+				                "get_limit": 1,
+				                "use_custom_code": false,
+				                "can_give_friend": false,
+				                "custom_url_name": "客户服务",
+				                "custom_url": "域名/mobile/memberCenter/index",
+				                "custom_url_sub_title": "进入会员中心",
+				                "need_push_on_view": false
+				            },
+				            "supply_bonus": false,
+				            "supply_balance": false,
+				            "prerogative": "暂无",
+				            "auto_activate": false,
+					    "wx_activate" : true,
+					    "wx_activate_after_submit" : true,
+					    "wx_activate_after_submit_url" : "域名/Mobile/MemberCallBack/index",
+			            "custom_field1": {
+			                "name_type": "FIELD_NAME_TYPE_STAMP",
+					"name":'积分',
+			                "url": "域名/mobile/memberCenter/index"
+			            },
+			            "custom_field2": {
+			                "name_type": "FIELD_NAME_TYPE_COUPON",
+					"name":'电子券',
+			                "url": "电子券地址"
+			            }
+				        }
+				    }
+		end note
+			A->couponSDK:setCoupon
+			couponSDK-->A:json
+		end
+		
+		alt 如果提审成功
+			alt card_id存在 AND is_submit_open_card＝１需要提交开卡字段
+				A->openSDK:setOpenCardInfo()
+					note over A:注意：开卡字段包含手机号
+				openSDK-->A:json
+			end
+			group 修改本地会与卡批次信息
+				A->A:_modifyMemberBatch()
+				activate A
+					note over A
+						修改字段本地状态为0未修改
+						背景图和logo微信地址
+						如果审核不通过，修改审核不通过原因
+						修改状态
+						修改is_submit_open_card =0 提交开卡字段设为0
+					end note
+				A-->A:
+				deactivate A
+			end
+		end
+	A-->C
+	deactivate A
+C-->view:
+deactivate C
+end
+@enduml

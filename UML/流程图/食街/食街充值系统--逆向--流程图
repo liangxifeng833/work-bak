@@ -1,0 +1,86 @@
+@startuml
+title 食街充值系统-逆向-流程图
+
+
+|充值系统|
+start
+:处理充值记录表无押金记录的卡;
+:根据卡号查询充值记录表;
+if(是否有押金记录？)then(no)
+	:写入充值记录表押金记录\n现金方式;
+	if(卡余额＞０？)then(yes)
+		if(查询充值记录表是否有充值记录？)then(yes)
+			:计算充值总和;
+			if(卡余额＞充值记录总和？)then(yes)
+				:办卡金额=卡余额－充值总和;
+			else
+				:可以继续退卡操作;
+				end
+			endif
+		else(no)
+			:办卡金额=卡余额;
+		endif
+		:向充值记录表补办卡记录\n现金方式;
+	endif
+else(yes)
+	:可以继续退卡操作;
+endif
+
+if(移动支付退款失败再次点击退款？)then(yes)
+	:商户退款单号从页面获取;
+	:查询退款响应日志表\n条件是：正向充值记录表主键 \nand 退款状态result_code＝SUCCESS;
+	if(存在退款成功日志？)then(yes)
+		:将退款响应数据拿到;
+		:无需远程请求退款;
+	else(no)
+		:远程请求退款;
+	endif
+	:向微信支付宝表新增冲红记录;
+	:获取移动支付主键;
+endif
+
+fork
+	: 顾客卡退卡;
+	: 修改卡主表;
+	note right
+		修改卡余额
+		
+		如果是退押金则：
+			修改状态为未使用
+			如果是员工或展员卡修改锁定状态=已锁定
+			修改卡最后充值时间
+	end note
+	:新增充值记录表;
+		note right:新增冲红记录
+	:修改充值记录表;
+		note right: 修改正向的办卡或充值数据为已退款
+fork again 
+	: 展员退卡;
+	:新增充值表;
+	:修改卡主表;
+		note right
+			与顾客退卡一致
+		end note
+	:修改展员表person;
+		note right
+			修改卡领取状态＝已退卡
+		end note
+	:sqlServer数据库操作;
+		note right
+				:删除该卡在sqlServer中的打卡记录;
+				:删除该卡在sqlServer中的展员表信息;
+		end note
+fork again
+	:员工退卡;
+	:删除员工补贴记录表未发放的数据;
+		note right: check_status !=3
+	:修改卡主表;
+		note right:修改状态＝未使用
+	:修改员工表;
+		note right:卡领取状态为已退卡
+end fork
+
+:注意:退卡一定是最后退押金，否则卡状态依然是已使用;
+
+end
+@enduml

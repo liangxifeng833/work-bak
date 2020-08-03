@@ -1,0 +1,99 @@
+@startuml
+title 接收中信支付扫码通知-时序
+
+actor 中信 #red
+/'-------------定义参与者别名 -------------------'/
+participant "微信&支付宝支付" as movePay #00FF00
+participant "domain_pay\n支付领域层" as A  #FFFFFF
+participant "微信或支付宝收款表" as wechat  #FFFFFF
+participant "原有BLL接口" as bll  #FFFFFF
+participant "短信平台" as message  #FFFFFF
+participant "生成二维码次数表" as qrcode  #FFFFFF
+participant "alipay/wxpay接口" as pay  #FFFFFF
+participant "爆款商品表" as hotP  #FFFFFF
+participant "爆款商品购买记录表" as hot  #FFFFFF
+中信->movePay: RefundServlet
+activate movePay
+	note over movePay: 记录通知请求日志
+	movePay->A:payment
+	activate A
+		alt 验证如果支付成功
+			A-->movePay: 支付成功
+		end 
+		
+		alt 判断如果是订单支付
+			group 新增收款成功数据到微信或支付宝表
+				A->wechat: add()
+				wechat-->A: 新增结果
+			end
+			group 调用原有BLL尾款收款接口收款
+				alt 如果非尾款
+					A->bll: casher/basePayment
+					bll-->A: 收款结果
+				else 尾款付款
+					A->bll: casher/finalPayment
+					bll-->A: 收款结果
+				end
+			end
+					
+			group 调用原有BLL接口处理会员信息
+				alt 调用BLL member/checkMember 是会员 则修改会员信息
+					 A->bll: member/modifyMemberInfo
+					 bll-->A: 修改结果
+				else 否则新增会员
+					 A->bll: member/addMemberInfo
+					 bll-->A: 新增结果	
+					 group 给新用户发短信
+					 	A->message:发短信
+					 	message-->A:
+					 end
+				end
+			end
+			
+			group 修改订单生成二维码次数表
+				note right A: 将对应的商户订单号状态修改为已付款
+				A->qrcode: update()
+				qrcode-->A: 修改结果
+			end
+		
+		else 否则如果是爆款商品
+				alt 爆款商品库存=0
+					A-->pay: RefundServlet 调用退款接口退款
+					pay-->A: res
+					
+					group 修改生成二维码批次表
+						A->qrcode: update()
+							note right A: 修改交易失败=无库存
+						qrcode-->A: res
+					end
+				else 如果有库存
+					group 修改库存
+						A->hotP:update()
+							note right A: 修改库存
+						hotP-->A:res
+					end
+					
+					group 新增收款成功数据到微信或支付宝表
+						A->wechat: add()
+						wechat-->A: 新增结果
+					end
+					
+					group 修改爆款商品购买记录表
+						A->hot: update()
+							note right A: 修改移动支付主键\n修改兑换码字段=时间戳+购买记录主键\n修改交易状态
+						hot-->A: res
+					end
+					group 修改订单生成二维码次数表
+						note right A: 将对应的商户订单号状态修改为已付款
+						A->qrcode: update()
+						qrcode-->A: 修改结果
+					end
+			end
+		end
+					
+	A-->movePay:json
+	deactivate A
+	note over movePay: 记录通知响应日志
+	movePay-->中信: SUCCESS/FAIL
+deactivate movePay
+@enduml

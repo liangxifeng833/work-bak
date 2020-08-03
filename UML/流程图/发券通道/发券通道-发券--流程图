@@ -1,0 +1,61 @@
+@startuml
+title 进出场--流程图
+
+|促销平台|
+start
+	:新建促销活动;
+|券平台|
+
+	group 新建券批次和券规则
+		:新建批次和券;
+	end group
+	group 基础设置规则
+		:关联券批次;
+		note right: 可以多个批次多张券
+		:关联促销活动;
+	end group
+	
+	:设置顾客小程序登录页面地址\n也就是登录页地址;
+	
+	group 设置人员信息
+		 if (设置人员信息?) then (商户)
+			:设置黑白名单;
+			note left:<font color=red>计划与现有券的黑白名单\n<font color=red>共用一张表
+  		else (蓝景内部人员)
+			:设置角色;
+			note right: 建议只能挂接叶子节点角色\n或只挂接当前角色
+  		endif
+	end group
+	
+	:设置动态码/静态码/无码;
+	:生成发券/入口二维码;
+	
+ |顾客小程序后台|
+ :配置m.ljlj.cc域名指向\n顾客小程序发券页面;
+
+|管理小程序/展员小程序|	
+ :显示未过期并且有码的券规则活动;
+
+ if(管理小程序)then
+ 	:验证角色;
+ elseif(顾客小程序)then
+ 	 :验证黑白名单;
+ endif
+ 
+|顾客微信|	
+:微信扫一扫;
+:跳转到顾客小程序\n登录页地址页面;
+:读取发券规则;
+if(符合规则)then(yes)
+	:调用发券API接口;
+	if(发券成功？)then(yes)
+		:跳转到我的优惠券页面;
+	else(no)
+		:提示错误;
+		end
+	endif
+else(no)
+	:错误提示;
+endif	
+end
+@enduml

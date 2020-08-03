@@ -1,0 +1,81 @@
+@startuml
+title 手机-用户路由
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "UserRoute\n用户路由C" as routeC  #00FF00
+participant "WechatInfoAction\n微信信息类" as wechat  #FFFFFF
+participant "WechatWebAuth\n微信网页授权类" as auth  #FFFFFF
+participant "UserRouteAction\n用户路由A" as routeA  #FFFFFF
+
+view->routeC:index()
+activate routeC
+		alt session(privateId)= 参数privateId ,如果最新的私有库id与session中不一致，则以最新的为准
+			note over routeC
+				 session(null);
+			end note
+				routeC->wechat:getByMerchantId(参数privateId)
+				activate wechat
+					note over wechat: 查询后将appid和privateId注册session
+				wechat-->routeC:
+				deactivate wechat
+		end
+	alt session(openId) //如果session中openId存在则从数据库中获取最新用户信息做路由操作
+		routeC->routeA:_checkUserDB()
+			note over routeC: 查询session中是否存在openId及身份标识userType
+		routeA-->routeC:sign 返回用户身份标识，１粉丝，２会员，３员工
+		routeC->routeC:route(sign)\n根据身份标识直接路由操作
+	else
+		group 去微信获取网页授权code 
+			routeC->routeC:toWechatGetCode(appid,rollbackUrl)
+		end
+	end
+	routeC-->view:
+deactivate routeC
+	
+group 微信回调请求我们
+	auth->routeC: wechatRollBack()
+	activate routeC
+		/'-----------------从session中确定身份----------------------------------start----'/
+		group 确定身份
+			routeC->routeA:__construct(appId)\n注意:参数中无openId
+			routeC->routeA:getUserSign()
+			activate routeA
+				group 去微信获取用户openId
+					routeA->routeA:toWechatGetOpenId(appId,appSecret,code)
+					activate routeA
+						routeA->auth:getOpenId()
+						auth-->routeA:openId
+					routeA-->routeA:
+					deactivate routeA
+				end
+				group 验证用户身份
+					routeA->routeA:parrent::_checkUser(openId)
+					routeA-->routeA:sign:1 粉丝, 2:会员, 3:员工
+				end
+				routeA-->routeC:sign
+			deactivate routeA
+		end
+		/'-----------------从session中确定身份----------------------------------end----'/
+		
+
+		
+		/'------- 路由----------------start-------------------------'/
+		group 路由
+			routeC->routeC: route(sign)
+			activate routeC
+				alt 员工中心
+					note over routeC: redirect(mobile/EmployCenter/index
+				else 会员中心
+					note over routeC: redirect(mobile/MemberCenter/index/)
+				else 注册会员
+					note over routeC: redirect(mobile/MemberCenter/register)
+				end
+			routeC-->routeC:
+			deactivate routeC
+		end
+		/'------- 路由----------------end-------------------------'/
+		deactivate routeA	
+end
+
+@enduml

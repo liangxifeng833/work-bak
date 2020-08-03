@@ -1,0 +1,43 @@
+@startuml
+title 折扣工厂类
+
+actor DiscountAction #red
+/'-------------定义参与者别名 -------------------'/
+participant "DiscountFactory\n促销折扣工厂类" as disA #FFFFFF
+
+/'===========初始化============='/
+group 初始化
+DiscountAction->disA: __construct(type)
+activate disA
+	note over disA
+		this->_type = type          促销类型
+		this->_ljyunId = ljyuId  云编号
+		this->_price = price        应付额
+	end note
+disA-->DiscountAction:
+deactivate disA
+end
+
+/'===========处理类============='/
+group 调用折扣方法
+DiscountAction->disA:discount()
+activate disA 
+	alt !in_array(this->_type,this->_discountTypes) || empty(this->_ljyunId) || empty(this->_price)
+		disA-->DiscountAction: res = array(state=>2, 参数错误)
+	end
+
+	
+	note over disA
+		实例化折扣对象
+		discountObj = new ucfirst(this->_type)(this->_ljyunid, this->_price)
+	end note
+	disA-->DiscountAction: res = array(state=>1,discountObj)
+
+deactivate disA
+end 
+
+
+
+
+
+@enduml

@@ -1,0 +1,120 @@
+@startuml
+title 导入会员卡号或老会员信息
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "ImportData\n导入数据C" as C  #00FF00
+participant "ImportDataAction\n导入数据A" as A  #FFFFFF
+participant "GetOldMemberOrNumber\n查询老会员或会员卡号A" as common #FFFFF
+participant "ExcelErrorLog\n错误日志表A" as log  #FFFFFF
+
+
+
+group 导入会员卡号
+view->C:postNumber()
+activate C
+	C->A:importNumber(params)
+	activate A
+		note over A 
+			注意：
+				使用公司代码库中的PHPExcel类进入excel数据读取
+				将该类放入到/Common/Common下
+				所有异常均写入错误日志表,遇到异常程序不终止,记录信息如下：
+					行号
+					具体错误信息要写细：（比如：卡号为12345重复）
+					区分标识
+		end note
+		note over A:判断excel名是规定文件名
+		group 上传excel
+			A->A:_uploadExcel()
+			activate A
+				note over A
+					将excel上传到项目跟目录下的
+					存储规则如下：
+						/excel/$商户编号/memberNumber/年月日-十分秒-5位随机数.excel
+						将/excel提取为常量EXCEL_PATH
+				end note
+			A-->A
+			deactivate A
+		end
+		
+		
+		loop 循环读取excel
+			note over A:参数判空，否则入日志
+			
+			group 通过卡号查询会员卡表数据
+				A->common:getNumberByNum(params[number])
+				common-->A:numberRow
+			end
+			alt numberRow会员卡表存在, 入日志表
+				A-->A:_addLog()
+				activate A
+					note over A: 注意：区分标识type＝１
+					A->log:add( )
+				deactivate A
+			end
+			group 通过卡号查询老会员表数据
+				A->common:getOldMemberByNum(params[number])
+				common-->A:oldRow
+			end
+			alt oldRow会员卡表存在, 入日志表
+				A-->A:_addLog()
+				activate A
+					note over A: 注意：区分标识type＝２
+					A-->A:
+				deactivate A
+			end
+			group 新增到会员卡表
+				alt false == this->_addNumber()
+					A->A:_addLog()
+				end
+			end
+		end /'---loop----'/
+	A-->C
+	deactivate A
+C-->view:
+deactivate C
+end
+
+group 导入老会员数据
+view->C:postOldMember()
+activate C
+	group 上传excel
+		C->A:postOldMember
+		activate A
+				A->A:_uploadExcel()
+				activate A
+						note over A
+							将excel上传到项目跟目录下的
+							存储规则如下：
+								/excel/$商户编号/oldMember/年月日-十分秒-5位随机数.excel
+								将/excel提取为常量EXCEL_PATH
+						end note
+				A-->A:
+				loop 读取excel
+					note over A: 判断业务罗辑和导入会员卡号一致
+					group 通过卡号查询老会员表数据
+						A->common:getOldMemberByPhone(phone)
+						common-->A:oldRow
+					end
+					alt oldRow老会员表存在该手机号
+						A->A:_addLog()
+					end
+					group 新增到老会员表
+						alt false == this->_addOldMember()
+							A->A:_addLog()
+						end
+					end
+				end /'---loop-----'/
+				deactivate A
+		A-->C:
+		deactivate A
+	end
+C-->view:
+deactivate C
+end
+
+
+
+
+@enduml

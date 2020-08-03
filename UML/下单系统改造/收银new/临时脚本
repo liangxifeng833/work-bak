@@ -1,0 +1,177 @@
+@startuml
+title 临时脚本
+actor view #red
+
+view->rateScript:main()
+activate rateScript
+	loop csv 文件内容 as csv
+		note over rateScript
+			//根据卡号,消费金额,交易时间读取银行卡信息
+			 bankInfo = SELECT  b.* ,p.consume_back FROM bank_annal  b
+                     INNER  JOIN product_conume p  ON b.consume_id = p.consume_id
+                      AND p.consume_date = 交易时间 AND  b.fact_id = 卡号 AND b.value = 交易金额 LIMIT 1;
+                      
+         //初始化变量 
+             	 计算手续费 = 我们的程序自行计算的手续费
+             	 未退手续费 = 退款时未退的手续费
+             	大小额标识 =  1:小额, 2: 大额
+             	 type = 卡类型, 1:借记卡 2:贷记卡 3:外卡
+		end note 
+		
+		
+		/'====================消费撤销=============================start=============='/		
+		group 消费撤销,  手续费全退
+				alt 交易类型=消费撤销 && 1==bankInfo.consume_back 
+					note over rateScript
+						 计算手续费 = bandInfo.value * 0.0055*-1;
+						 未退手续费 = '0.00';
+					end note
+					alt 计算手续费 !=  手续费金额
+						note over rateScript: 记录日志文件,\n内容为: csv中第n行手续费异常, 程序计算手续费为***元, csv中为--元, consume_id b._consume_id=bankInfo.consume_id \n continue;
+					end
+					alt 卡类别 = 借记卡 
+						note over rateScript: type = 1 
+					end 
+					alt 卡类别 = 信用卡 
+						note over rateScript: type = 2 
+					end
+					alt 卡类别 = 信用卡 
+						note over rateScript: type = 3
+					end
+				end /'交易类型=消费'/
+		end
+		/'====================消费撤销=============================end=============='/				
+		
+		/'====================消费=============================start=============='/
+		group 消费
+			alt 交易类型=消费 && 0==bankInfo.consume_back 
+				note over rateScript: 未退手续费 = '0.00';
+				alt  卡类别 = 借记卡 
+						note over rateScript
+							计算手续费 = bandInfo.value * 0.0055;
+							计算手续费 = 计算手续费 > 25 ? 25 :  计算手续费 ;
+							type = 1 
+						end note
+						alt 计算手续费 !=  手续费金额
+							note over rateScript: 记录日志\n continue;
+						end
+				end /'卡类别 = 借记卡 '/
+				alt  卡类别 = 信用卡
+						note over rateScript
+						 计算手续费 = bandInfo.value * 0.0055;
+						 type = 2
+						end note
+						alt 计算手续费 !=  手续费金额
+							note over rateScript: 记录日志 \n continue;
+						end
+				end /'卡类别 = 信用卡 '/
+				alt  卡类别 = 外卡
+						note over rateScript
+							计算手续费 = bandInfo.value * 0.02
+							type = 3
+						end note
+						alt 计算手续费 !=  手续费金额
+							note over rateScript: 记录日志\n continue;
+						end
+				end /'卡类别 = 外卡 '/
+			end
+		end
+		/'====================消费=============================end=============='/
+		/'====================退货=============================start=============='/
+		group 退货
+			alt 交易类型=退货 && 2==bankInfo.consume_back 
+				alt  卡类别 = 借记卡  手续费不退
+						note over rateScript
+							计算手续费 = '0.00';
+							未退手续费 = 手续费;
+							type = 1
+						end note
+				end /'卡类别 = 借记卡 '/
+				alt  卡类别 = 信用卡 手续费退0.004975
+						note over rateScript
+						 	计算手续费 = bandInfo.value * 0.004975 * -1;
+						 	未退手续费 =  bandInfo.value * (0.0055 - 0.004975) * -1;
+						 	type = 2
+						 end note
+						alt 计算手续费 !=  手续费金额
+							note over rateScript: 记录日志 \n continue;
+						end
+				end /'卡类别 = 信用卡 '/
+				alt  卡类别 = 外卡 手续全退
+						note over rateScript
+							 计算手续费 = bandInfo.value * 0.02*-1;
+							未退手续费 = '0.00'
+							type = 3 
+						end note
+						alt 计算手续费 !=  手续费金额
+							note over rateScript: 记录日志 \n continue;
+						end
+				end /'卡类别 = 外卡 '/
+			end
+		end
+		/'====================退货=============================end=============='/
+		
+		note over rateScript
+			tmpCharge =  floatval(计算手续费) >= 0 ? tmpCharge :  tmpCharge*-1;
+			大小额标识 = tmpCharge > 25 ? 2 : 1;
+			
+			组合银行卡数据
+			data = array( 计算手续费, 未退手续费 , 大小额标识, type)
+		end note
+		
+		/'===============修改银行卡费率相关数据=========start==='/
+		group 修改银行卡费率相关数据
+			rateScript->rateScript: updateBand(bankId,data,num)
+			activate rateScript
+				note over rateScript
+					sql = UPDATE bank_annal SET 
+						charge = data[计算手续费] ,
+						size = data[大小额标识]
+						cw_back_charge = data[未退手续费]
+						type = data[type]
+					WHERE id = bankId
+				end note
+				alt 修改失败
+					note over rateScript
+						记录日志文件
+						内容为: csv中第num行手续费修改bank_annal表异常, 修改语句为: sql
+					end note
+				end
+				rateScript-->rateScript:boolean
+			deactivate rateScript
+		end
+		/'===============修改银行卡费率相关数据======end======='/
+
+		/'===============修改商户返款记录表数据=======start====='/
+		group 修改商户返款记录表数据
+			rateScript->rateScript: updateRemit(consumeId,计算手续费 ,num)
+			activate rateScript
+				note over rateScript
+					//根据product_conuem主键consumeId 查询商户返款记录表
+					res = SELECT  * FROM remit_merchant WHERE remit_consume_id = consumeId ORDER BY remit_id DESC LIMIT 1;
+				end note
+				alt res
+					note over rateScript
+						sql = UPDATE  remit_merchant SET 
+									remit_fee_value = res.remit_fee_value+计算手续费         //手续费
+									remit_total_value = res.remit_total_value-计算手续费   //返款金额
+								WHERE remit_id = res.remit_id LIMIT 1
+					end note
+					alt 修改失败
+						note over rateScript
+							记录日志文件
+							内容为: csv中第num行手续费修改remit_merchant表异常, 修改语句为: sql
+						end note
+					end
+				end
+				rateScript-->rateScript:
+			deactivate rateScript
+		end
+		/'===============修改商户返款记录表数据=======start====='/		
+		
+	end /'loop'/
+	
+	rateScript-->view:
+deactivate rateScript
+
+@enduml

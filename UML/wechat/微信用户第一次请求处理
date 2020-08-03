@@ -1,0 +1,120 @@
+@startuml
+title 微信用户第一次请求处理
+
+actor wechatIndex #red
+/'-------------定义参与者别名 -------------------'/
+participant "RequestFirst\n微信用户第一次请求处理类L" as index #FFFFFF
+wechatIndex->index: __construct(userMsgObj)
+activate index
+	note over index: parent::__construct(userMsgObj)
+	/'=======================处理请求开始========================'/
+	group 1 : 处理请求
+		index->index:process()处理请求
+		activate index
+		/'=======================初始化促销配置类========================'/
+		group 初始化促销配置类
+			participant "SaleConfig\n活动配置类L" as config #FFFFFF
+			/'初始化活动配置类'/
+			index->config:__construct(this.userMsgObj)
+			activate config
+				note over config
+					赋值用户信息对象
+					this.userMsgObj = userMsgObj
+				end note
+			config-->index:none
+			deactivate config
+		end 
+		
+		/'=======================获取促销活动类型========================'/
+		group  获取促销活动类型
+				index->config: getSaleType()获取活动类型
+					activate config
+						note over config
+							//定义字典数组
+							$dictionary = array(A=>array(saleId=>1,library=>RushTicket, isPhone=>1), B=>其他活动类型);
+							字典数组下标说明：
+							saleId含义：活动主键
+							RushTicket 含义是："<font color=red><b>library名称"
+							isPhone＝>1 : 含义：使用码规则是否绑定手机号 ０不绑定手机号 １绑定手机号
+							
+							分割用户发送字符串 ,内容比如：A-1-业务信息,
+							 (A:活动种类标识, 1:该活动种类特殊规则, 业务信息:具体的业务需求字符)
+							$textArr = explode(" -",userMsgObj.Content)
+						end note
+						
+						alt  3 != count($textArr)\n||empty($dictionary[$textArr[0]] \n||!is_numeric($textArr[1])
+							config-->index: false
+						end
+						note over config
+							
+							//组合返回值
+							$saleType = array(sales=>$dictionary[$textArr[0]], saleFlag=>$textArr[0], rule=>$textArr[1],keyword=>$textArr[2]);
+							//返回值数组下标说明：
+							$saleType下标说明：sales: 该活动的信息array(saleId=>活动表主键，...')
+											         saleFlag: 活动类别标识A
+										　　 	 rule: 特殊小规则代号
+										         	 keyword:业务需求关键字，比如：批次编号
+						end note
+					config-->index: $saleType
+					destroy config
+		end
+		
+		/'=======================判断用户发送信息是否活动匹配========================'/
+		group 判断用户发送信息是否活动匹配
+			alt !getSaleType() || empty($saleType[sales]) || empty($saleType[rule] \n|| saleType[keyword]违反批次编号规则LJB(区分大小写)+15位数字 \n|| !parent::_getBatch(批次编号)
+				note over index: echo '';exit;如果不符合条件，则微信无任何信息返回给用户,程序终止执行
+				note over index: <font color=red><b>注意：电子券一期新增批次编号的时候批次主键要保留７位 \n 如果有其他异常判断均在本判断中添加
+			end
+		end
+				
+		/'=======================实例化抢券类对象开始 ========================'/	
+		group  实例化抢券类对象
+			participant "RushTicket\n微信抢券类L" as rush #FFFFFF
+			index->rush:__construct(userMsgObj,saleType)
+			activate rush	
+			rush-->index:rushTicketobj
+			deactivate rush
+		end
+		/'=======================实例化抢券类对象结束 ========================'/		
+		index-->index:
+	deactivate index
+	end
+	/'=======================处理请求结束========================'/
+	
+	
+	/'=======================用户请求次数修改========================'/
+	group 2 : 用户会话请求信息修改
+		index->index:_modifyRequestMsg(saleType)修改请求信息
+		activate index
+			participant "UserRequest\nRedis用户交互请求类L" as request #FFFFFF
+			note over index
+				组合参数
+				params = array(
+							saleFlag => saleType[flag], 活动类别标识
+							saleId = saleType[sales][saleId] 活动主键
+							rule => saleType[rule], 特殊小规则
+							batchNum => saleType[keyword]  批次编号
+							phone => 0
+							sessionEndTime => 该会话过期时间戳 ( 当前时间戳+SaleConfig::EXPIRE_TIME)
+							saleEndTime => 活动过期时间戳 rushTicketobj._saleObj中获取
+							requests => 1
+							 )
+			end note
+			index->request:setRequests(params)
+				activate request
+				request-->index:boolean
+				deactivate request
+			index-->index:boolean
+		deactivate index
+	end
+
+	/'=======================调用微信客服接口返回========================'/
+	group 3 : 调用微信客服接口返回
+	participant "WechatServerApi\n微信服务端接口类L" as wechat #FFFFFF
+		note over index: 组织入参paramJson,请在5分钟内回复您的手机号
+		index->wechat:serviceSend(paramJson)
+	end
+	index-->wechatIndex:
+	
+deactivate index
+@enduml

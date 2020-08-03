@@ -1,0 +1,46 @@
+@startuml
+title 现金退款Action-时序图
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "API" as C  #00FF00
+participant "CashRefundAction\n现金Action" as A  #FFFFFF
+
+view->C:index_**()
+activate C	
+		/'===============构造器================='/
+		group 构造器
+			C->A:__construct(cardNum = 卡号)
+			activate A
+				/'============构造父类=============='/
+				group 构造父类
+					A->A:parent::__construct(卡号)
+				end
+				/'============通过卡号查询卡主表信息=============='/
+			A-->C:obj
+			deactivate A			
+		end
+		/'===============构造器================='/
+	
+		/'===========处理逻辑=============='/
+		C->A:obj.mainPost(params)	
+		activate A			
+		note over A
+			必要参数:
+				params[cardPriceId] = 充值记录表主键
+				params[curRefundPrice] = 本次退款金额
+				params[userId] = 前台登录用户id
+				params[payType] = 1微信 2支付宝	3现金						
+		end note
+		/'----------------执行父类入口方法---------------'/	
+		group 执行父类入口方法
+			A->A:parent::mainPost(params)
+		end
+	   /'----------------执行父类入口方法---------------'/	
+		
+		A-->C:
+		deactivate A
+C-->view:res
+deactivate C
+
+@enduml

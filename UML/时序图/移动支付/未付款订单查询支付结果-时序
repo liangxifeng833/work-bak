@@ -1,0 +1,34 @@
+@startuml
+title 未付款订单查询支付结果-时序
+
+actor 小程序 #red
+/'-------------定义参与者别名 -------------------'/
+participant "getOrderDetail\n订单详情API" as movePay #00FF00
+participant "alipay/wxpay\n移动支付接口" as wechat  #FFFFFF
+participant "domain_payment\n收银系统领域层" as payDomain  #FFFFFF
+小程序->movePay: get
+activate movePay
+	movePay->movePay:_checkPay()\n验证支付
+	activate movePay
+	alt order_payment.status=未付款 and 商户订单号非空
+		movePay->wechat:PayQueryServlet 查询微信或支付宝支付结果
+			note right movePay: 查询条件是商户号out_trade_no
+		wechat-->movePay: 移动支付结果
+		
+		group 修改本地订单付款期数支付状态
+			alt 查询状态=付款成功
+					movePay->payDomain:payment
+						note right movePay
+						end note
+					payDomain-->movePay:
+			end
+		end
+	end
+	deactivate movePay
+	
+	
+	note over movePay: 继续查询详情操作
+	movePay->小程序:
+
+deactivate movePay
+@enduml

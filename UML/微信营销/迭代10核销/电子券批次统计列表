@@ -1,0 +1,36 @@
+@startuml
+title 电子券批次统计列表
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "CouponBatchStatic\n电子券批次统计C" as batchC  #00FF00
+participant "CouponBatchStaticAction\n电子券批次统计A" as batchA  #FFFFFF
+participant "CouponBatch\n电子券批次表" as batch #FFFFFF
+participant "CouponBatchStatics\n电子券批次统计表" as static #FFFFFF
+
+view->batchC:index_get(params)
+activate batchC
+	batchC->batchA:get(params)
+	activate batchA
+		group 查询批次主表
+			batchA->batchA:getBatch()
+				batchA->batch:select()
+				batch-->batchA:batchArray
+			activate batchA
+			deactivate batchA
+		end
+		group 循环批次信息,查询批次统计表
+			loop batchArray as v
+				batchA->batchA:getStatics(v[card_id])
+				activate batchA
+					batchA->static:where(card_id = v[card_id])->find()
+					static-->batchA:staticRow
+				deactivate batchA
+			end
+		end
+	batchA-->batchC:array
+	deactivate batchA
+	batchC-->view: array
+deactivate batchC
+
+@enduml

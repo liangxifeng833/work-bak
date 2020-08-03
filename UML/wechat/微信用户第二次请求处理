@@ -1,0 +1,264 @@
+@startuml
+title 微信用户第二次请求处理
+
+actor wechatIndex #red
+/'-------------定义参与者别名 -------------------'/
+participant "RequestSecond\n微信用户第二次请求处理类L" as index #FFFFFF
+wechatIndex->index: __construct(userMsgObj,requestedMsg)
+activate index
+	note over index: parent::_construct(userMsgObj,requestedMsg)
+	/'=======================处理请求开始========================'/
+	group 1 : 处理请求
+		index->index:process()
+		activate index
+		
+		/'-----通验证手机号----'/
+		group 1.1 验证手机号
+			index->index:_checkUserPhone()
+			activate index
+				alt empty(requestedMsg[phone])   第一次接收手机号
+					index->tool_helper:_checkPhone()验证手机号
+					activate tool_helper
+						note over tool_helper: 值验证以1开头的11位数字就可以了\n通过返回true 否则 false
+					tool_helper-->index:boolean
+					deactivate tool_helper
+					alt !_checkPhone() 手机号验证失败
+						participant "WechatServerApi\n微信服务端接口类L" as wechat #FFFFFF
+						index->wechat:serviceSend(手机号格式不正确，请重新发送)
+						index-->index:false
+					end
+					
+					group 验证是否在活动日期
+						participant "UserRequest\nRedis用户交互请求类L" as request #FFFFFF
+						index->index:_checkSaleDate()验证是否在活动日期内
+						activate index
+							index->request:getSaleDate()从redis中查询
+							request-->index:dateArr
+							note over index
+								根据dateArr[dateType]判断当前时间是否在连续或间隔有效期内
+							end note
+						index-->index:true在活动日期内，false:不在	
+						deactivate index					
+						alt !_checkSaleDate()如果不在有效期内
+							note over index: echo '';  无任何响应 
+							index-->index:false
+						end
+					end
+
+					alt 当前时间戳 > requestedMsg[sessionEndTime]
+					
+						index->wechat:serviceSend(请先输入领券编号)
+						index-->index:false
+					end
+					/'---------将第一次接收到的手机号设置到用户已请求历史信息中----------'/
+					note over index: params = array(phone=>用户手机号)
+					index->request:setRequests(params)\n将第一次接收到的手机号设置到用户已请求历史信息中
+					request-->index:
+				else 第一次发送手机号后，返回使用码之前，多次发送信息
+					note over index: echo ''; 无任何响应
+					index-->index:false
+				end
+					
+			index-->index:true
+			deactivate index
+		end
+		
+		alt !_checkUserPhone() 验证手机号失败
+			note over index: 程序终止运行
+		end
+		
+		/'-----通过批次编号查询批次信息-----'/
+		group 1.2 通过批次编号查询批次信息
+			index->index:parent::_getBatch()
+			participant "ticket/Ticket_batch\n券批次表L" as batch #FFFFFF
+			activate index
+				index->batch:Rest方式
+				activate batch
+					batch-->index:batchObj
+				deactivate batch
+			index-->index:this._batchObj
+			deactivate index
+		end
+		
+		/'-----查询商户白名单-----'/
+		group 1.4 查询商户白名单
+			participant "ticket/Ticket_batch_merchant_list\n名单商户表L" as merchant #FFFFFF
+			index->index:_getMerchant()查询商户白名单
+			activate index
+				index->merchant: Rest方式
+				activate merchant
+				merchant-->index:merchantObj
+				deactivate merchant
+				index-->index:merchantObj
+			deactivate index
+		end 
+		
+		/'-----调用券平台发券接口发券-----'/
+		participant "rushTicketCodeHavePhone\n有手机号抢券接口C" as sendTicket #00FF00
+		participant "rushTicketSourceBind\n抢券资源和券绑定接口C" as bind #00FF00
+		group 1.3 调用券平台发券接口发券
+			index->index:_sendTicket()
+			activate index
+				note over index
+					 组织调用发券接口入参：
+					 	batchIds=array(批次主键=>券数量 1)
+					 	phone = 手机号
+					 	returnType = 1 返回使用码
+				end note
+				index->sendTicket:index_post()调用券平台发券接口发券
+				activate sendTicket
+				sendTicket-->index:useCodes
+				deactivate sendTicket			
+			
+			alt  this.ticketObjs 返回信息中批次过期
+				index->wechat:serviceSend(抢券时间已经结束)
+				note over index: 程序终止
+			end
+			/'---循环组合绑定资源需要的参数---'/				
+			loop  this.ticketObjs 循环组合绑定资源需要的参数
+				note over index
+					$useCodeIds[电子券主表主键]　= 使用码
+				end note
+			end	
+			/'---调用发券资源绑定券接口---'/
+			note over index
+				 组织绑定资源入参：
+				 	grantType=wechat
+				 	useCodeIds = $useCodeIds
+				 	codeType = 2 代表使用码
+			end note
+			index->bind:index_post()调用券平台资源绑定接口绑定操作
+			bind-->index:json
+				
+
+			index-->index:this.ticketObjs = useCodes券使用码	
+			deactivate index
+			
+
+		end
+		
+		/'-----生成二维码和券混合图片-----'/
+		participant "CreateQrcodeMixImg\n生成二维码混合图片类L" as createImg #FFFFFF
+		group 1.5 生成二维码和券混合图片
+			index->index:_createMixImg()
+			activate index
+				note over index
+					组合图片需要的参数
+					dataArr= array(price=>券面额, 	
+									showId=>展位号, 
+									date=>array(有效期),
+									useCode=>使用码)
+				end note 
+				index->createImg:create(dataArr)
+				activate createImg
+				createImg-->index:imgPath成功生成的图片路径
+				deactivate createImg
+			index-->index:imgPath
+			deactivate index
+		end
+		
+		
+		deactivate index
+	end
+	/'=======================处理请求结束========================'/
+	
+	participant "\n有手机号抢券接口C" as sendTicket #00FF00
+	
+	/'=====================删除历史请求=========================='/
+	group  2 删除历史请求
+		index->index:_delHistroyRequest()
+		activate index
+			index->request:delRequests()
+			activate request
+			request-->index:boolean
+			deactivate request
+		index-->index:boolean
+		deactivate index
+	end
+	
+	
+	/'=====================调用微信客服临时接口上传图片=========================='/
+	group 3 调用微信客服临时接口上传图片
+		index->index:_toWechat()
+		activate index
+			group 3.1 将图片上传到微信服务器
+				index->wechat:postFile(imgPath)上传图片到微信服务器
+				activate wechat
+				wechat-->index:res
+				deactivate wechat
+				alt !res[media_id] 如果未获取到微信返回的media_id
+					note over index: 记录错误日志 程序终止执行log_message('error',media_id 获取失败)
+				end
+			end
+			
+			note over index:组合返回用户客服接口参数paramJson 并拼接 res[media_id]
+			
+			group 3.2 调用客服接口返回二维码图片给用户
+				index->wechat:serviceSend(paramJson)调用客服接口返回二维码图片给用户
+				activate wechat
+				wechat-->index:res
+				deactivate wechat
+			end	
+			
+		index-->index:
+		deactivate index
+	end
+	
+	/'=====================将用户抢到的电子券记录到数据库======================='/
+	group 4 将用户抢到的电子券记录到数据库
+	participant "Sale_ticket_log\n微信用户抢券记录表类L" as log #FFFFFF
+	participant "Sale_wechat_user\n微信用户表类L" as user #FFFFFF
+		/'--------------将用户及使用码入库-----------'/
+		group 4.1 将用户抢到的券新增到数据表
+			index->index:_addLog()
+			activate index
+				index->log:save()
+				activate log
+					note over index
+						新增需要的数据来源
+						log_openid = 用户微信唯一标识从this.MsgObj中获取
+						log_batch_num = 批次编号从this._batchObj中获取
+						log_ticket_usecode＝券使用码从this._ticketObjs中获取
+						log_sale_id = 活动主键从this.requestedMsg中获取
+						log_add_time = 当前时间
+						log_usecode_path =二维码图片地址 imgPath
+					end note
+				log-->index:
+				deactivate log
+			index-->index:boolean
+			deactivate index
+		end
+		/'--------------将用户基本信息放入用户表中-----------'/
+		group 4.2 将用户基本信息新增到微信用户表
+			alt !_addLog() 如果新增日志失败
+				note over index: 记录日志，程序终止执行
+			end
+			index->index:_addUser()
+			activate index
+				index->user:用Rest方式通过openId微信用户唯一标识查询
+				activate user
+				user-->index:userObj
+				deactivate user
+				
+				alt !userObj　如果不存在该用户
+					index->wechat:getUserInfo()获取微信用户详细信息
+					activate wechat
+					wechat-->index: array
+					deactivate wechat
+					
+					note over index
+						组织新增用户入参
+						在getUserInfo的返回值中都可以获取到
+					end note 
+					index->user:save()		
+					user-->index:
+				end
+			index-->index:boolean 
+			deactivate index	
+		end
+	end
+
+	index-->wechatIndex:
+	
+deactivate index
+@enduml

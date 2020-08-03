@@ -1,0 +1,87 @@
+@startuml
+title 订单action抽象
+
+actor subClass #red
+/'-------------定义参与者别名 -------------------'/
+participant "OrderActionAbstract\n查询商品A" as paymentA  #ADD8E6
+participant "Common\n公共信息类L" as common  #FFFFFF
+participant "Order\n订单类L" as orderL  #FFFFFF
+participant "ProductConumeDao\n合同收款表D" as conumeD  #FFFFFF
+
+
+
+
+	/'===========构造方法======start========'/	
+	group 初始化
+		subClass->paymentA:__construct(orderNumber)
+		activate paymentA
+			note over paymentA: 订单编号属性赋值\n$this->orderNumber = (int)orderNumber
+			paymentA->paymentA:_init()
+			activate paymentA
+				/'=====根据合同号获取运编号====='/
+				alt !empty(this->orderNumber  如果合同号非空，则获取商户信息
+					group 根据合同号获取云编号
+						paymentA->common:getMerchantByContract()
+						common->paymentA:merchantArr
+						note over paymentA: 商户信息属性赋值\nthis->merchantArr = merchantArr
+					end
+				end
+				
+				/'=====初始化订单类=======start============='/
+				alt !empty(this->merchantArr[ljyunId])
+					group 初始化订单类
+						paymentA->orderL: __construct(this->orderNumber,this->merchantArr[ljyunId])
+						orderL-->paymentA: obj
+						note over paymentA: 订单句柄赋值\nthis->orderHandle = obj				
+					end
+				end
+				/'=====初始化订单类=======end============='/
+				paymentA-->paymentA:
+			deactivate paymentA
+			
+			
+	end
+	/'===========构造方法======end========'/	
+			paymentA-->subClass: obj
+	deactivate paymentA	
+
+	/'=====================验证合同收款和订单日期==============start====='/
+	group  验证合同收款和订单日期
+		subClass->paymentA:check()
+		activate paymentA
+			group 订单编号
+				alt empty(this->orderNumber) || empty(this->merchantArr) || empty(this->orderHandle)
+					paymentA-->subClass: res = array(state=>2, 参数异常)
+				end
+			end
+			/'================查询合同收款表========start====='/
+			group 根据合同号查询合同收款表
+				paymentA->paymentA:getProductConume()
+				activate paymentA
+					note over paymentA
+					组合参数：
+						WHERE consume_pact_id = this->orderNumber AND consume_back = 0 (排除退款)
+						ORDER BY consume_id LIMIT 1
+					end note
+					paymentA->conumeD: get(list,参数)
+					conumeD-->paymentA: consumeArr
+				deactivate paymentA
+			end
+			/'================查询合同收款表========end======'/
+		alt getProductConume()
+			paymentA-->subClass: res = array(state=>3, msg=>该订单已收款!)
+		end
+	
+		group 验证收款日期
+			paymentA->orderL:this->orderHandle->checkDate()
+			orderL-->paymentA: boolean
+		end
+		alt !checkDate()
+			paymentA-->subClass: res = array(state=>4, msg=>合同不在收款日期内)
+		else
+			paymentA-->subClass: res = array(state=1)
+		end
+	end
+	/'=====================验证合同收款和订单日期==============end====='/
+	deactivate paymentA
+@enduml

@@ -1,0 +1,73 @@
+@startuml
+title 创建/修改会员卡
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "MemberCard\n创建/修改会员卡C" as createC  #00FF00
+participant "MemberCardAction\n会员卡A" as memberA  #FFFFFF
+participant "MemberBatch\n会员卡批次表A" as batch  #FFFFFF
+
+group 初始化查询会员批次
+view->createC:index()
+activate createC
+	createC->memberA:getMemberBatch(id)
+	activate memberA
+		memberA->batch:find()
+		batch-->memberA:batchRow
+	memberA-->createC
+	deactivate memberA
+createC-->view:batchRow
+deactivate createC
+end
+
+group 新增操作
+	view->createC:indexPost()
+	activate createC
+		createC->memberA:create()
+		activate memberA
+			note over memberA
+				注意：
+					卡库存为微信规定最大值100000000
+					每人可领券数量为1
+					有效期为永久
+					积分地址：与会员中心地址相同
+					会员中心地址：填写真实的会员中心地址，注意不包含主域名
+			end note
+			memberA->batch:add()
+			batch-->memberA:boolean
+		memberA-->createC:boolean
+		deactivate memberA
+	createC-->view:
+	deactivate createC
+end
+
+group 修改操作
+	view->createC:indexPut()
+	activate createC
+		createC->memberA:modify()
+		activate memberA
+			memberA->batch:save()
+			batch-->memberA:boolean
+		memberA-->createC:boolean
+		deactivate memberA
+	createC-->view:
+	deactivate createC
+end
+
+group 图片异步上传操作
+	view->createC:ajaxUpload()
+	activate createC
+		createC->memberA:uploadImg()
+		activate memberA
+			note over memberA
+				注意：
+					上传位置到微信图片素材
+					命名规则与图片素材一致
+			end note
+		memberA-->createC:图片地址
+		deactivate memberA
+	createC-->view:图片地址
+	deactivate createC
+end
+
+@enduml

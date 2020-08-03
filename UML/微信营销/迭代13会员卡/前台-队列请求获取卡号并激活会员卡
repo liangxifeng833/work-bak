@@ -1,0 +1,52 @@
+@startuml
+title 前台-队列请求获取卡号并激活会员卡
+
+actor wechat #red
+/'-------------定义参与者别名 -------------------'/
+participant "QueueGetMemberNum\n队列请求获取卡号并激活C" as C  #00FF00
+participant "QueueGetMemberNumAction\n队列请求获取卡号并激活A" as A  #FFFFFF
+participant "WechatMemberCardSDK\n微信会员卡相关sdk" as openSDK  #FFFFFF
+participant "MemberNumber\n会员卡号表" as num  #FFFFFF
+participant "ActivateMemberCard\n激活会员卡类" as activate  #FFFFFF
+
+wechat->C:index()
+activate C
+	C->A:main()
+	activate A
+		note over A
+			微信返回参数：
+				encrypt_code 编码后的code, 注意：需要urldecode
+				card_id
+				openid
+				batch_id
+		end note
+
+		/'--------- 解码code-----------------'/	
+		group 解码code
+			A->openSDK:cardDeCode()
+			openSDK-->A:$code
+		end
+		
+		/'--------- 查询是否导入新会员卡-----------------'/		
+		group 查询是否导入新会员卡
+			A->num:where(status=0未领取)->order->(id asc)->find()
+			num-->A:numRow
+		end
+		group 将该编号修改为已领取
+			 A->num:where(id)->save()
+			 num-->A:
+		end 
+
+		/'--------- 查询是否导入新会员卡-----------------'/		
+		group 激活会员卡
+			A->activate:main(params)
+			activate-->A:
+		end
+		/'-----------------激活会员卡------------start-------------'/
+
+		A-->C:
+	deactivate A
+	note over C: 执行完毕后　echo 'ok'; 代表队列执行结束;
+	C-->wechat:
+deactivate C
+@enduml

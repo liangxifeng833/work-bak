@@ -1,0 +1,136 @@
+@startuml
+title 查询用户权限
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "getUserAccess\n查询用户权限C" as userC  #00FF00
+participant "GetUserAccessAction\n查询用户权限A" as userA  #FFFFFF
+participant "UserDao\n用户表D" as userD  #FFFFFF
+participant "PersonDao\n人员表D" as personD  #FFFFFF
+participant "UserrightDao\n权限表D" as rightD  #FFFFFF
+participant "ShareAppsDao\n应用表D" as appD  #FFFFFF
+
+
+view->userC:index_get()
+activate userC
+/'===========验证参数=============='/
+group 验证参数
+	note over userC
+		接收参数：
+			 $params = this->get("params");
+		         验证参数$params 非空
+	end note
+end
+note over userC
+	验证token
+end note
+
+/'===========处理罗辑=============='/
+group 处理逻辑
+	userC->userA:get($params)
+	activate userA
+		/'====验证参数===='/
+		alt empty($params[ljyunId]) || empty($param[userId]))
+			userA-->userC:res=array(state=>2参数错误)
+		else
+			note over userC:this->_ljyunId = $param[]
+		end
+		
+		userA->userA:_getUser(userId)
+		activate userA
+			/'====查询用户===='/
+			group 查询用户
+				note over userA
+					组合参数
+					ljyunId=>this->_ljyunId //云编号
+					field=>user_personid 查询关联person表的主键person_id
+					where 条件如下：
+						user_id=>userId ,  //用户主键
+					order by user_id desc LIMIT 1
+				end note
+				userA->userD:get(list,参数)
+				userD-->userA:userRow
+				userA-->userA:userRow
+			deactivate userA
+			
+			alt (!userRow[user_personid])
+				 userA-->userC: res=array(state=>3 用户信息获取失败)
+			end
+		end
+		
+		/'====查询人员===='/
+		group 查询人员表中的角色id
+			userA->userA:_getPerson(personId)
+				note over userA
+					组合参数
+					ljyunId=>this->_ljyunId //云编号
+					field=>person_roleid 查询关联role表的主键role_id
+					where 条件如下：
+						person_id=>personId ,  //用户主键
+					order by person_id desc LIMIT 1
+				end note
+			activate userA
+				userA->personD:get(list,参数)
+				personD-->userA:personRow
+			userA-->userA:personRow
+			deactivate userA
+			
+			alt (!personRow[person_roleid])
+				 userA-->userC: res=array(state=>４ 人员信息获取失败)
+			end
+		end 
+
+		/'====查询权限===='/
+		group 通过角色id查询权限
+			userA->userA:_getUserright(roleId)
+				note over userA
+					组合参数
+					ljyunId=>this->_ljyunId //云编号
+					field=>userright_appid 查询share_apps表主键数组序列化的值
+					where 条件如下：
+						userright_userid=>roleId 
+					order by userright_id desc LIMIT 1
+				end note
+			activate userA
+				userA->rightD:get(list,参数)
+				rightD-->userA:rightRow
+			userA-->userA:rightRow
+			deactivate userA
+			
+			alt (!rightRow[userright_appid])
+				 userA-->userC: res=array(state=>5 权限信息获取失败)
+			end
+		end
+		
+		/'=====查询该用户权限内的应用======'/
+		group 查询该用户权限内的应用
+			userA->userA:_getApps(appIds)
+			activate userA
+					note over userA
+						组合参数
+						field=>app_id,app_name,app_icon 查询主键，应用名，应用图片
+						where 条件如下：
+							app_id IN unserialize(appIds) 
+					end note
+					userA->appD:get(list,参数)
+					appD-->userA:appArr
+			userA-->userA:
+			deactivate userA 
+			
+			alt (!appArr)
+				 userA-->userC: res=array(state=>6 应用信息获取失败)
+			else
+				userA-->userC: res=array(state=>1, appArr)
+			end
+		end
+		
+	deactivate userA
+end
+
+alt isset(res[state] && isset[status]
+	userC-->view: res
+else
+	userC-->view: 调用Action异常
+end
+deactivate userC
+@enduml

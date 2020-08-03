@@ -1,0 +1,281 @@
+@startuml
+title 收款action抽象类-时序图
+
+actor basePayment #green
+/'-------------定义参与者别名 -------------------'/
+participant "PaymentAbstract\n收款action抽象A" as orderA  #ADD8E6
+participant "OrderActionAbstract\n订单action抽象类L" as orderL  #FFFFFF
+participant "PayTypeDao\n支付方式表D" as paytypeD  #FFFFFF
+participant "CurrentClassAction\n操作人员当班提交结账单A" as curClass  #FFFFFF
+participant "PaymentTypeDao\n其他支付方式表D" as paywayD  #FFFFFF
+	
+	/'===========构造方法======start========'/	
+	group 初始化
+		basePayment->orderA:__construct(orderNumber,clientId,operationId)
+		activate orderA
+			orderA->orderL:__construct(orderNumber)
+			orderL-->orderA: obj
+			note over orderA: this->contractData = obj
+			note over orderA: this->contractValue = obj->orderHandle->合同额
+			note over orderA
+				this->clientId = clientId 款台号
+				this->operationId = operationId 操作人员id
+			end note
+
+			
+			orderA->orderA:_init()
+				activate orderA				
+				group 查询普通支付方式字典
+					orderA->paytypeD:get()
+					paytypeD-->orderA: payArr
+					note over orderA: this->payTypeCommon = payArr
+				end
+				
+				group 查询第三方卡支付方式字典
+					orderA->paywayD:get()
+					paywayD-->orderA: payArr
+					note over orderA: this->payTypeThird = payArr			
+				end
+				
+				group 获取当班提交表主键和拆分号
+					orderA-[#blue]>orderA:<font color=blue><b>_operatorProcess()
+					activate orderA
+						orderA-[#blue]>curClass:  <font color=blue><b>get(this->operationId,clientId)
+						curClass--[#blue]>orderA: res = array(operatorFormId=>当班提交表主键,pactChipId=>拆分号)
+						note over orderA
+							this->operatorFormId  = res[operatorFormId]
+							this->pactChipId  = res[pactChipId]
+						end note
+						orderA-->orderA:
+					deactivate orderA
+				end
+				
+				group 获取商户信息
+				alt this->contractData->orderHandle->蓝景装饰合作标识 = 1
+					note over orderA
+						通过蓝景装饰 K代码 K100001201, 注意：将该K代码定义常量
+						去merchant_info获取商户主键 并赋值会this->contractData->merchantArr[商户主键]
+					end note
+				end
+				note over orderA:this->merchantInfo = this->contractData->merchantArr
+				
+				orderA-->basePayment: 
+			deactivate orderA
+		deactivate orderA
+	end
+	/'===========构造方法======end========'/	
+
+
+/'===========付款主方法======start========'/	
+group 付款主方法
+	basePayment->orderA:main(params)
+	note over orderA: 统一接收参数并验证
+	activate orderA
+		group 得到合同收款表数据
+			orderA->orderA:addProductConsume(params[factValue] = 实付额)
+			activate orderA
+				orderA-->orderA: consumeData
+			deactivate orderA
+			alt !consumeData
+				orderA-->basePayment: 合同收款表数据获取异常
+			end
+		end
+		group 得到现金购物券表数据
+			orderA->orderA:addPayformList(params[购物券], params[电子券])
+			activate orderA
+				note over orderA
+					1. 在循环中计算现金＋银行卡总额 this->cashBankPrice
+					2. 循环中计算实付额　this->_createPactValue
+				end note
+				orderA-->orderA: cashTradeData
+			deactivate orderA
+			alt !cashTradeData
+				orderA-->basePayment: 现金购物券表数据获取异常
+			end
+		end		
+		/'====================得到银行卡数据=================start=========='/
+		group 得到银行卡数据
+			orderA->orderA: <font color=blue><b> addBank(params[银行卡])
+			activate orderA
+				loop params[银行卡] as val
+					alt val[type] == 借记卡
+						note over orderA:typeIndex = 2\n cardType = 1
+					end
+					alt val[type] == 贷记卡
+						note over orderA:typeIndex = 8\n cardType = 2
+					end
+					alt val[type] == 外卡
+						note over orderA:typeIndex = 9\n cardType = 3
+					end
+					note over orderA
+						//费率
+						rate = this->payTypeCommon[typeIndex]->pay_value
+						//注意：这里的封顶额三种卡统一使用借记卡的封顶额
+						maxValue = this->payTypeCommon[2]->pay_max
+						//手续费, 保留小数点后两位，舍去第三位以后的数值
+						charge = floatOff(val['value']*floatval(rate)); 
+
+						//大小额标识 1小额 2大额
+						bankSign = charge > maxValue ? 2 : 1;
+						//借记卡手续费有封顶额，借贷卡和外卡无封顶额
+						charge = charge>maxValue && val[type] == 借记卡　?　maxValue : charge;
+						
+						//累加银行卡总额
+						this->cashBankPrice += val[vlaue]; 
+						//计算实付额
+						this->_createPactValue += val[vlaue]; 
+					end note
+					note over orderA
+						bandData[] = array(fact_id=>卡号,
+								   value=>金额,
+								   charge=>charge手续费，
+								   size=>bankSign,
+								   autonum=>银行返回数据，
+								   cw_back_charge='0.00',
+								   type=>cardType)
+					end note
+					
+				end
+
+				orderA-->orderA: bandData
+			deactivate orderA
+			alt !bandData
+				orderA-->basePayment: 银行卡数据获取异常
+			end
+		end			
+		/'====================得到银行卡数据=================end=========='/
+		group 得到福卡数据
+			orderA->orderA:addBless(params[福卡])
+			activate orderA
+				note over orderA:循环中计算实付额　this->_createPactValue
+				orderA-->orderA: blessData
+			deactivate orderA
+			alt !blessData
+				orderA-->basePayment: 福卡数据获取异常
+			end
+		end		
+		group 得到支票数据
+			orderA->orderA:add_addCheque(params[支票])
+			activate orderA
+				note over orderA:循环中计算实付额　this->_createPactValue
+				orderA-->orderA: blessData
+			deactivate orderA
+			alt !blessData
+				orderA-->basePayment: 支票数据获取异常
+			end
+		end				
+		group 得到第三方支付卡数据
+			orderA->orderA:addThirdPart(params[第三方卡])
+			activate orderA
+				note over orderA:循环中计算实付额　this->_createPactValue
+				orderA-->orderA: thirdPardData
+			deactivate orderA
+			alt !thirdPardData
+				orderA-->basePayment:第三方支付卡数据获取异常
+			end
+		end
+
+		group 拼装微信支付数据，dal需根据商户单号修改consume_id
+			orderA->orderA:_wechatData()
+			activate orderA
+				note over orderA:循环中计算实付额　this->_createPactValue
+				note over orderA:循环中计算现金+银行卡金额用来处理积分和等级　this->cashBankPrice
+				orderA-->orderA: 微信商户单号的二维数组
+			deactivate orderA
+		end
+		group 拼装支付宝支付数据,dal需根据商户单号修改consume_id
+			orderA->orderA: _alipayData()
+			activate orderA
+				note over orderA:循环中计算实付额　this->_createPactValue
+				note over orderA:循环中计算现金+银行卡金额用来处理积分和等级　this->cashBankPrice
+				orderA-->orderA: 支付宝商户单号的二维数组
+			deactivate orderA
+		end
+
+
+				
+		group 验证实参实付额与程序计算实付额是否相等
+			orderA->orderA:_checkPactValue(params[实付额])
+			activate orderA
+				alt this->_createPactValue != params[实付额]
+					orderA-->orderA:false
+				else
+					orderA-->orderA:true
+				end 
+			deactivate orderA
+			alt !thirdPardData
+				orderA-->basePayment:第三方支付卡数据获取异常
+			end
+		end		
+		
+		group 调用DAL事务付款操作
+			alt _checkPactValue() 如果通过付额验证
+				note over orderA
+					组合事务所需参数：
+						payArr = array(
+							consumeData
+							cashTradeData
+							bandData
+							blessData
+							thirdPardData
+							<font color="brown"><b>wechatPassTradeNos微信通道订单号
+							<font color="brown"><b>alipayPassTradeNos支付宝通道订单号
+						)
+				end note
+			orderA->orderA: tctPay(payArr)
+			activate orderA
+				orderA->tctPayment:index_post()
+				note right of orderA
+					事务逻辑
+						１．新增product_consune表数据 后获取 新增主键consumeId
+						２．新增现金购物券数据表数据（单条）
+						３．新增银行卡数据（多条）
+						４．新增福卡数据（多条）
+						５．新增支票（多条）
+						６．新增第三方支付卡数据（多条）	
+						<font color="brown"><b>７．修改微信或支付宝表的consume_id（多条）			
+				end note
+				tctPayment-->orderA: 成功:consumeId = 合同收款表主键 , 失败：返回异常
+				orderA-->orderA:consumeId
+			deactivate orderA
+			alt !consumeId
+				orderA-->basePayment:调用事务付款失败
+			end	
+		     end
+		end
+		
+		group 修改订单状态
+			orderA->orderA:modifyOrder()
+			activate orderA
+				note over orderA
+					params = array(consumeId=consumeId, status=1(已收款), '商户承担'=>商户承担, '卖场承担'=>卖场承担)
+					this->contractData->orderHandle->updateStatus(params)
+				end note
+			orderA-->orderA:boolean
+			deactivate orderA
+			alt !modifyOrder()
+				orderA-->basePayment:修改订单状态失败
+			else
+				orderA-->basePayment: array(state=>1, totalPrice=>this->cashBlankPrice)
+			end
+		end
+			
+	deactivate orderA
+end
+/'============付款主方法======end========'/	
+	
+	
+
+	
+/'===========生成合同收款表数据============start=='/
+group 生成合同收款表数据
+		basePayment->orderA:addProductConsume(实付额)
+		activate orderA	
+			note over orderA: 验证参数中所有下标均不能为空, data下标请参见一下注释及数据表结构
+		orderA-->basePayment: consumeData
+		deactivate orderA
+end
+/'===========生成合同收款表数据============end=='/
+
+	deactivate orderA
+@enduml

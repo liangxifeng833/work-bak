@@ -1,0 +1,34 @@
+@startuml
+title 退货流程
+
+
+|下单系统|
+start
+:商户确认退货\n☆;
+
+|财务系统|
+:订单查询\n☆;
+:退货限制查询\n☆☆;
+fork
+	:奖品;
+fork again
+	:电子券;
+end fork
+
+:退货操作;
+:打印退货凭证;
+:退货后操作;
+
+fork
+	:更新会员信息;
+fork again
+	:更新订单信息;
+fork again
+	:微信用券核销;
+fork again
+	:...;
+end fork
+
+end
+
+@enduml

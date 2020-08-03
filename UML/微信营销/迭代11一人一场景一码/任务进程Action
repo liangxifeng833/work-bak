@@ -1,0 +1,36 @@
+@startuml
+title 任务进程Action
+
+actor Controller #red
+/'-------------定义参与者别名 -------------------'/
+participant "TaskProgressAction\n用户A" as taskA  #FFFFFF
+participant "Task\n任务表" as task  #FFFFFF
+
+note over taskA,task
+注意:本action被所有查询任务入口调用, 触发过期所用
+end note
+Controller->taskA:main(taskId)
+activate taskA
+	group 根据主键查询任务信息
+		taskA->taskA:_getTask(taskId)
+		activate taskA
+			taskA->task:where(id=taskId)->find()
+			task-->taskA:taskRow
+		deactivate taskA
+	end
+	note over taskA: data[status] = 0;
+	alt 1==taskRow[status] && 当前时间 >= taskRow[开始日期] && 当前时间 <= taskRow[截止日期]
+		note over taskA: data[status] = 2 进行中
+	else 2==taskRow[status]  && 当前时间 > taskRow[截止日期]
+		note over taskA: data[status] = 3 已结束
+	end
+	
+	group 修改状态
+		alt data[status] !=0
+			taskA->task:where(id=taskId)->data(data)->save()
+			task-->taskA:boolean
+		end
+	end
+taskA-->Controller
+deactivate taskA
+@enduml

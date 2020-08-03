@@ -1,0 +1,414 @@
+@startuml
+title 退款action抽象类-时序图
+
+actor api #green
+/'-------------定义参与者别名 -------------------'/
+participant "RefundAbstract\n退款action抽象A" as orderA  #ADD8E6
+participant "ContractPaysAction\n合同数据A" as consumeA  #FFFFFF
+participant "CurrentClassAction\n操作人员当班提交结账单A" as curClassA  #FFFFFF
+participant "WechatAnnalDao\n微信收款表D" as wechatD  #FFFFFF
+participant "AlipayAnnalDao\n支付宝收款表D" as alipayD  #FFFFFF
+	
+/'===========构造方法======start========'/	
+group 初始化
+	api->orderA:__construct(userId,clientId,consumeId)
+	activate orderA
+		note over orderA
+			this->_userId = userId;		//收银员userId
+			this->_clientId = clientId;	//收银台号
+			this->consumeId = consumeId;	//合同收款表主键
+		end note
+
+		group 初始化拆分号,结算id,合同单信息
+		orderA->orderA:_init()
+		activate orderA	
+			group 查合同信息
+				orderA->consumeA:getByConsumeId(this->consumeId)
+				consumeA-->orderA:consumeObj
+				note over orderA: this->consumeObj = consumeObj
+			end
+
+			
+			group 查询拆分号和结算id
+				orderA->curClassA:get(this->userId,this->clientId)
+				curClassA-->orderA:curArr
+				note over orderA
+					this->operatorFormId = curArr[operatorFormId] 当班提交表主键
+					this->pactChipId = curArr[pactChipId] 拆分号
+				end note	 	
+			end
+		deactivate orderA
+		orderA-->orderA:
+	deactivate orderA
+end	
+/'===========构造方法======end========'/
+
+/'====================得到银行卡冲红数据=================start=========='/
+		group 得到银行卡冲红数据
+			api->orderA: getRefundBank()
+			activate orderA
+				note over orderA
+					组合查询参数:
+						WHERE consume_id = this->consumeId
+				end note
+				orderA->bankAanalDao:get(list,参数)\n查询银行卡数据
+				bankAnnalDao->orderA:bankArr
+				alt !bankArr 如果无银行卡数据
+					orderA-->orderA: this->bandRefundArr = array()
+				end 
+				loop bankArr as val 循环组合冲红银行卡数据
+					note over orderA
+						bandData[] = array(fact_id=>val->fact_id卡号,
+								   value=>val->value*-1金额,
+								   charge=>val->charge*-1手续费，
+								   size=>val->size,
+								   autonum=>val->autonum，
+								   cw_back_charge='0.00',
+								   type=>val->type)
+						this->cashBankTotalPrice += val->value;
+					end note
+				end
+				note over orderA: this->bankRefundArr = bandData
+				orderA-->api: bandData
+			deactivate orderA
+			
+		end
+/'====================得到银行卡冲红数据=================end=========='/	
+
+
+/'===========退款主方法======start========'/	
+group 退款主方法
+	api->orderA:main(params)
+	note over orderA: 统一接收参数并验证
+	activate orderA
+		/'========验证是否已经退款===========start====='/
+		group 验证是否已经退款
+			orderA->orderA:checkRefund()
+			activate orderA
+				alt 0!= this->consumeObj->consume_back
+					orderA-->orderA:true 已退过款
+				else
+					orderA-->orderA:false 未退过款
+				end 
+			deactivate orderA
+			alt checkRefund()
+				orderA-->api: 异常返回合同已退款
+			end 
+	
+		end
+		/'========验证是否已经退款===========end======'/
+
+		/'========得到product_conume冲红数据===========start====='/
+		group 得到product_conume冲红数据
+			orderA->orderA:getContractData()
+			activate orderA
+				note over orderA
+					//流水号
+					wasterId = "DJ-".substr(date("Ymd",time()),2)."-".$this->_clientId."-".padLeft($this->pactChipId,5,0);
+					//收款记录冲红数据
+					consumeData = array(
+						consume_date = date('Y-m-d H:i:s') 时间
+						consume_operator_id = this->_userId 
+						consume_client_id = this->_clientId
+						consume_form_id = this->operatorFormId
+						consume_state = 1 当班未提交
+						consume_back = this->consumeBack 退款状态,1:收银退 or 2:财务退
+						consume_waste_id = wasterId
+						consume_chip_id = this->pactChipId 拆分号
+						其他字段信息来源 this->consumeObj <font color="red"><b>注意:金额冲红为负值	
+					)			
+				end note
+				orderA-->orderA:consumeData
+			deactivate orderA
+			alt !consumeData
+				orderA-->api: 合同收款表冲红数据异常
+			end
+		end
+		/'========得到product_conume冲红数据===========end====='/
+
+		/'========得到现金购物券冲红数据===========start====='/
+		group 得到现金购物券冲红数据
+			orderA->orderA: getRefundCash()
+			activate orderA
+				note over orderA
+					组合查询参数:
+						WHERE payform_consume_id = this->consumeId
+				end note
+				orderA->PayformListDao:get(list,参数)\n查询现金购物券数据
+				PayformListDao->orderA:cashArr
+				alt empty(cashArr) 如果无现金购物券数据
+					orderA-->orderA: array()				
+				end
+				alt cashArr->payform_cash 如果存在现金收款
+					note over orderA:this->cashBankTotalPrice += cashArr->payform_cash
+				end
+				
+				note over orderA
+					//组合现金购物券冲红数据
+					cashRefundArr = array(
+						payform_operator_id => this->_userId
+						其他字段数据来源为cashArr,<font color="red"><b>注意:金额冲红为负值 	
+					)
+				end note
+				orderA-->orderA:cashArr
+			deactivate orderA
+		end
+		/'========得到现金购物券冲红数据===========start====='/
+	
+	
+		/'========得到福卡冲红数据===========start====='/
+		group 得到福卡冲红数据
+			orderA->orderA: getRefundBless()
+			activate orderA
+				note over orderA
+					组合查询参数:
+						WHERE consume_id = this->consumeId
+				end note
+				orderA->BlessAnnalDao:get(list,参数)\n查询福卡数据
+				BlessAnnalDao->orderA:blessArr
+				alt empty(blessArr) 如果无现金购物券数据
+					orderA-->orderA: array()				
+				end
+				loop blessArr as val 循环组合冲红福卡数据
+					note over orderA
+					blessRefundArr[] = array(
+						其他字段数据来源为val,<font color="red"><b>注意:金额冲红为负值 	
+					)
+					end note
+					end
+				orderA-->orderA:blessRefundArr
+			deactivate orderA
+		end
+		/'========得得到福卡冲红数据===========end======'/	
+
+		/'========得到支票冲红数据===========start====='/
+		group 得到支票冲红数据
+			orderA->orderA: getRefundCheque()
+			activate orderA
+				note over orderA
+					组合查询参数:
+						WHERE cheque_consume_id = this->consumeId
+				end note
+				orderA->ChequeAnnalDao:get(list,参数)\n查询支票数据
+				ChequeAnnalDao->orderA:chequeArr
+				alt empty(blessArr) 如果无支票数据
+					orderA-->orderA: array()				
+				end
+				loop chequeArr as val 循环组合冲红支票数据
+					note over orderA
+					chequeRefundArr[] = array(
+						其他字段数据来源为val,<font color="red"><b>注意:金额冲红为负值 	
+					)
+					end note
+				end
+				orderA-->orderA:chequeRefundArr
+			deactivate orderA
+		end
+		/'========得到支票冲红数据===========end======'/		
+				
+		/'========得到第三方卡冲红数据===========start====='/
+		group 得到第三方卡冲红数据
+			orderA->orderA: getRefundOther()
+			activate orderA
+				note over orderA
+					组合查询参数:
+						WHERE way_fid = this->consumeId
+				end note
+				orderA->PaymentTypeDao:get(list,参数)\n查询第三方卡数据
+				PaymentTypeDao->orderA:otherArr
+				alt empty(otherArr) 如果无第三方卡数据
+					orderA-->orderA: array()				
+				end
+				loop otherArr as val 循环组合冲第三方卡数据
+					note over orderA
+					otherRefundArr[] = array(
+						way_date=>date('Y-m-d H:i:s')
+						其他字段数据来源为val,<font color="red"><b>注意:金额冲红为负值 	
+					)
+					end note
+				end
+				orderA-->orderA:otherRefundArr
+			deactivate orderA
+		end
+		/'========得到第三方卡冲红数据===========end======'/
+		/'========得到扣费记录表数据===========start====='/	
+		group 得到扣费记录表数据
+			orderA->orderA:getDeductRecord()
+		end
+		/'========得到扣费记录表数据===========end====='/
+
+		/'========得到微信支付数据===========start====='/
+		group 得到微信支付数据
+			orderA->orderA: <font color="brown"><b>getRefundWechat()
+			activate orderA
+				note over orderA
+					组合查询参数:
+						WHERE consume_id = this->consumeId
+				end note
+				orderA->wechatD:get(list,参数)\n查询微信支付数据
+				wechatD->orderA:wechatArr
+				alt empty(wechatArr) 如果无微信支付数据
+					orderA-->orderA: array()				
+				end
+				loop wechatArr as val 循环组合冲微信支付数据
+					note over orderA
+					wechatRefundArr[] = array(
+						add_time=>date('Y-m-d H:i:s')
+						其他字段数据来源为val,<font color="red"><b>注意:金额冲红为负值 	
+					)
+					//银行卡+现金总额，用来计算积分和等级
+					this->cashBankTotalPrice += val->value;
+					end note
+				end
+				orderA-->orderA:wechatRefundArr
+			deactivate orderA
+		end
+		/'========得到微信支付数据===========end======'/
+		/'========得到支付宝支付数据===========start====='/
+		group 得到支付宝支付数据
+			orderA->orderA: <font color="brown"><b>getRefundAlipay()
+			activate orderA
+				note over orderA
+					组合查询参数:
+						WHERE consume_id = this->consumeId
+				end note
+				orderA->alipayD:get(list,参数)\n查询支付宝支付数据
+				alipayD->orderA:alipayArr
+				alt empty(alipayArr) 如果无支付宝支付数据
+					orderA-->orderA: array()				
+				end
+				loop alipayArr as val 循环组合冲支付宝支付数据
+					note over orderA
+					alipayRefundArr[] = array(
+						add_time=>date('Y-m-d H:i:s')
+						其他字段数据来源为val,<font color="red"><b>注意:金额冲红为负值 	
+					)
+					//银行卡+现金总额，用来计算积分和等级
+					this->cashBankTotalPrice += val->value;
+					end note
+				end
+				orderA-->orderA:alipayRefundArr
+			deactivate orderA
+		end
+		/'========得到支付宝支付数据===========end======'/	
+
+		/'========得到退款记录表数据===========start====='/
+		group 得到退款记录表数据
+			orderA->orderA: getRefundRecord()
+			activate orderA
+				note over orderA
+					refundRecord = array(
+						back_pact_number=>this->consumeObj->consume_pact_id,, //退款的合同号
+						back_type=>0, //0为整单退
+						back_charge=>this->consumeObj->consume_fact_value, //退款额	
+						back_time=>$nowTime
+						back_pact_id=>this->consumeId, <font color=red><b>注意:这里关联的合同收款表主键为正向consumeId
+						back_negotiate=>0.00 //整单退的协商退款金额为0.00 	
+					)
+				end note
+				orderA-->orderA:refundRecord
+			deactivate orderA
+			alt !refundRecord
+				orderA-->api: 异常返回退款记录表数据过去失败
+			end
+		end
+		/'========得到退款记录表数据===========end======'/
+
+		group 组合事务所需数据
+			note over orderA
+				this->refundArr = array(
+					oldConsumeId=>this->consumeId 正向consumeId
+					consumeStatus=>this->consumeBack 退货状态
+					consuemArr => consumeData
+					cashArr => cashRefundArr
+					bankArr => this->bankRefundArr
+					blessArr => blessRefundArr
+					chequeArr => chequeRefundArr
+					otherArr => otherRefundArr
+					<font color="brown"><b>wechatArr => wechatRefundArr
+					<font color="brown"><b>alipayArr => alipayRefundArr
+					refundRecordArr => refundRecord			
+				)
+			end note
+		end	
+	
+		
+		group 调用DAL事务付款操作
+			orderA->orderA: dalRefund(refundArr)
+			activate orderA
+				orderA->tctRefund:index_post()
+				note right of orderA
+					事务逻辑:
+						1. 验证参数
+						2. 根据正向consumeId,修改product_consune表的consume_back = consumeStatus 为已退
+						3. 新增product_consune表数据 后获取 新增主键 newConsumeId 
+						4．新增现金购物券数据表数据（单条）
+						5．新增银行卡数据（多条）
+						6．新增福卡数据（多条）
+						7．新增支票（多条）
+						8．新增第三方支付卡数据（多条）		
+						9．新增退款记录表charge_back数据	
+						10．新增微信支付数据（多条）
+						11．新增支付宝支付数据（多条）	
+						12.新增扣款明细表数据
+				end note
+				tctPayment-->orderA: 成功:newConsumeId = 负向合同收款表主键 , 失败：返回异常
+				orderA-->orderA:newConsumeId
+			deactivate orderA
+			alt !newConsumeId
+				orderA-->api:调用事务付款失败
+			else
+				group <font color=blue><b>退款成功后修改订单数据
+					orderA->orderA: modifyOrder(consumeId)
+					activate orderA
+						note right orderA: 通过consumeId查询大表订单付款期数表, 获取订单表主键和付款期数表主键
+						note right orderA: 根据订单主键查询订单表order_online
+
+						alt 订单表中fll_payment=部分付款
+							group 查询该订单已付款实付额总和
+								note over orderA	
+									查询product_conume的实付额总和 WHERE 合同号 AND 实付额 > 0 
+								end note
+							end
+							alt 通过订单主键查询付款期数表,获取所有已退款的折前金额+本期退款折前金额 = 实付额总和
+								note right orderA: 订单退款标识=1
+							end
+						else 否则订单表中fll_payment = 全额付款
+							note right orderA: 订单退款标识 = 1
+						end						
+					
+						group 调用dal事务修改订单数据
+						orderA->orderA: dalModifyOrder($params[orderId], $params[orderPaymentId],$params[data] )
+						activate orderA
+							note right orderA: 根据订单付款期数表主键orderPaymentId修改付款期数表status=已退款状态
+							alt data[订单退款标识] == 1
+								note right orderA: 根据订单主键修改订单表状态status = 已退款
+							end
+						orderA-->orderA:
+						deactivate orderA
+						end
+					deactivate orderA
+				end
+				orderA-->api:array(newConsumeId=>newConsumeId,\nbackPrice=>this->cashBankTotalPrice,\nconsumePackId=>this->consumeObj->consume_pact_id,\n'consume_date'=>this->consumeObj->consume_date)
+			end	
+		end		
+			
+	deactivate orderA
+end
+/'============退款主方法======end========'/
+
+/'===========验证userId========start======'/
+		group 验证userId
+			api->orderA:check()
+			activate orderA
+				note over orderA: userIds = unserialize(USER_ID) 财务退货人员专用userId
+				alt in_array(this->_userId,$userIds) 
+					orderA-->api:true  财务账号退款
+				else
+					orderA-->api:false 是收银退
+				end	
+			deactivate orderA
+		end
+/'===========验证userId========end======'/			
+
+@enduml

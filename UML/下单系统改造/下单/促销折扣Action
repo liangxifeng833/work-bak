@@ -1,0 +1,124 @@
+@startuml
+title 促销折扣Action
+
+actor subClass #red
+/'-------------定义参与者别名 -------------------'/
+participant "DiscountAction\n促销折扣A" as disA #FFFFFF
+participant "PaymentDao\n付款期数hash" as payD #FFFFFF
+participant "MartDiscount\n卖场促销折扣类" as martD #FFFFFF
+participant "MemberDiscount\n会员卡折扣类" as memberD #FFFFFF
+
+/'===========初始化============='/
+group 初始化
+	 subClass->disA:__construct()
+	 activate disA
+	 	note over disA
+	 		订单自增id赋值
+	 		this->_orderIncrementId  = orderIncrementId
+	 	end note
+	 disA-->subClass:
+	 deactivate disA
+end
+
+/'===========处理卖场促销及会员卡信息============='/
+subClass->disA:_index()
+activate disA
+	/'===========验证参数==================='/
+	alt empty(this->_orderIncrementId)
+		disA-->subClass: res = array(state=>2,自增主键参数丢失)
+	end
+	
+	/'===========查询本期应付额===========start=='/
+	group 查询本期应付额
+		disA->disA:_getPay()
+		activate disA
+			disA->payD:get(this->_orderIncrementId)
+			payD-->disA:payArr
+			alt empty(payArr)
+				disA-->disA:false
+			else
+				disA-->disA:payArr
+			end
+		deactivate disA
+		
+	end
+	/'===========查询本期应付额===========end==='/
+	
+	alt !_getPay()
+		disA-->subClass: res = array(state=>4, redis本期应付信息获取失败)
+	end
+
+	
+	/'===========获取折扣后的信息===========start=='/
+	group 获取折扣后的信息
+		disA->disA:_getDiscount()
+		activate disA
+			alt 0==orderArr[decoration_status] 蓝景装饰合作商户不参加卖场促销
+				group 实例卖场促销类
+					disA->martD:__construct(this->_orderArr[ljyun_id],payArr[account_payable])
+					martD-->disA:martObj
+				end
+	
+				group 获取卖场折扣
+					disA->martD:martObj->get()
+					martD-->disA:martRes
+				end
+			end
+			
+			alt 	(isset(martRes[state]) && 0==martRes[state]) ||  1==this->_orderArr[decoration_status]  如果不参加卖场促销活动
+				group 实例会员卡类
+					disA->memberD:__construct(this->_orderArr[ljyun_id],payArr[account_payable],payArr[member_id])
+					memberD-->disA:memberObj
+				end
+				
+				group 获取会员折扣
+					disA->memberD:memberObj->get()
+					memberD-->disA:memberRes
+				end
+				alt 2==memberRes[state]
+					disA-->disA: false \n有会员折扣但是处理过程中出现异常
+				else 1== memberRes[state]
+					disA-->disA: memberRes[discountArr]\n返回付款期数表信息
+				else
+					disA-->disA: 'noDiscount'\n 无折扣
+				end
+			else 1==martRes[state] 参加卖场促销活动
+					disA-->disA: martRes[discountArr]\n返回付款期数表信息
+			else 
+				disA-->disA: false
+			end
+		deactivate disA
+	end
+	/'===========获取折扣后的信息=========end====='/
+	alt !_getDiscount()
+		disA-->subClass:res = array(state=>5, 折扣信息获取失败)
+	end
+	alt 'noDiscount' == _getDiscount()
+		disA-->subClass:res = array(state=>1, 促销折扣计算成功)
+	end
+	
+	/'===========设置redis付款信息===========start=='/
+	group 设置redis付款信息
+		disA->disA:_setPay()
+		activate disA
+			disA->payD:set(this->_orderIncrementId, 付款期数表信息)
+			payD-->disA:boolean
+			disA-->disA:boolean
+		deactivate disA
+	end 
+	/'===========设置redis付款信息===========end=='/
+	
+	alt _setPay()
+		disA-->subClass: res = array(state=>1, orderIncrementId=>this->_orderIncrementId)
+	else
+		disA->subClass: res = array(state=>6, 付款信息redis设置失败)
+	end
+	
+	
+disA-->subClass:
+deactivate disA
+
+
+
+
+@enduml

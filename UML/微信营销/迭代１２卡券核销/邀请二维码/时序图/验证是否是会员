@@ -1,0 +1,147 @@
+@startuml
+title 验证是否是会员
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "MemberCenter\n会员中心C" as codeC  #00FF00
+participant "WechatWebAuth\n微信网页授权类" as auto #FFFFFF
+participant "MemberCenterAction\n验证会员A" as codeA #FFFFFF
+participant "MerchantWechatRelation\n商户与微信关系表M" as mwrM #FFFFFF
+participant "WechatFansRelation\n微信与粉丝关系表M" as frM #FFFFFF
+participant "Member\n平台会员表M" as memberM #FFFFFF
+
+
+/'========请求微信获取授权code=============start==='/
+view->codeC:toWechatGetCode()
+activate codeC
+	note over codeC
+		接收参数：
+			$appid = GET['appid']; 		    //应用id
+			$secret = GET['appsecret']     //应用秘钥
+	end note
+	alt empty($appid) || empty($secret)
+		codeC-->view: false 参数异常
+	end
+	/'======去微信获取授权code========start===='/
+	group 去微信获取授权code
+		note over codeC
+			回调 rollbackUrl =  域名/mobile/MemberCenter/checkMember
+				?appid=$appid&appsecret=$secret
+		end note
+		codeC->auto:getCode(appid,rollbackUrl )\n去微信获取授权code，回调用check方法处理
+deactivate  codeC
+		/'-------回调函数------'/
+		activate auto
+		auto->codeC:checkMember()获取openid并验证会员
+		deactivate auto
+	end
+	/'======去微信获取授权code========end===='/
+
+activate codeC
+	/'===========验证参数=============='/
+	group 接收参数
+		note over codeC
+					$appid = GET['appid']; 		   //应用id
+					$appsecret = GET['appsecret'];      //应用秘钥
+					$code = GET['code'];                  //获取用户信息code
+		end note
+	end
+	
+	codeC->codeA:index($appid,$appsecret,$code)
+	activate codeA
+		alt empty($appid]) || empty($appsecret) || empty($code)
+			codeA-->codeC: res=array(state=>2, 参数错误)
+		end
+		/'========通过code去微信获取openid=====================start==='/
+		group 通过code去微信获取openid
+			codeA->codeA:toWechatgetOpenId($appid,$appsecret,$code)
+			activate codeA
+				codeA->auto:getOpenId($appid,$appsecret,$code)
+				auto-->codeA:arr
+				alt  !isset(arr[openid]) 如果openid不存在
+					codeA-->codeA:false
+				else
+					codeA-->codeA:arr
+				end
+			deactivate codeA
+		end
+		alt !toWechatgetOpenId()
+			codeA-->codeC: res = array(state=>3, 获取openid异常)
+		end
+		/'========通过code去微信获取openid=====================end==='/
+	
+     	/'========通过appid查询共有库商户与微信关系表===========start==='/	
+     	group 通过appid查询共有库商户与微信关系表
+     		codeA->codeA:getMerchant(appid)
+     		activate codeA
+     			codeA->mwrM:where(app_id=appid)->find()
+     			mwrM-->codeA:merchantRow
+     			codeA-->codeA:merchantRow
+     		deactivate codeA
+     	end
+     	/'========通过appid查询公有库商户与微信关系表============end==='/
+     	
+     	/'===============注册session=============start==='/	
+     	group 注册session
+     		codeA->codeA:_addSession(merchantRow)
+     		activate codeA
+     			note over codeA
+     				SESSION[privateId] = merchantRow[merchant_id] //私有库id
+     				SESSION[appId] = merchantRow[app_id] //微信应用id
+     			end note
+     			codeA-->codeA:
+     		deactivate codeA
+     	end
+     	/'==================注册session===========end==='/	
+     		
+		
+		/'========通过openid查询微信与粉丝关系表================start==='/
+		group 通过openid查询微信与粉丝关系表
+			codeA->codeA:getFansRelation(arr[openid])
+			activate codeA
+				note over codeA
+					组合查询条件
+					where = " openid = $openid' "
+				end note
+				codeA->frM:where(where)->order(id DESC)->find()
+				frM-->codeA:relationRow
+				codeA-->codeA:relationRow
+			deactivate codeA
+		end
+		/'========通过openid查询微信与粉丝关系表=====================end==='/
+		alt empty(relationRow)
+			codeA-->codeC:res=array(state=>4, 获取粉丝与公众号关系异常) 
+		end		
+		/'========通过粉丝表主键Id查询平台会员信息=====================start==='/
+		group 通过粉丝表主键Id查询平台会员信息
+			codeA->codeA:getMember(relationRow->fans_id)
+			activate codeA
+				note over codeA
+					组合查询条件
+					where = "fans_id = 参数fans_id AND status=1(正常)"
+				end note
+				codeA->memberM:where(where)->order(member_id DESC)->find()
+				memberM-->codeA:memberRow
+				codeA-->codeA:memberRow
+			deactivate codeA
+		end
+		/'========通过粉丝表主键Id查询平台会员信息=====================end==='/
+		alt empty(memberRow)
+				codeA-->codeC:res=array(state=>5,不是平台会员) 
+			else
+				codeA-->codeC:res=array(state=>1, memberRow=>memberRow,appid=>$appid)
+		end
+	
+	/'==========判断index()的返回结果=================='/	
+	group 判断index()的返回结果
+		alt	isset(res[state]) && 1==res[state] 如果是会员
+			note over codeC: 显示会员中心html页面
+		else  isset(res[state]) && 5==res[state] 不是会员
+			note over codeC: RegisterMember/index 重定向到注册会员页面
+		end
+	end
+	codeC-->view:	
+	
+deactivate codeC
+
+@enduml

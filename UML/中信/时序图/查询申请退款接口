@@ -1,0 +1,61 @@
+@startuml
+title 查询申请退款接口
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "RefundQueryServlet\n 退款查询S" as C  #00FF00
+participant "RefundAction\n申请退款A" as A  #FFFFFF
+participant "WechatAnnalDao\n微信收款表" as cDao  #FFFFFF
+participant "CouchDB\nCouchDB工具类" as couch  #FFFFFF
+participant "CorefireHttpPost\n支付http请求类" as http  #FFFFFF
+participant "中信服务器" as citic  
+
+view->C:doPost()
+activate C
+	/'===========验证参数=============='/
+	note over C
+		验证token规则：
+			md5(类名+方法名+casher)
+	end note
+	
+	
+	/'===========处理逻辑=============='/
+	C->A:queryRquest(params)
+	activate A		
+	
+			group 通过交易号在本地数据库查询支付信息
+				A->cDao:getList()
+				cDao-->A:
+			end
+			
+			group 组合查询参数
+				note over A
+					使用交易号和商户退款单号进行退款查询
+				end note
+			end
+				
+			group  将请求参数写入couchDB，注意写明请求说明
+				A->couch:addOrUpdate()
+				couch-->A:
+			end
+	
+			group 去中信请求
+				A->http:call()
+				activate http
+					http->citic:post数据
+					citic-->http:
+				http-->A:xml
+				deactivate http
+			end
+			
+			group  将请求返回值写入couchDB，注意写明返回说明
+				A->couch:addOrUpdate()
+				couch-->A:
+			end	
+
+		A-->C:res
+	deactivate A
+C-->view:res
+deactivate C
+
+@enduml

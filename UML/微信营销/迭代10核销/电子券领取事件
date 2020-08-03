@@ -1,0 +1,119 @@
+@startuml
+title 电子券领取事件
+
+actor wechat #red
+/'-------------定义参与者别名 -------------------'/
+participant "WechatInterface\n微信事件入口C" as indexC  #00FF00
+participant "ReceiveMessageAction\n接收消息路由类A" as recA #FFFFFF
+participant "CouponUserGetEvent\n电子券领取事件类A" as ticketA #FFFFFF
+participant "WechatServiceApi\n微信接口Api" as wapi #FFFFFF
+participant "CouponBatch\n电子券批次表" as batchD #FFFFFF
+participant "Coupon\n电子券表" as coupon #FFFFFF
+participant "CouponBatchStatic\n电子券批次统计表" as batch #FFFFFF
+
+/'-----------------------请求入口-------------------start---'/
+wechat->indexC:index(postData)
+activate indexC
+	indexC->recA:doLogic(postData)
+	activate recA
+		/'----------------------路由类根据事件类型new 电子券核销类--------start------'/
+		group 路由类根据事件类型new 电子券核销类
+			recA->recA:_deal()
+			activate recA
+				/'----------------------处理事件--------start------'/
+				group 处理核销事件
+					recA->ticketA:dealData(params)
+					activate ticketA
+						note over ticketA: 验证参数
+						/'=============查询领券人员微信昵称==========start'/
+						group 查询领券人员微信昵称
+							ticketA->wapi:getUserInfo(params[FromUserName])
+							wapi-->ticketA:nickname
+						end
+						/'=============查询领券人员微信昵称==========end'/
+						
+						/'=============查询批次id==========start'/
+						group 通过券批次编号查询批次主键
+							ticketA->ticketA:_getBatch(cardId)
+							activate ticketA
+								ticketA->batchD:where(card_id = cardId)->find()
+								batchD-->ticketA:batchRow
+							deactivate ticketA
+						end
+						/'=============查询批次id=========end'/
+						
+						note over ticketA: 开启事务
+						group 新增券表数据
+							ticketA->ticketA:_addCoupon()
+							activate ticketA
+								note over ticketA
+									组合修改数据参数:
+										data['batch_id'] =,batchRow['id']; //批次表主键
+										data['title'] =,$batchRow['title']; //券名称
+										
+										data['card_id'] =,$params['CardId']; //微信券批次编号
+										data['code'] = $params['UserCardCode'];//券编号
+										data['from_code'] = $params['OldUserCardCode'];//券来源编号
+										data [status] = 'NORMAL' 正常状态
+										data [add_time] =  当前时间
+										data [last_time] =  当前时间
+										data [user_openid] =  params[FromUserName] 领取人员openid
+										data[user_nickname] = nickname 领券人员昵称
+										data[outer_str] = params[outer_str] //场景值
+								end note 
+								ticketA->coupon: data($data) ->add();
+								coupon-->ticketA:boolean
+							deactivate ticketA
+							alt 0 == params[IsGiveByFriend] 正常领取
+								note over ticketA
+									 $dataStatic [get_count] =  get_count+1 //领取数量+1
+									$dataStatic [surplus_count] = surplus_count-1 //剩余总量-1
+								end note
+							end
+						end
+
+						alt 1 == params[IsGiveByFriend] 转增成功领取数量+1
+							note over ticketA: $dataStatic[give_friend_success_count] = give_friend_success_count+1
+							group 修改old code 为转增作废状态
+								ticketA->ticketA:_modifyOldCode()
+								activate ticketA
+									note over ticketA
+										组合参数:
+											$map['card_id'] = array('eq',$param['CardId']); //微信券批次编号
+											$map['code'] = array('eq',$param['OldUserCardCode']);//券编号
+											$data[status] = INVALID 转增作废
+									end note
+									ticketA->coupon:where($map)->data($data)->save()
+									coupon-->ticketA:boolean
+								deactivate ticketA
+							end
+						end
+						
+						/'===========修改批次统计信息==========start'/
+						group 修改批次统计信息
+							ticketA->ticketA:_modifyStatics($dataStatic)
+							activate ticketA
+								note over ticketA
+									组合修改数据参数:
+										$map['card_id'] = array('eq',$param['CardId']); //微信券批次编号
+										$dataStatic [last_time] =  当前时间	
+								end note 		
+								ticketA->batch:where($map) ->data($dataStatic)->limit(1)->save();		
+								batch-->ticketA:boolean
+							deactivate ticketA	
+						end
+						/'===========修改批次统计信息==========end'/
+					ticketA-->recA:
+					deactivate ticketA
+				end
+				/'----------------------处理事件--------end------'/
+			deactivate recA
+		end
+		/'----------------------路由类根据事件类型new 电子券核销类--------end-------'/
+	recA-->indexC
+	deactivate  recA
+	indexC-->wechat
+deactivate indexC
+/'-----------------------请求入口------------------end------'/
+
+@enduml

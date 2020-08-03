@@ -1,0 +1,71 @@
+@startuml
+title   OM9-获取订单付款信息
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "orderPays\n付款方式数据C" as orderC  #00FF00
+participant "OrderPaysAction\n付款方式数据A" as orderA  #FFFFFF
+
+view->orderC:index_get()
+activate orderC
+	/'===========验证参数=============='/
+	group 验证参数
+		note over orderC
+			接收参数：
+				 $params = this->get("params");
+				 参数下标说明：
+				 $params[orderNumber] = 订单编号（即合同号）		 
+		end note
+	end
+	note over orderC
+		验证token
+	end note
+	
+	/'===========处理逻辑=============='/
+	orderC->orderA:obj->get()
+	activate orderA
+		note over orderA: 验证参数
+		/'====查询顾客数据======start=='/	
+			group 查询顾客数据
+				note over orderA
+					组合顾客数据，数据来源　this->orderHandle->orderObj
+						data[payType] = 付款方式：（转换为中文，全额付款/部分付款）
+						data[pactValue] = 合同额
+						data[curShouldPrice] = this->orderHandle->orderObj->notPayObj->account_payable 本期应付
+						data[discount] = this->orderHandle->orderObj->notPayObj->discount_proportion 折扣
+						data[discountPrice] = this->orderHandle->orderObj->notPayObj->account_payable_discount 折后应付
+						data[discountType] = 折扣类型转换为中文（会员卡折扣／卖场促销折扣）	
+						data[orderPayments] = this->orderHandle->orderPayArr 付款期数数据										
+				end note
+				
+				alt 如果是部分付款, 组合部分付款数据
+					note over orderA
+					data[partPrice] = array(
+								定金
+								预付款
+								运费
+								安装费
+								余款付清时间
+							)
+					end note
+				end
+				
+				group 查询卖场促销单笔最高优惠
+					alt 2==this->orderHandle->orderObj->notPayObj->discount_type				
+						orderA->orderA:getMartMaxPrice()
+						activate orderA
+							orderA-->orderA:maxPrice
+						deactivate orderA
+					end
+				end	
+				
+				note over orderA: data[martMaxPrice] = maxPrice		
+			end
+		/'====查询顾客数据=====end=='/			
+
+		orderA-->orderC:data
+	deactivate orderA
+orderC-->view:data
+deactivate orderC
+
+@enduml

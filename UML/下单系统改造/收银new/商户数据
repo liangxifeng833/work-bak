@@ -1,0 +1,37 @@
+@startuml
+title CM2-获取商户数据
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "merchantData\n商户数据C" as orderC  #00FF00
+participant "merchantDataAction\n商户数据A" as orderA  #FFFFFF
+participant "Common\n公共信息类L" as common  #FFFFFF
+
+view->orderC:index_get()
+activate orderC
+	/'===========验证参数=============='/
+	group 验证参数
+		note over orderC
+			接收参数：
+				 $params = this->get("params");
+				 参数下标说明：
+				 $params[orderNumber] = 订单编号（即合同号）		 
+		end note
+	end
+	note over orderC
+		验证token
+	end note
+	
+	
+	/'===========处理逻辑=============='/
+	orderC->orderA:obj->get(orderNumber)
+	note over orderA: 验证参数
+	activate orderA
+				orderA->common:getMerchantByContract(orderNumber,1)
+				common->orderA:merchantArr
+	orderA-->orderC:merchantArr
+	deactivate orderA
+orderC-->view:merchantArr
+deactivate orderC
+
+@enduml

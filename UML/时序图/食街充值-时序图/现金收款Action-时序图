@@ -1,0 +1,33 @@
+@startuml
+title 现金收款Action-时序图
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "API" as C  #00FF00
+participant "CashPayAction\n现金付款Action" as A  #FFFFFF
+
+view->C:index_**()
+activate C	
+
+	
+		/'===========处理逻辑=============='/
+		C->A:mainPost(editCardData,  addCardPriceData)	
+			note over A
+				//需要修改卡主表dining_card数据
+				<font color="red">this.editCardData = editCardData
+				//需要新增的卡充值记录表dining_card_price数据
+				<font color="red">this.addCardPriceData = addCardPriceData			
+			end note
+		activate A		
+		/'----------------执行事务---------------'/	
+		group 执行事务
+			A->A:parent::tctPay()
+		end
+	
+
+		A-->C:true/false
+		deactivate A	
+C-->view:res
+deactivate C
+
+@enduml

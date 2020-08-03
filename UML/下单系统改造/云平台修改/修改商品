@@ -1,0 +1,89 @@
+@startuml
+title 修改商品-非BLL\n
+
+actor html #red
+/'-------------定义参与者别名 -------------------'/
+participant "editProduct\n商品修改C" as edit #FFFFFF
+participant "product_mdl\n商品M" as proM #FFFFFF
+participant "extrapro_mdl\n商品附表M" as exM #FFFFFF
+/'==================初始化===================='/
+group 初始化
+	html->edit:__construct()
+	activate edit
+		note over edit
+			parent::__construct()
+		end note
+	edit-->html
+	deactivate edit
+end
+
+/'==================修改商品===================='/
+	html->edit: editControl()
+	activate edit
+
+group 验证参数
+		note over edit 
+			post方式接收数据
+			判空并过滤参数：
+			(商品表id,商品名称,价格
+			分类,单位,规格,等级,主材
+			商品产地,主材产地	)			
+		end note
+end
+
+/'=================验证商品可否被修改==================='/
+group 验证商品可否被修改
+		/'------验证商品可否修改--------'/
+		edit->edit:_checkPro()\n验证商品可否被修改
+		activate edit
+			alt this->_proArr['product_status'] == 3 
+				note over edit: 待删除状态不允许修改
+				edit-->edit:false
+			else
+				edit-->edit:true
+		deactivate edit
+		alt !_checkPro()
+			note over edit: 系统提示：该商品为待删除商品，不允许修改
+		end
+end
+
+/'=================修改商品操作==================='/		
+group 修改商品操作
+	/'------修改商品操作--------'/
+	 edit->edit:_editPro()
+	 alt this->_proArr['product_status'] == 0　如果为新增商品
+	 	note over edit:修改商品时状态不变
+	 else
+	 	note over edit:修改商品状态为１待审核
+	 end
+	 activate edit
+	 	edit->proM:update(this->_proId, 修改的商品主表数据)
+	 	proM-->edit:boolean
+		alt false==boolean
+			edit-->edit:false
+		end
+	 	edit->exM:update(this->_proArr[附表主键],修改的附表数据)
+	 	exM-->edit:boolean
+		alt false==boolean
+			edit-->edit:false
+		end
+		edit-->edit:true 修改成功
+	 deactivate edit
+end
+
+alt !_editPro()
+	note over edit
+		 系统提示：修改商品失败
+		 程序终止
+	end note
+end
+
+/'================= 自动审核==================='/		
+group 自动审核
+	edit->edit:parent::_autoCheck()
+end			
+	edit-->html:
+	deactivate edit
+end
+
+@enduml

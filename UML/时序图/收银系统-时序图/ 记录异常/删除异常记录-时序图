@@ -1,0 +1,36 @@
+@startuml
+title 删除异常记录-时序图
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "exceptionInputDel\n异常录入中信支付数据删除C" as C  #00FF00
+participant "exceptionInputEditAction\n异常录入中信支付数据修改A" as A  #FFFFFF
+
+participant "CiticExceptionRecordDao\n中信支付异常记录表" as cD  #FFFFFF
+
+
+view->C:index_delete()
+activate C
+	/'===========验证参数=============='/
+		note over C
+		验证token
+	end note
+	C->A:delete(params)
+		activate A
+			note over A
+				验证必要参数
+					params['id'] = 异常记录表主键
+			end note
+
+			group 根据异常表主键删除
+				A->cD:del() where 主键
+				cD-->A:json
+			end
+			
+
+			A-->C:
+		deactivate A
+C-->view:
+deactivate C
+
+@enduml

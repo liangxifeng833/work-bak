@@ -1,0 +1,50 @@
+@startuml
+title 查询支付接口
+
+actor view #red
+/'-------------定义参与者别名 -------------------'/
+participant "PayQueryServlet\n查询支付S" as C  #00FF00
+participant "PayAction\n支付A" as A  #FFFFFF
+participant "CouchDB\nCouchDB工具类" as couch  #FFFFFF
+participant "CorefireHttpPost\n支付http请求类" as http  #FFFFFF
+participant "中信服务器" as citic  
+view->C:doPost()
+activate C
+	/'===========验证参数=============='/
+	group 验证参数
+	end
+	note over C
+		验证token规则：
+			md5(类名+方法名+casher)
+	end note
+	
+	
+	/'===========处理逻辑=============='/
+	C->A:queryRequest(request,response)	
+	activate A			
+	
+		group  将请求参数写入couchDB，注意写明请求说明
+			A->couch:addOrUpdate()
+			couch-->A:
+		end
+	
+			group 去中信请求
+				A->http:connect()
+				activate http
+					http->citic:post数据
+					citic-->http:
+				http-->A:xml
+				deactivate http
+			end
+			
+		group  将请求返回值写入couchDB，注意写明返回说明
+			A->couch:addOrUpdate()
+			couch-->A:
+		end
+			
+		A-->C:res
+	deactivate A
+C-->view:res
+deactivate C
+
+@enduml
