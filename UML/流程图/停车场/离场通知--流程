@@ -20,4 +20,5 @@ start
             最新支付时间
             车辆出场标示＝已出场
     end note
+end
 @enduml
