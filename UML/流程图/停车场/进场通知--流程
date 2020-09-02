@@ -1,0 +1,25 @@
+@startuml
+title 进场通知-流程
+
+
+|停简单|
+start
+:进场通知;
+
+|domain_park领域层|
+:接收进场通知\nTjdEnterMessageServiceImpl;
+
+|domain_park_api领域层|
+    :车辆进场\nCarEnterServiceImpl;
+    :查询vip_car表数据;
+    if (vip_car表无数据?) then (yes)
+        :查询car表;
+    endif
+    :得到会员主键memberId;
+|domain_member领域层|
+    :通过memberId查询会员信息\n获取会员手机号;
+|domain_park_api领域层|
+    :拿到会员手机号;
+    :新增停车记录表stop_record数据;
+end
+@enduml

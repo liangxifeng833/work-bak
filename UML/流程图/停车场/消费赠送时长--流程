@@ -1,0 +1,34 @@
+@startuml
+title 消费赠送时长-流程
+
+
+|收银系统|
+start
+: 收款成功大保存页面\nsettlement_receivables_action.php;
+:处理完会员信息;
+
+|domain_park_api领域层|
+:消费赠送时长接口\nConsumeGiveHour;
+note right
+   1.通过consumeId查询product_conume收款数据
+   2.通过实付额计算赠送的时长
+   3.去会员领域层获取会员手机号
+   4.新增领取时长记录表get_hour_record
+   5.通过会员主键,查询该会员的免停时长free_hour表信息
+   6.有则修改,无则新增.
+end note
+
+|收银系统|
+:日志存放在/logs/目录下;
+:发送赠送时长的短信;
+
+|domain_msg领域层|
+:发送短信;
+|阿里云短信平台|
+:发送短信;
+|收银系统|
+:日志存放在/logs/目录下;
+
+
+end
+@enduml

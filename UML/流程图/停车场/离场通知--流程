@@ -1,0 +1,23 @@
+@startuml
+title 离场通知-流程
+
+
+|停简单|
+start
+:离场通知;
+
+|domain_park领域层|
+:接收离场通知\nTjdOutMessageServiceImpl;
+
+|domain_park_api领域层|
+    :车辆进场\nCarOutServiceImpl;
+    :通过停简单订单号查询停车记录表\nstop_record;
+    :修改停车记录表stop_record;
+    note right
+        修改字段：
+            出场时间
+            停车费用(注意：总的停车费用，包含抵扣的,这是停简单通知给的)
+            最新支付时间
+            车辆出场标示＝已出场
+    end note
+@enduml

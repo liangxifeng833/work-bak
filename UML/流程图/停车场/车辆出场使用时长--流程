@@ -1,0 +1,63 @@
+@startuml
+title 车辆出场使用时长-流程
+
+
+|停简单|
+start
+:自动代扣通知;
+
+|domain_park领域层|
+:接收自动代扣通知逻辑如下：\nreceiveMessage/auto;
+partition 1.计算总的停车时长 {
+    :查询进场请求日志表\nin_message_request\n计算停车时长;
+}
+
+|domain_park_api领域层|
+partition 2.查询有效时长 {
+    :查询有效时长;
+    :通过停简单车辆唯一标示查询vip_car表;
+
+    if(是VIP车辆?) then (no)
+        :通过停简单车辆唯一标示查询car表;
+    endif
+        :得到会员主键memberId;
+        :查询free_hour表获取有效时长;
+        :返回free_hour表数据和是否vip车牌标示;
+}
+|domain_park领域层|
+partition 3.请求停简单批量抵扣减时长 {
+    :通过停车总时长和有效时长\n计算最终抵扣时长;
+    if (是否vip车辆?) then (yes)
+        :请求停简单批量抵扣接口\n免停该车辆;
+        end
+    else (no)
+        :请求停简单批量抵扣接口\n减免停车时长;
+    endif
+ }
+|domain_park_api领域层|
+partition 4.扣减我们本地停车时长 {
+        :扣减时长接口\nDeductCarHourServiceImpl;
+        :通过主键查询免停时长\nfree_hour表;
+        :修改free_hour表\n可用时长,已用时长;
+        :通过停简单订单号查询停车记录\nstop_record表;
+        if (stop_record有无数据?) then (yes)
+            :有数据则修改;
+            note left:修改字段如下:\n停车总时长\n总抵扣时长=减免时长\n最新抵扣时间\n最后一次核算id
+        else (no)
+            :无数据则新增;
+            :调用查询在场订单并新增停车记录service\nGetInOrderAndAddStopRecordService;
+            :查询停简单订单号请求停简单在场订单接口\n判断该车辆是否在场;
+            if (车辆在场) then (yes)
+|domain_park领域层|
+                :查询进场通知请求日志表\nin_message_request\n获取车牌号和进场时间;
+|domain_park_api领域层|
+                :通过车牌号查询普通车牌car表\n获取会员主键和该表主键;
+                :新增停车记录表stop_record数据;
+            else (no)
+                :不在场则终止程序;
+                end
+            endif
+        endif
+}
+end
+@enduml
