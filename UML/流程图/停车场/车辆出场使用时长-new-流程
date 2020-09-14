@@ -1,0 +1,77 @@
+@startuml
+title 车辆出场使用时长-new-流程
+
+
+|停简单|
+start
+:自动代扣通知;
+
+|domain_park领域层|
+:接收自动代扣通知逻辑如下：\nreceiveMessage/auto;
+
+|domain_park_api领域层|
+partition 1.获取有效时长并计算抵扣时长 {
+    :查询有效时长;
+    :通过停简单车辆唯一标示查询vip_car表;
+
+    if(是VIP车辆?) then (no)
+        :通过停简单车辆唯一标示查询car表;
+    endif
+        :得到\n会员主键memberId和车牌号carNum;
+        :查询free_hour表获取有效时长;
+        :通过停简单订单号查询停车记录表stop_record\n查询is_out=2未出场的停车记录;
+        note right
+            注意：该表数据新增入口：
+                1.进场通知（已绑定车牌情况）
+                2.新增车牌（如果车辆在场且没有停车记录则新增）
+                3.启用车牌（如果车辆在场且没有停车记录则新增）
+                4.停用车牌（如果该车辆存在为出场的停车记录，则全部删除）
+        end note
+        if (是否存在未出场的停车记录？) then(no)
+            :不存在返回错误，终止程序;
+            end
+            :存在则继续执行;
+        endif
+        :通过停车记录获取进场时间;
+        :通过当前时间和进场时间计算总停车时长;
+        :计算最终抵扣时长;
+        note right
+            规则如下：
+            如果停车时长 >= 可用的免停时长, 则最终免停时长= 可用的免停时长
+            如果停车时长 < 可用的免停时长, 则最终免停时长= 停车时长
+        end note
+        :返回数据;
+        note right
+            data=free_hour表数据
+            map key值说明：
+                isVip=是否vip车牌标示
+                deductHour=抵扣时长
+                totalHour=总停车时长
+                carNum=车牌号;
+        end note
+}
+|domain_park领域层|
+partition 2.请求停简单批量抵扣减时长 {
+    if (是否vip车辆?) then (yes)
+        :请求停简单批量抵扣接口\n免停该车辆;
+        end
+    else (no)
+        :请求停简单批量抵扣接口\n减免停车时长;
+    endif
+ }
+|domain_park_api领域层|
+partition 3.扣减我们本地停车时长 {
+        :扣减时长接口\nDeductCarHourServiceImpl;
+        :通过主键查询免停时长\nfree_hour表;
+        :修改free_hour表\n可用时长,已用时长;
+        :通过停简单订单号查询停车记录\nstop_record表;
+        if (stop_record有无数据?) then (yes)
+            :有数据则修改;
+            note left:修改字段如下:\n停车总时长\n总抵扣时长=减免时长\n最新抵扣时间\n最后一次核算id
+        else (no)
+            :无数据则返回异常，终止程序;
+            end
+        endif
+}
+end
+@enduml
