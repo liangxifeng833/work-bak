@@ -15295,13 +15295,30 @@
 											"height": 13,
 											"text": "«记录生成时间»+add_time: datetime",
 											"horizontalAlignment": 0
+										},
+										{
+											"_type": "UMLAttributeView",
+											"_id": "AAAAAAF0n6+lgiJs/CA=",
+											"_parent": {
+												"$ref": "AAAAAAFss0c5tukrlCQ="
+											},
+											"model": {
+												"$ref": "AAAAAAF0n6+lViJRXjw="
+											},
+											"font": "Arial;13;0",
+											"left": 725,
+											"top": 832,
+											"width": 308.1280822753906,
+											"height": 13,
+											"text": "«新增记录年份»+add_year: int",
+											"horizontalAlignment": 0
 										}
 									],
 									"font": "Arial;13;0",
 									"left": 720,
 									"top": 542,
 									"width": 318.1280822753906,
-									"height": 293
+									"height": 308
 								},
 								{
 									"_type": "UMLOperationCompartmentView",
@@ -15314,7 +15331,7 @@
 									},
 									"font": "Arial;13;0",
 									"left": 720,
-									"top": 835,
+									"top": 850,
 									"width": 318.1280822753906,
 									"height": 10
 								},
@@ -15356,7 +15373,7 @@
 							"left": 720,
 							"top": 504,
 							"width": 318.1280822753906,
-							"height": 341,
+							"height": 356,
 							"nameCompartment": {
 								"$ref": "AAAAAAFss0c5tukmI+E="
 							},
@@ -15658,8 +15675,8 @@
 									},
 									"visible": false,
 									"font": "Arial;13;0",
-									"left": 1108,
-									"top": 581,
+									"left": 1112,
+									"top": 583,
 									"height": 13,
 									"alpha": 1.5707963267948966,
 									"distance": 15,
@@ -15679,8 +15696,8 @@
 									},
 									"visible": null,
 									"font": "Arial;13;0",
-									"left": 1104,
-									"top": 567,
+									"left": 1108,
+									"top": 569,
 									"height": 13,
 									"alpha": 1.5707963267948966,
 									"distance": 30,
@@ -15700,8 +15717,8 @@
 									},
 									"visible": false,
 									"font": "Arial;13;0",
-									"left": 1117,
-									"top": 610,
+									"left": 1121,
+									"top": 612,
 									"height": 13,
 									"alpha": -1.5707963267948966,
 									"distance": 15,
@@ -15722,7 +15739,7 @@
 									"visible": false,
 									"font": "Arial;13;0",
 									"left": 1058,
-									"top": 597,
+									"top": 601,
 									"height": 13,
 									"alpha": 0.5235987755982988,
 									"distance": 30,
@@ -15743,7 +15760,7 @@
 									"visible": false,
 									"font": "Arial;13;0",
 									"left": 1056,
-									"top": 583,
+									"top": 588,
 									"height": 13,
 									"alpha": 0.7853981633974483,
 									"distance": 40,
@@ -15764,7 +15781,7 @@
 									"visible": false,
 									"font": "Arial;13;0",
 									"left": 1062,
-									"top": 624,
+									"top": 629,
 									"height": 13,
 									"alpha": -0.5235987755982988,
 									"distance": 25,
@@ -15784,7 +15801,7 @@
 									},
 									"visible": false,
 									"font": "Arial;13;0",
-									"left": 1158,
+									"left": 1167,
 									"top": 566,
 									"height": 13,
 									"alpha": -0.5235987755982988,
@@ -15804,7 +15821,7 @@
 									},
 									"visible": false,
 									"font": "Arial;13;0",
-									"left": 1152,
+									"left": 1161,
 									"top": 554,
 									"height": 13,
 									"alpha": -0.7853981633974483,
@@ -15824,7 +15841,7 @@
 									},
 									"visible": false,
 									"font": "Arial;13;0",
-									"left": 1170,
+									"left": 1180,
 									"top": 591,
 									"height": 13,
 									"alpha": 0.5235987755982988,
@@ -15874,7 +15891,7 @@
 								"$ref": "AAAAAAFss0c5tuklggU="
 							},
 							"lineStyle": 1,
-							"points": "1038:625;1188:579",
+							"points": "1038:630;1197:579",
 							"showVisibility": true,
 							"nameLabel": {
 								"$ref": "AAAAAAFss1GVxB5aJX0="
@@ -16889,6 +16906,36 @@
 							"width": 135.05413818359375,
 							"height": 27,
 							"text": "数据库名:db_tjdlog"
+						},
+						{
+							"_type": "UMLNoteView",
+							"_id": "AAAAAAF0n7lxgyYcKH8=",
+							"_parent": {
+								"$ref": "AAAAAAFssuPHHwpMSU4="
+							},
+							"fillColor": "#f2f1f1",
+							"font": "Arial;13;0",
+							"left": 824,
+							"top": 880,
+							"width": 217.2091522216797,
+							"height": 25,
+							"text": "以新增年份add_year字段进行分区"
+						},
+						{
+							"_type": "UMLNoteLinkView",
+							"_id": "AAAAAAF0n7m0TydNyZI=",
+							"_parent": {
+								"$ref": "AAAAAAFssuPHHwpMSU4="
+							},
+							"font": "Arial;13;0",
+							"head": {
+								"$ref": "AAAAAAF0n7lxgyYcKH8="
+							},
+							"tail": {
+								"$ref": "AAAAAAFss0c5tuklggU="
+							},
+							"lineStyle": 1,
+							"points": "924:860;929:879"
 						}
 					]
 				},
@@ -18808,6 +18855,16 @@
 							"name": "add_time",
 							"stereotype": "记录生成时间",
 							"type": "datetime"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "AAAAAAF0n6+lViJRXjw=",
+							"_parent": {
+								"$ref": "AAAAAAFss0c5tekjupA="
+							},
+							"name": "add_year",
+							"stereotype": "新增记录年份",
+							"type": "int"
 						}
 					]
 				},
