@@ -6521,6 +6521,314 @@
 							"headQualifiersCompartment": {
 								"$ref": "AAAAAAFzs2JHigCddkw="
 							}
+						},
+						{
+							"_type": "UMLClassView",
+							"_id": "AAAAAAF02LlKGb/7Ats=",
+							"_parent": {
+								"$ref": "AAAAAAFF+qBtyKM79qY="
+							},
+							"model": {
+								"$ref": "AAAAAAF02LlKF7/5REI="
+							},
+							"subViews": [
+								{
+									"_type": "UMLNameCompartmentView",
+									"_id": "AAAAAAF02LlKGb/8JRA=",
+									"_parent": {
+										"$ref": "AAAAAAF02LlKGb/7Ats="
+									},
+									"model": {
+										"$ref": "AAAAAAF02LlKF7/5REI="
+									},
+									"subViews": [
+										{
+											"_type": "LabelView",
+											"_id": "AAAAAAF02LlKGb/9ys8=",
+											"_parent": {
+												"$ref": "AAAAAAF02LlKGb/8JRA="
+											},
+											"fillColor": "#ffff00",
+											"font": "Arial;13;0",
+											"left": 749,
+											"top": 837,
+											"width": 210.61532592773438,
+											"height": 13,
+											"text": "«车牌号颜色»"
+										},
+										{
+											"_type": "LabelView",
+											"_id": "AAAAAAF02LlKGb/+2vk=",
+											"_parent": {
+												"$ref": "AAAAAAF02LlKGb/8JRA="
+											},
+											"fillColor": "#ffff00",
+											"font": "Arial;13;1",
+											"left": 749,
+											"top": 852,
+											"width": 210.61532592773438,
+											"height": 13,
+											"text": "car_color"
+										},
+										{
+											"_type": "LabelView",
+											"_id": "AAAAAAF02LlKGb//rt0=",
+											"_parent": {
+												"$ref": "AAAAAAF02LlKGb/8JRA="
+											},
+											"visible": false,
+											"fillColor": "#ffff00",
+											"font": "Arial;13;0",
+											"left": -176,
+											"top": -16,
+											"width": 90.27008056640625,
+											"height": 13,
+											"text": "(from 数据结构)"
+										},
+										{
+											"_type": "LabelView",
+											"_id": "AAAAAAF02LlKGcAATZU=",
+											"_parent": {
+												"$ref": "AAAAAAF02LlKGb/8JRA="
+											},
+											"visible": false,
+											"fillColor": "#ffff00",
+											"font": "Arial;13;0",
+											"left": -176,
+											"top": -16,
+											"height": 13,
+											"horizontalAlignment": 1
+										}
+									],
+									"fillColor": "#ffff00",
+									"font": "Arial;13;0",
+									"left": 744,
+									"top": 832,
+									"width": 220.61532592773438,
+									"height": 38,
+									"stereotypeLabel": {
+										"$ref": "AAAAAAF02LlKGb/9ys8="
+									},
+									"nameLabel": {
+										"$ref": "AAAAAAF02LlKGb/+2vk="
+									},
+									"namespaceLabel": {
+										"$ref": "AAAAAAF02LlKGb//rt0="
+									},
+									"propertyLabel": {
+										"$ref": "AAAAAAF02LlKGcAATZU="
+									}
+								},
+								{
+									"_type": "UMLAttributeCompartmentView",
+									"_id": "AAAAAAF02LlKGcABbvo=",
+									"_parent": {
+										"$ref": "AAAAAAF02LlKGb/7Ats="
+									},
+									"model": {
+										"$ref": "AAAAAAF02LlKF7/5REI="
+									},
+									"subViews": [
+										{
+											"_type": "UMLAttributeView",
+											"_id": "AAAAAAF02Lsc4MpPpfU=",
+											"_parent": {
+												"$ref": "AAAAAAF02LlKGcABbvo="
+											},
+											"model": {
+												"$ref": "AAAAAAF02LsclMortx0="
+											},
+											"fillColor": "#ffff00",
+											"font": "Arial;13;0",
+											"left": 749,
+											"top": 875,
+											"width": 210.61532592773438,
+											"height": 13,
+											"text": "«主键自增»+id: int",
+											"horizontalAlignment": 0
+										},
+										{
+											"_type": "UMLAttributeView",
+											"_id": "AAAAAAF02LpsFMTw3sY=",
+											"_parent": {
+												"$ref": "AAAAAAF02LlKGcABbvo="
+											},
+											"model": {
+												"$ref": "AAAAAAF02Lprv8TMkhg="
+											},
+											"fillColor": "#ffff00",
+											"font": "Arial;13;0",
+											"left": 749,
+											"top": 890,
+											"width": 210.61532592773438,
+											"height": 13,
+											"text": "«车牌号»+car_num: varchar(50)",
+											"horizontalAlignment": 0
+										},
+										{
+											"_type": "UMLAttributeView",
+											"_id": "AAAAAAF02LqfgMZBNEs=",
+											"_parent": {
+												"$ref": "AAAAAAF02LlKGcABbvo="
+											},
+											"model": {
+												"$ref": "AAAAAAF02LqfLcYdbFM="
+											},
+											"fillColor": "#ffff00",
+											"font": "Arial;13;0",
+											"left": 749,
+											"top": 905,
+											"width": 210.61532592773438,
+											"height": 13,
+											"text": "«颜色»+color: varchar(10)",
+											"horizontalAlignment": 0
+										},
+										{
+											"_type": "UMLAttributeView",
+											"_id": "AAAAAAF02Lq9lMg3oN0=",
+											"_parent": {
+												"$ref": "AAAAAAF02LlKGcABbvo="
+											},
+											"model": {
+												"$ref": "AAAAAAF02Lq9SsgTCoE="
+											},
+											"fillColor": "#ffff00",
+											"font": "Arial;13;0",
+											"left": 749,
+											"top": 920,
+											"width": 210.61532592773438,
+											"height": 13,
+											"text": "«记录新增时间»+add_time: datetime",
+											"horizontalAlignment": 0
+										},
+										{
+											"_type": "UMLAttributeView",
+											"_id": "AAAAAAF02L2YbeBw+PI=",
+											"_parent": {
+												"$ref": "AAAAAAF02LlKGcABbvo="
+											},
+											"model": {
+												"$ref": "AAAAAAF02L2YHOBMDzk="
+											},
+											"fillColor": "#ffff00",
+											"font": "Arial;13;0",
+											"left": 749,
+											"top": 935,
+											"width": 210.61532592773438,
+											"height": 13,
+											"text": "«记录新增年分»+add_year: int",
+											"horizontalAlignment": 0
+										}
+									],
+									"fillColor": "#ffff00",
+									"font": "Arial;13;0",
+									"left": 744,
+									"top": 870,
+									"width": 220.61532592773438,
+									"height": 83
+								},
+								{
+									"_type": "UMLOperationCompartmentView",
+									"_id": "AAAAAAF02LlKGcAC4DQ=",
+									"_parent": {
+										"$ref": "AAAAAAF02LlKGb/7Ats="
+									},
+									"model": {
+										"$ref": "AAAAAAF02LlKF7/5REI="
+									},
+									"fillColor": "#ffff00",
+									"font": "Arial;13;0",
+									"left": 744,
+									"top": 953,
+									"width": 220.61532592773438,
+									"height": 10
+								},
+								{
+									"_type": "UMLReceptionCompartmentView",
+									"_id": "AAAAAAF02LlKGcADTDk=",
+									"_parent": {
+										"$ref": "AAAAAAF02LlKGb/7Ats="
+									},
+									"model": {
+										"$ref": "AAAAAAF02LlKF7/5REI="
+									},
+									"visible": false,
+									"fillColor": "#ffff00",
+									"font": "Arial;13;0",
+									"left": -88,
+									"top": -8,
+									"width": 10,
+									"height": 10
+								},
+								{
+									"_type": "UMLTemplateParameterCompartmentView",
+									"_id": "AAAAAAF02LlKGcAESN0=",
+									"_parent": {
+										"$ref": "AAAAAAF02LlKGb/7Ats="
+									},
+									"model": {
+										"$ref": "AAAAAAF02LlKF7/5REI="
+									},
+									"visible": false,
+									"fillColor": "#ffff00",
+									"font": "Arial;13;0",
+									"left": -88,
+									"top": -8,
+									"width": 10,
+									"height": 10
+								}
+							],
+							"fillColor": "#ffff00",
+							"font": "Arial;13;0",
+							"containerChangeable": true,
+							"left": 744,
+							"top": 832,
+							"width": 220.61532592773438,
+							"height": 131,
+							"nameCompartment": {
+								"$ref": "AAAAAAF02LlKGb/8JRA="
+							},
+							"attributeCompartment": {
+								"$ref": "AAAAAAF02LlKGcABbvo="
+							},
+							"operationCompartment": {
+								"$ref": "AAAAAAF02LlKGcAC4DQ="
+							},
+							"receptionCompartment": {
+								"$ref": "AAAAAAF02LlKGcADTDk="
+							},
+							"templateParameterCompartment": {
+								"$ref": "AAAAAAF02LlKGcAESN0="
+							}
+						},
+						{
+							"_type": "UMLNoteView",
+							"_id": "AAAAAAF02L6CUeSWFBM=",
+							"_parent": {
+								"$ref": "AAAAAAFF+qBtyKM79qY="
+							},
+							"font": "Arial;13;0",
+							"left": 1016,
+							"top": 872,
+							"width": 182.26611328125,
+							"height": 40,
+							"text": "car_num字段添加唯一索引\nadd_year字段添加普通索引"
+						},
+						{
+							"_type": "UMLNoteLinkView",
+							"_id": "AAAAAAF02L/SXO+Zwow=",
+							"_parent": {
+								"$ref": "AAAAAAFF+qBtyKM79qY="
+							},
+							"font": "Arial;13;0",
+							"head": {
+								"$ref": "AAAAAAF02L6CUeSWFBM="
+							},
+							"tail": {
+								"$ref": "AAAAAAF02LlKGb/7Ats="
+							},
+							"lineStyle": 1,
+							"points": "965:894;1015:893"
 						}
 					]
 				},
@@ -7806,6 +8114,67 @@
 							"name": "add_time",
 							"stereotype": "新增时间",
 							"type": "datetime"
+						}
+					]
+				},
+				{
+					"_type": "UMLClass",
+					"_id": "AAAAAAF02LlKF7/5REI=",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "car_color",
+					"stereotype": "车牌号颜色",
+					"attributes": [
+						{
+							"_type": "UMLAttribute",
+							"_id": "AAAAAAF02LsclMortx0=",
+							"_parent": {
+								"$ref": "AAAAAAF02LlKF7/5REI="
+							},
+							"name": "id",
+							"stereotype": "主键自增",
+							"type": "int"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "AAAAAAF02Lprv8TMkhg=",
+							"_parent": {
+								"$ref": "AAAAAAF02LlKF7/5REI="
+							},
+							"name": "car_num",
+							"stereotype": "车牌号",
+							"type": "varchar(50)"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "AAAAAAF02LqfLcYdbFM=",
+							"_parent": {
+								"$ref": "AAAAAAF02LlKF7/5REI="
+							},
+							"name": "color",
+							"stereotype": "颜色",
+							"type": "varchar(10)"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "AAAAAAF02Lq9SsgTCoE=",
+							"_parent": {
+								"$ref": "AAAAAAF02LlKF7/5REI="
+							},
+							"name": "add_time",
+							"stereotype": "记录新增时间",
+							"type": "datetime"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "AAAAAAF02L2YHOBMDzk=",
+							"_parent": {
+								"$ref": "AAAAAAF02LlKF7/5REI="
+							},
+							"name": "add_year",
+							"stereotype": "记录新增年分",
+							"type": "int"
 						}
 					]
 				}
