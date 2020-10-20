@@ -11,6 +11,7 @@ start
 
 |domain_park_api领域层|
     :车辆进场\nCarEnterServiceImpl;
+    :新增车牌颜色表car_color数据\n车牌颜色字段唯一索引;
     :查询vip_car表数据;
     if (vip_car表无数据?) then (yes)
         :查询car表;
