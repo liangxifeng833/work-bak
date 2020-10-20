@@ -1,0 +1,32 @@
+@startuml
+title 停用车牌-流程
+
+|小程序|
+start
+:停用车牌操作;
+
+:通过车牌号查询car表;
+if(车牌是否停用状态) then(yes)
+    :该车牌已停用,不可重复停用\n终止程序;
+    end
+endif
+
+|domain_park_api领域层|
+    :通过车牌号查询在场订单;
+|domain_park领域层|
+    :通过车牌号查询在场订单接口;
+|停简单|
+    :通过车牌号查询在场订单接口;
+|domain_park_api领域层|
+    if(车辆是否在场) then(yes)
+        :车辆已在场内，不可停用\n程序终止;
+        end
+    endif
+    :修改car表bind_status=2停用状态;
+
+|domain_park领域层|
+    :调用停简单取消自动代扣通知接口;
+|停简单|
+    :调用停简单取消自动代扣通知接口;
+end
+@enduml

@@ -1,0 +1,40 @@
+@startuml
+title 领取免费时长-流程
+
+|小程序|
+start
+:领取免费时长操作;
+
+|domain_park领域层|
+    :通过车牌号查询在场订单接口;
+|停简单|
+    :通过车牌号查询在场订单接口;
+|domain_park_api领域层|
+    if(车辆是否在场) then(no)
+        :车辆不在停车场内\n程序终止;
+        end;
+    endif
+
+    :查询领取记录表get_hour_record数量;
+    note right
+        where 会员主键 and type=1免费领取
+        and get_year_month=当前年月
+    endnote
+    if(当前月领取次数>=2) then(yes)
+        :当月领取次数已达上限，下月可再次领取;
+        end;
+    endif
+    if(当天领取次数>=1) then(yes)
+        :您今天已经领过1次免停时长;
+        end;
+    endif
+    :新增领取记录表get_hour_record;
+    :通过会员主键查询免停时长表free_hour;
+    if(存在记录?) then(yes)
+        :修改免停时长表free_hour\n有效时长累加5小时,\n累计时长累加5小时,\n有效期顺延30天;
+    else (no)
+        :新增免停时长表free_hour\n新增有效时长=5小时,\n累计时长=5小时,\n有效期顺延30天;
+
+    endif
+end
+@enduml

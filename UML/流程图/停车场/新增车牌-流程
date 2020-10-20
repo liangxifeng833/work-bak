@@ -1,0 +1,54 @@
+@startuml
+title 新增车牌-流程
+
+|小程序|
+start
+:添加车牌操作;
+
+|domain_park_api领域层|
+    :通过车牌号查询car表;
+    if(car表存在bind_status=1绑定状态) then (yes)
+        :提示:这个车牌号正在被他人使用\n程序终止;
+        end;
+    endif
+    :通过会员主键查询car表数量;
+    if(查询的数量>=4) then (yes)
+        :提示:您历史绑定车牌已经超过4个\n程序终止;
+        end;
+    endif
+
+    :通过车牌号和会员主键查询car表;
+    if(是否存在数据) then(yes)
+        :提示:您已经添加了这个车牌\n程序终止;
+        end;
+    endif
+|domain_park领域层|
+    :通过车牌号查询在场订单接口;
+|停简单|
+    :通过车牌号查询在场订单接口;
+|domain_park_api领域层|
+    if(车辆是否在场) then(no)
+        :车辆不在停车场内,不可添加车牌\n程序终止;
+        end;
+    endif
+
+    :通过车牌号查询车牌颜色表car_color数据\n获取车牌颜色;
+|domain_park领域层|
+    :调用停简单注册车牌接口;
+|停简单|
+    :调用停简单注册车牌接口;
+|domain_park_api领域层|
+    :注册车牌成功后\n获取停简单车辆唯一标示;
+    :新增car表数据;
+
+|domain_park领域层|
+    :调用停简单激活代扣通知接口;
+|停简单|
+    :调用停简单激活代扣通知接口;
+|domain_park_api领域层|
+    :通过停简单订单号\n查询停车记录表stop_record;
+    if(是否存在未出场的停车记录) then(no)
+        :不存在则新增停车记录;
+    endif
+end
+@enduml

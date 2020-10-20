@@ -1,0 +1,43 @@
+@startuml
+title 启用车牌-流程
+
+
+|小程序|
+start
+:启用车牌操作;
+
+|domain_park_api领域层|
+    :通过车牌号查询car表;
+    if(car表存在bind_status=1绑定状态) then (yes)
+        :提示:这个车牌号正在被他人使用\n程序终止;
+        end;
+    endif
+    :通过会员主键查询car表启用状态的数量;
+    if(查询的数量>=2) then (yes)
+        :不可启用这个车牌号，因为您已经有两辆车处于启用中\n程序终止;
+        end;
+    endif
+
+    :修改car表bind_status=1启用状态;
+
+
+|domain_park领域层|
+    :调用停简单激活代扣通知接口;
+|停简单|
+    :调用停简单激活代扣通知接口;
+
+|domain_park_api领域层|
+    :查询在场订单;
+|domain_park领域层|
+    :通过车牌号查询在场订单接口;
+|停简单|
+    :通过车牌号查询在场订单接口;
+|domain_park_api领域层|
+    if(车辆是否在场) then(yes)
+        :通过停简单订单号查询停车记录表;
+        if(是否存在未出场的停车记录?) then(no)
+            :新增停车记录;
+        endif
+    endif
+end
+@enduml
