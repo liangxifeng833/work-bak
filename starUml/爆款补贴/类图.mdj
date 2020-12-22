@@ -304,7 +304,7 @@
 											"top": 330,
 											"width": 370.96990966796875,
 											"height": 13,
-											"text": "«审核状态 1:审核通过 2:未审核 默认:2 »+check_status: tinyint(2)",
+											"text": "«状态 1:设置 2:未设置 默认:2 »+status: tinyint(2)",
 											"horizontalAlignment": 0
 										},
 										{
@@ -340,7 +340,7 @@
 											"top": 360,
 											"width": 370.96990966796875,
 											"height": 13,
-											"text": "«审核人员主键 促销平台登录主键»+check_id: int(11)",
+											"text": "«设置人员主键 促销平台登录主键»+user_id: int(11)",
 											"horizontalAlignment": 0
 										},
 										{
@@ -358,7 +358,7 @@
 											"top": 375,
 											"width": 370.96990966796875,
 											"height": 13,
-											"text": "«审核时间»+check_time: datetime",
+											"text": "«设置时间»+check_time: datetime",
 											"horizontalAlignment": 0
 										},
 										{
@@ -1551,7 +1551,7 @@
 							"top": 504,
 							"width": 124.0001220703125,
 							"height": 40,
-							"text": "contract_number:\n 建普通索引"
+							"text": "contract_number\n 建普通索引"
 						},
 						{
 							"_type": "UMLNoteLinkView",
@@ -1706,8 +1706,8 @@
 							"_parent": {
 								"$ref": "AAAAAAF2T8Vy7DBK7yM="
 							},
-							"name": "check_status",
-							"stereotype": "审核状态 1:审核通过 2:未审核 默认:2 ",
+							"name": "status",
+							"stereotype": "状态 1:设置 2:未设置 默认:2 ",
 							"type": "tinyint(2)"
 						},
 						{
@@ -1726,8 +1726,8 @@
 							"_parent": {
 								"$ref": "AAAAAAF2T8Vy7DBK7yM="
 							},
-							"name": "check_id",
-							"stereotype": "审核人员主键 促销平台登录主键",
+							"name": "user_id",
+							"stereotype": "设置人员主键 促销平台登录主键",
 							"type": "int(11)"
 						},
 						{
@@ -1737,7 +1737,7 @@
 								"$ref": "AAAAAAF2T8Vy7DBK7yM="
 							},
 							"name": "check_time",
-							"stereotype": "审核时间",
+							"stereotype": "设置时间",
 							"type": "datetime"
 						},
 						{
