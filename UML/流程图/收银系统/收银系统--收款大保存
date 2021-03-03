@@ -1,0 +1,107 @@
+@startuml
+title 收款大保存--流程图
+
+
+|view|
+start
+	:大保存\nsettlement_receivables_action.php;
+	:数组形式接收各支付方式\n应付额，实付额等参数;
+|BLL接口|
+    :ljorder/\norderPays.php;
+    note right
+        <color:red>Flag1</color>
+        1.去ljyun_share和db_ljlj
+          两个数据库获取商户信息
+        2.去私有库获取订单信息
+        3.去db_ljlj获取卖场促销单笔最高优惠
+    end note
+|view|
+    if(是否家装合同单？)then(yes)
+        :exit(家装合同不可收尾款);
+        end;
+    endif
+    if(是否尾款订单？)then(no)
+|BLL接口|
+        :casher/basePayment;
+        note:引用<color:red>Flag1
+        :初始化查询db_ljlj中\n支付方式字典和商户数据;
+        :组装product_conume表数据;
+        :查询各个支付方式字典表数据\n注意:如果商户在购物券内名单中则不查询购物券;
+        :验证商户是否可是使用购物券支付;
+        :去db_ticket获取电子券信息;
+        :去下单系统查询电子券是否在线上支付\n如果线上支付则也计算该电子券为商户分摊？;
+        note:该部分是\n线下下单线上支付部分功\n目前没有用？
+        :计算电子券商户分摊金额;
+        :组装各支付方式表数据;
+    else(yes)
+        :casher/finalPayment;
+        :尾款收款除了合同额=0\n其他逻辑首期款一致;
+    endif
+|DAL接口|
+	:调用DAL事务新增数据\nljmis/tctPayment;
+	note right
+		新增product_conume表数据
+		新增payform_list表（现金，购物券，电子券）
+			payform_trade　＝　电子券+购物券总额
+			payform_trade_fee = 购物券手续费+电子券商户分摊额
+		新增银行卡等其他支付方式
+		修改微信/支付宝关联consumeId
+	endnote
+|BLL接口|
+    :修改订单付款状态接口\nljorder/tctModifyOrder;
+    note right
+        修改订单付款期数状态=已付款
+        并关联付款consumeId
+        尾款需判断之前期数
+	endnote
+
+|view|
+	:大保存之后的逻辑如下;
+	:处理会员信息;
+|BLL接口|
+    :调用接口：ljorder/tctModifyOrder;
+    :去会员平台查询是否是会员;
+|view|
+	if(是否会员)then(yes)
+		:去BLL更新会员信息;
+	else(no)
+		:去BLL新增会员;
+		:去短信平台发短信;
+	endif
+	
+	:处理券信息;
+	:用券处理;
+|BLL接口|
+    :调用用券接口:\nticket/useTicket.index_put();
+|DAL接口|
+	:调用事务接口：\ntctChangeTicketState.index_put();
+	:修改券状态\n新增合同收券记录表数据;
+|view|
+
+	if(非尾款 && 时间在大鲸鱼活动指定310行)then(yes)
+		:<font color=red><b>调用应用层联单发券;
+	endif
+	
+	if(<font color=red><b>1==2 and  非尾款 325行)then(yes)
+		:根据合同号/手机号进行发券\n指定某个批次和数量发券;
+		:绑定合同发券记录\n合同发券记录表新增数据;
+	endif
+	
+	if(如果有用券信息)then(yes)
+		:调用应用层核销卡券\n<font color=red><b>应用层调用微信卡券核销接口;
+		:核销日志\nnew_payment/wechat_cancel_log.php;
+	endif
+	
+	:收款成功打印;
+	if(尾款)then(yes)
+		:打印小票;
+	else(no)
+		if(家装合同)then(yes)
+			:只打小票;
+		else(no)
+			:打印合同;
+			:打印小票;
+		endif
+	endif
+end
+@enduml

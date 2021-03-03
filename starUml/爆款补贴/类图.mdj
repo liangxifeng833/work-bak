@@ -681,11 +681,11 @@
 								"$ref": "AAAAAAFF+qBtyKM79qY="
 							},
 							"font": "Arial;16;0",
-							"left": 384,
-							"top": 72,
+							"left": 392,
+							"top": 88,
 							"width": 232.51405334472656,
 							"height": 53,
-							"text": "数据库名：ljyun_share"
+							"text": "数据库名：db_ljlj"
 						},
 						{
 							"_type": "UMLClassView",
