@@ -33,20 +33,20 @@
               <elementProp name="" elementType="HTTPArgument">
                 <boolProp name="HTTPArgument.always_encode">false</boolProp>
                 <stringProp name="Argument.value">{&#xd;
-	&quot;unionid&quot;:&quot;13301223034&quot;,&#xd;
+	&quot;unionid&quot;:&quot;ljticketusecode1912--unionid&quot;,&#xd;
 	&quot;batchIds&quot;:{&#xd;
-			&quot;10&quot;:&quot;1&quot;&#xd;
+			&quot;1912&quot;:&quot;50&quot;&#xd;
 		}&#xd;
 }</stringProp>
                 <stringProp name="Argument.metadata">=</stringProp>
               </elementProp>
             </collectionProp>
           </elementProp>
-          <stringProp name="HTTPSampler.domain">192.168.9.157</stringProp>
-          <stringProp name="HTTPSampler.port">8080</stringProp>
+          <stringProp name="HTTPSampler.domain">127.0.0.1</stringProp>
+          <stringProp name="HTTPSampler.port">8083</stringProp>
           <stringProp name="HTTPSampler.protocol">http</stringProp>
           <stringProp name="HTTPSampler.contentEncoding"></stringProp>
-          <stringProp name="HTTPSampler.path">/domain_ticket/sendTicket</stringProp>
+          <stringProp name="HTTPSampler.path">sendTicket</stringProp>
           <stringProp name="HTTPSampler.method">PUT</stringProp>
           <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
           <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
