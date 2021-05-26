@@ -1,0 +1,25 @@
+@startuml
+title 静态页面生成
+
+actor 用户 #red
+/'-------------定义参与者别名 -------------------'/
+participant "前端" as view #00FF00
+participant "后端" as back #FFFFFF
+
+用户->view:页面初始化()
+    view->back:getStaticFile()
+        note right view
+           java程序判断服务器上有无静态页面
+        end note
+    back-->view:静态页面创建时间和文件名/null
+view-->用户:
+
+用户->view:生成静态页面()
+    view->back:createStaticFile()
+        note right view
+            java程序生成静态页面放到nginx所在服务器
+        end note
+    back-->view:
+view-->用户:
+
+@enduml
