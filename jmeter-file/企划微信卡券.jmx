@@ -18,7 +18,7 @@
           <boolProp name="LoopController.continue_forever">false</boolProp>
           <stringProp name="LoopController.loops">1</stringProp>
         </elementProp>
-        <stringProp name="ThreadGroup.num_threads">1</stringProp>
+        <stringProp name="ThreadGroup.num_threads">10</stringProp>
         <stringProp name="ThreadGroup.ramp_time">1</stringProp>
         <boolProp name="ThreadGroup.scheduler">false</boolProp>
         <stringProp name="ThreadGroup.duration"></stringProp>
@@ -228,31 +228,16 @@
           </ResultCollector>
           <hashTree/>
         </hashTree>
-        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="bbb" enabled="false">
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="bbb" enabled="true">
           <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables" enabled="true">
-            <collectionProp name="Arguments.arguments">
-              <elementProp name="wechatAccountId" elementType="HTTPArgument">
-                <boolProp name="HTTPArgument.always_encode">false</boolProp>
-                <stringProp name="Argument.value">1</stringProp>
-                <stringProp name="Argument.metadata">=</stringProp>
-                <boolProp name="HTTPArgument.use_equals">true</boolProp>
-                <stringProp name="Argument.name">wechatAccountId</stringProp>
-              </elementProp>
-              <elementProp name="wechatParams" elementType="HTTPArgument">
-                <boolProp name="HTTPArgument.always_encode">false</boolProp>
-                <stringProp name="Argument.value">{&quot;card_id&quot;:&quot;pNKvmjhSjQInpu8IuseqiAzwTVvY&quot;,&quot;code&quot;:[&quot;491018050883324&quot;,&quot;632018050883325&quot;,&quot;135018050883326&quot;,&quot;293018050883327&quot;,&quot;875018050883328&quot;,&quot;122018050883329&quot;,&quot;320018050883330&quot;,&quot;312018050883331&quot;,&quot;247018050883332&quot;,&quot;171018050883333&quot;,&quot;739018050883334&quot;,&quot;608018050883335&quot;,&quot;725018050883336&quot;,&quot;801018050883337&quot;,&quot;609018050883338&quot;,&quot;176018050883339&quot;,&quot;341018050883340&quot;,&quot;379018050883341&quot;,&quot;901018050883342&quot;,&quot;698018050883343&quot;,&quot;695018050883344&quot;,&quot;443018050883345&quot;,&quot;626018050883346&quot;,&quot;200018050883347&quot;,&quot;342018050883348&quot;,&quot;931018050883349&quot;,&quot;644018050883350&quot;,&quot;561018050883351&quot;,&quot;640018050883352&quot;,&quot;399018050883353&quot;,&quot;334018050883354&quot;,&quot;877018050883355&quot;,&quot;108018050883356&quot;,&quot;343018050883357&quot;,&quot;277018050883358&quot;,&quot;845018050883359&quot;,&quot;628018050883360&quot;,&quot;535018050883361&quot;,&quot;997018050883362&quot;,&quot;485018050883363&quot;,&quot;229018050883364&quot;,&quot;748018050883365&quot;,&quot;557018050883366&quot;,&quot;825018050883367&quot;,&quot;789018050883368&quot;,&quot;457018050883369&quot;,&quot;846018050883370&quot;,&quot;129018050883371&quot;,&quot;268018050883372&quot;,&quot;674018050883373&quot;,&quot;138018050883374&quot;,&quot;180018050883375&quot;,&quot;538018050883376&quot;,&quot;759018050883377&quot;,&quot;144018050883378&quot;,&quot;919018050883379&quot;,&quot;501018050883380&quot;,&quot;804018050883381&quot;,&quot;217018050883382&quot;,&quot;869018050883383&quot;,&quot;480018050883384&quot;,&quot;841018050883385&quot;,&quot;652018050883386&quot;,&quot;701018050883387&quot;,&quot;780018050883388&quot;,&quot;865018050883389&quot;,&quot;290018050883390&quot;,&quot;905018050883391&quot;,&quot;423018050883392&quot;,&quot;435018050883393&quot;,&quot;439018050883394&quot;,&quot;581018050883395&quot;,&quot;124018050883396&quot;,&quot;246018050883397&quot;,&quot;921018050883398&quot;,&quot;503018050883399&quot;,&quot;657018050883400&quot;,&quot;910018050883401&quot;,&quot;310018050883402&quot;,&quot;876018050883403&quot;,&quot;176018050883404&quot;,&quot;485018050883405&quot;,&quot;768018050883406&quot;,&quot;997018050883407&quot;,&quot;161018050883408&quot;,&quot;511018050883409&quot;,&quot;106018050883410&quot;,&quot;707018050883411&quot;,&quot;662018050883412&quot;,&quot;812018050883413&quot;,&quot;433018050883414&quot;,&quot;650018050883415&quot;,&quot;598018050883416&quot;,&quot;460018050883417&quot;,&quot;657018050883418&quot;,&quot;412018050883419&quot;,&quot;245018050883420&quot;,&quot;611018050883421&quot;,&quot;798018050883422&quot;,&quot;301018050883423&quot;]}</stringProp>
-                <stringProp name="Argument.metadata">=</stringProp>
-                <boolProp name="HTTPArgument.use_equals">true</boolProp>
-                <stringProp name="Argument.name">wechatParams</stringProp>
-              </elementProp>
-            </collectionProp>
+            <collectionProp name="Arguments.arguments"/>
           </elementProp>
-          <stringProp name="HTTPSampler.domain">192.168.15.109</stringProp>
-          <stringProp name="HTTPSampler.port">8080</stringProp>
+          <stringProp name="HTTPSampler.domain">127.0.0.1</stringProp>
+          <stringProp name="HTTPSampler.port">8099</stringProp>
           <stringProp name="HTTPSampler.protocol">http</stringProp>
           <stringProp name="HTTPSampler.contentEncoding"></stringProp>
-          <stringProp name="HTTPSampler.path">/domain_wechat_card/wechatCard/importCode</stringProp>
-          <stringProp name="HTTPSampler.method">POST</stringProp>
+          <stringProp name="HTTPSampler.path">/test</stringProp>
+          <stringProp name="HTTPSampler.method">GET</stringProp>
           <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
           <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
           <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
@@ -307,6 +292,43 @@
               </elementProp>
             </collectionProp>
           </HeaderManager>
+          <hashTree/>
+          <ResultCollector guiclass="StatVisualizer" testclass="ResultCollector" testname="Aggregate Report" enabled="true">
+            <boolProp name="ResultCollector.error_logging">false</boolProp>
+            <objProp>
+              <name>saveConfig</name>
+              <value class="SampleSaveConfiguration">
+                <time>true</time>
+                <latency>true</latency>
+                <timestamp>true</timestamp>
+                <success>true</success>
+                <label>true</label>
+                <code>true</code>
+                <message>true</message>
+                <threadName>true</threadName>
+                <dataType>true</dataType>
+                <encoding>false</encoding>
+                <assertions>true</assertions>
+                <subresults>true</subresults>
+                <responseData>false</responseData>
+                <samplerData>false</samplerData>
+                <xml>false</xml>
+                <fieldNames>true</fieldNames>
+                <responseHeaders>false</responseHeaders>
+                <requestHeaders>false</requestHeaders>
+                <responseDataOnError>false</responseDataOnError>
+                <saveAssertionResultsFailureMessage>true</saveAssertionResultsFailureMessage>
+                <assertionsResultsToSave>0</assertionsResultsToSave>
+                <bytes>true</bytes>
+                <sentBytes>true</sentBytes>
+                <url>true</url>
+                <threadCounts>true</threadCounts>
+                <idleTime>true</idleTime>
+                <connectTime>true</connectTime>
+              </value>
+            </objProp>
+            <stringProp name="filename"></stringProp>
+          </ResultCollector>
           <hashTree/>
         </hashTree>
         <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="查询促销活动和电子券" enabled="false">
@@ -451,7 +473,7 @@
           <boolProp name="LoopController.continue_forever">false</boolProp>
           <stringProp name="LoopController.loops">1</stringProp>
         </elementProp>
-        <stringProp name="ThreadGroup.num_threads">100</stringProp>
+        <stringProp name="ThreadGroup.num_threads">1</stringProp>
         <stringProp name="ThreadGroup.ramp_time">1</stringProp>
         <boolProp name="ThreadGroup.scheduler">false</boolProp>
         <stringProp name="ThreadGroup.duration"></stringProp>
@@ -468,7 +490,7 @@
           </collectionProp>
         </HeaderManager>
         <hashTree/>
-        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="发券接口" enabled="true">
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="发券接口" enabled="false">
           <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
           <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
             <collectionProp name="Arguments.arguments">
@@ -484,7 +506,7 @@
               </elementProp>
             </collectionProp>
           </elementProp>
-          <stringProp name="HTTPSampler.domain">127.0.0.1</stringProp>
+          <stringProp name="HTTPSampler.domain">192.168.9.157</stringProp>
           <stringProp name="HTTPSampler.port">8080</stringProp>
           <stringProp name="HTTPSampler.protocol">http</stringProp>
           <stringProp name="HTTPSampler.contentEncoding"></stringProp>
@@ -738,7 +760,7 @@
           </ResultCollector>
           <hashTree/>
         </hashTree>
-        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="获取活动批次列表" enabled="true">
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="获取活动批次列表" enabled="false">
           <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
           <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
             <collectionProp name="Arguments.arguments">
@@ -1466,7 +1488,7 @@
           </ResultCollector>
           <hashTree/>
         </hashTree>
-        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="定时任务，凌晨执行，生成startUp.js文件data" enabled="false">
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="定时任务，凌晨执行，生成startUp.js文件data" enabled="true">
           <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables" enabled="true">
             <collectionProp name="Arguments.arguments"/>
           </elementProp>
