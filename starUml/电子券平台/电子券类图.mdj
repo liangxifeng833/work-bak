@@ -6387,7 +6387,7 @@
 											"top": 280,
 											"width": 426.57537841796875,
 											"height": 13,
-											"text": "+mart_cap_ratio: int 占有卖场封顶额的比例,不可为空,默认=0",
+											"text": "+mart_cap_ratio: decimal(10.2) 占有卖场封顶额的比例,不可为空,默认=0",
 											"horizontalAlignment": 0
 										},
 										{
@@ -9003,7 +9003,7 @@
 								"$ref": "AAAAAAF7yW1B9kU8b5Y="
 							},
 							"name": "mart_cap_ratio",
-							"type": "int 占有卖场封顶额的比例,不可为空,默认=0"
+							"type": "decimal(10.2) 占有卖场封顶额的比例,不可为空,默认=0"
 						},
 						{
 							"_type": "UMLAttribute",

@@ -10,7 +10,8 @@
 <node CREATED="1631332116768" ID="ID_317305262" MODIFIED="1631332117613" TEXT="https://docs.qq.com/doc/DSlJmRWV3eXF0Snlt"/>
 </node>
 <node CREATED="1631156745359" ID="ID_1354043171" MODIFIED="1631157267737" TEXT="&#x5c01;&#x9876;&#x989d;&#x6d3b;&#x52a8;&#x5217;&#x8868; martCap/getPage"/>
-<node CREATED="1631955299629" ID="ID_1646963912" MODIFIED="1631955308374" TEXT="&#x901a;&#x8fc7;&#x5c01;&#x9876;&#x989d;&#x6d3b;&#x52a8;&#x4e3b;&#x952e;&#x67e5;&#x8be2;&#x5c01;&#x9876;&#x989d;&#x5269;&#x4f59;&#x5360;&#x6bd4; martCap/geRremainRatio">
+<node CREATED="1631955299629" FOLDED="true" ID="ID_1646963912" MODIFIED="1632798643524" TEXT="&#x901a;&#x8fc7;&#x5c01;&#x9876;&#x989d;&#x6d3b;&#x52a8;&#x4e3b;&#x952e;&#x67e5;&#x8be2;&#x5c01;&#x9876;&#x989d;&#x5269;&#x4f59;&#x5360;&#x6bd4; martCap/geRremainRatio">
+<icon BUILTIN="button_cancel"/>
 <node CREATED="1631955308965" ID="ID_336090403" MODIFIED="1631955317720" TEXT="https://docs.qq.com/doc/DSmlwYnBDdlRjYmhq"/>
 </node>
 </node>
