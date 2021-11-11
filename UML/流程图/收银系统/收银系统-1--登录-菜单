@@ -1,0 +1,35 @@
+@startuml
+title 登录-菜单
+start
+:cashier_sign_in.php;
+:验证mac地址/用户名/密码;
+:注册SESSION;
+note right
+  uname=用户名
+  tname=真实姓名
+  deskId=款台号
+  userid=用户主键
+  ====
+  同时以上信息也注册了cookie
+  对cookie的过期时间设置为24小时
+  <font color=red>??目前登录时间没有保持24小时,此处需要修改</font>
+  收银系统所有php页面验证登录超时,都是通过session读取数据
+  所以这里感觉需要设置SESSION的过期时间
+end note
+
+:登录成功后跳转到菜单页;
+:receivables_desk.php;
+:该页面还有以旧换新的查询,建议去掉;
+:当班统计页面数据查询;
+note right
+    以收银员为单位
+    查询出当班未提交的数据
+end note
+:外网连通情况监测;
+note right
+    实现方式有如下两种供选择:
+    * js 轮训调用后端shell脚本方式
+    * 使用websocket后端实时推送到前端
+end note
+stop
+@enduml

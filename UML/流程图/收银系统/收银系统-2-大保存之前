@@ -1,0 +1,90 @@
+@startuml
+title 大保存之前--流程图
+
+start
+	fork
+		group 普通收款合同验证
+			:query_contract.php;
+			:输入合同验证合同单;
+			:查询订单数据;
+			if(收银员)then(yes)
+				:只能收当天的订单;
+			elseif(收银监管)then(yes)
+				:无收款时间限制;
+			endif
+		end group
+		group 合同确认
+			: order_confirm.php;
+			:<font color=red>初始化页面只显示合同额和本期折后应付额;
+			:<font color=red>其他数据通过触发按钮获取;
+			note right: 订单/付款期数/订单商品\n商户\n会员
+			:<font color=red>下一步->其他逻辑页面\n payOther.php;
+			note right
+			    当前为判断爆款商品合同单
+			    关联的门槛合同是否已退款
+			    如果退款则不允许收款
+			    <font color=red>建议在该页面中将爆款商品合同查询部分去掉
+			end note
+		end group
+	fork again
+		group 收尾款合同验证
+			:final_order_inquiry.php;
+			:查询订单数据;
+			:获取尾款支付期数数据;
+			:验证该合同是否退款;
+		end group
+		group 尾款合同确认
+			:final_order_confirm.php;
+			note right: 查询订单数据\n查询商户数据\n查询会员数据
+		end group
+	end fork
+group 收款菜单
+	:收款页面\nsettlement_receivables.php\npayType=1正常收,2手工收,3尾款收;
+	:页面初始化获取:;
+	fork
+		:查询订单数据\nBLL接口中\n如果订单中优惠类型=卖场促销\n则查询单笔最高优惠;;
+	fork again
+		:商户数据;
+	fork again
+		:查询该合同历史收款数据\nproduct_consume表数据\n查询每个consumeId的各种支付方式;
+	fork again
+		:查询付款方式字典;
+	end fork
+
+
+	if(蓝景装饰合作)then(yes)
+			:电子券收款\npaypoop_html/ticket_pay.php;
+			:ajax调用BLL验证\n电子券状态已使用/作废/过期/黑白名单\n返回券信息;
+			:验证电子券用券条件:排他/累加等;
+	else(no)
+		if(尾款)then(yes)
+			:不允许电子券收款\n其他方式可以收款;
+		else(no)
+			:全部支付方式均可收款;
+			fork
+				:支付宝\npaypop_html/ali_pay_scan.php;
+				:ali_pay_ajax.php异步请求BLL支付;
+				:新增alipay_annal数据表数据;
+			fork again
+				:微信\npaypop_html/wechat_pay_scan.php;
+				:wechat_pay_ajax.php异步请求BLL支付;
+				:新增wechat_annal数据表数据;
+			fork again
+				:银行卡支付\n驱动pos机刷卡;
+			fork again
+				:其他支付方式;
+			end fork
+			if(移动支付)then(yes)
+				:成功返回交易号transaction_id;
+			elseif(银行卡)then(yes)
+				:pos机返回交易号;
+			elseif(其他支付方式)then(yes)
+				:收银员手动输入编号和金额;
+			endif
+		endif
+	endif
+	:<font color=red>对于已经添加的支付方式可删减(支付宝,微信,银行卡除外);
+end group
+
+stop
+@enduml
