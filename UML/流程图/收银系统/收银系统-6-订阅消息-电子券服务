@@ -1,0 +1,47 @@
+@startuml
+title 收款-订阅消息-会员服务-流程图
+
+|消息队列服务|
+start
+:收款成功\nconsumeId+合同号;
+
+|电子券服务|
+    :订阅接收到消息队列的\nconsumeId和合同号;
+:处理券信息;
+:用券处理;
+|BLL接口|
+    :调用用券接口:\nticket/useTicket.index_put();
+	note left:开启事务:修改券状态
+|view|
+
+	if(非尾款 && 时间在大鲸鱼活动指定310行)then(yes)
+		:<font color=red><b>调用应用层联单发券;
+	endif
+
+	if(<font color=red><b>1==2 and  非尾款 325行)then(yes)
+		:根据合同号/手机号进行发券\n指定某个批次和数量发券;
+		:绑定合同发券记录\n合同发券记录表新增数据;
+	endif
+	
+	if(如果有用券信息)then(yes)
+		:调用应用层核销卡券\n<font color=red><b>应用层调用微信卡券核销接口;
+		:核销日志\nnew_payment/wechat_cancel_log.php;
+	endif
+
+:去短信平台发短信;
+:赠送停车时长;
+note left:调用的是java接口
+
+	:收款成功打印;
+	if(尾款)then(yes)
+		:打印小票;
+	else(no)
+		if(家装合同)then(yes)
+			:只打小票;
+		else(no)
+			:打印合同;
+			:打印小票;
+		endif
+	endif
+end
+@enduml

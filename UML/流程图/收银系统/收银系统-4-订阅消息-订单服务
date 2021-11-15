@@ -1,0 +1,22 @@
+@startuml
+title 收款大保存--流程图
+
+|消息队列服务|
+start
+:收款成功\nconsumeId+合同号;
+|订单服务|
+    :订阅接收到消息队列的\nconsumeId和合同号;
+|redis缓存服务|
+    :查询订单数据\n付款期数数据;
+|订单服务|
+    :从redis中读到\n订单和付款期数数据;
+    group订单事务开启
+        :修改订单付款期数表状态=已付款;
+        :修改订单付款期数表consumerId;
+    end group
+    if(事务执行是否失败?)then(yes)
+        :写日志;
+        :音响报警;
+    endif
+end
+@enduml

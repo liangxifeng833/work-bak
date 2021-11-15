@@ -1,118 +1,67 @@
 @startuml
 title 收款大保存--流程图
 
-
-|view|
+|收款服务|
 start
-	:大保存\nsettlement_receivables_action.php;
 	:数组形式接收各支付方式\n应付额，实付额等参数;
-|BLL接口|
-    :ljorder/\norderPays.php;
-    note right
-        <color:red>Flag1</color>
-        1.去私有库,ljyun_share.merchant_online和db_ljlj.合同签订和商户信息表
-          查询云编号,K代码,展位号,merchant_info主键,私有库store表的商户电话
-        2.去私有库获取订单,付款期数表数据
-    end note
-|view|
-    if(是否家装合同单？)then(yes)
-        :exit(家装合同不可收尾款);
+    :去ljyun_share.merchant_online和db_ljlj.\n合同签订和商户信息表\n查询云编号,K代码,展位号,merchant_info主键\n私有库store表的商户电话;
+    :去私有库获取订单,付款期数表数据;
+    if(订单下单时间是否为当天)then(no)
+        :终止收款;
         end;
+    else if(付款方式\n支付状态\n是否已付款)then(yes)
+        :终止收款;
+        end;
+    else if(是否家装合同单？)then(yes)
+        :家装合同不可收尾款;
+        end;
+    else(nothing)
     endif
     if(是否尾款订单？)then(no)
-|BLL接口|
-        :casher/basePayment;
-        note:引用<color:red>Flag1
         :初始化如下:
         * 查询db_ljlj中
           支付方式字典
           第三方支付方式字典
           当班提交表主键和拆分号
-        * 如果是蓝景装饰合同通过固定的蓝景装饰K代码查询
+        * 如果是蓝景装饰合同
+          通过固定的蓝景装饰K代码查询
           蓝景装饰商户表merchant_info数据;
 
-        if(订单付款方式中支付状态是否已付款)then(yes)
-            :终止收款;
-            end;
-        else(no)
-        endif
+        :组装流水号;
         :组装product_conume表数据;
-        :查询各个支付方式字典表数据\n注意:如果商户在购物券内名单中则不查询购物券;
-        :验证商户是否可是使用购物券支付;
-        :去db_ticket获取电子券信息;
-        :去下单系统查询电子券是否在线上支付\n如果线上支付则也计算该电子券为商户分摊？;
-        note:该部分是\n线下下单线上支付部分功\n目前没有用？
-        :计算电子券商户分摊金额;
-        :组装各支付方式表数据;
+        :组装现金表数据;
+        :<font color=red>组装电子券数据;
+        note left:该步骤将电子券收款表从\ndb_tiket移动到db_ljlj中
+        :组装银行卡表数据;
+        note left:注意:银行卡需要通过\n支付方式字典表获取类型\n(1借记卡/2贷记卡3外卡)\n以及大小额计算手续费
+        :组装福卡/支票/微信/支付宝/第三方支付数据;
+        note left:注意:微信和支付宝是修改数据\n其他支付方法为新增数据
+        if(计算出来的总的实付额是否与页面传递过来的实付额相等)then(no)
+            :终止收款;
+            end
+        endif
     else(yes)
-        :casher/finalPayment;
         :尾款收款除了合同额=0\n其他逻辑首期款一致;
     endif
-|DAL接口|
-	:调用DAL事务新增数据\nljmis/tctPayment;
-	note right
-		新增product_conume表数据
-		新增payform_list表（现金，购物券，电子券）
-			payform_trade　＝　电子券+购物券总额
-			payform_trade_fee = 购物券手续费+电子券商户分摊额
-		新增银行卡等其他支付方式
-		修改微信/支付宝关联consumeId
-	endnote
-|BLL接口|
-    :修改订单付款状态接口\nljorder/tctModifyOrder;
-    note right
-        修改订单付款期数状态=已付款
-        并关联付款consumeId
-        尾款需判断之前期数
-	endnote
-
-|view|
-	:大保存之后的逻辑如下;
-	:处理会员信息;
-|BLL接口|
-    :调用接口：ljorder/tctModifyOrder;
-    :去会员平台查询是否是会员;
-|view|
-	if(是否会员)then(yes)
-		:去BLL更新会员信息;
-	else(no)
-		:去BLL新增会员;
-		:去短信平台发短信;
-	endif
-	
-	:处理券信息;
-	:用券处理;
-|BLL接口|
-    :调用用券接口:\nticket/useTicket.index_put();
-|DAL接口|
-	:调用事务接口：\ntctChangeTicketState.index_put();
-	:修改券状态\n新增合同收券记录表数据;
-|view|
-
-	if(非尾款 && 时间在大鲸鱼活动指定310行)then(yes)
-		:<font color=red><b>调用应用层联单发券;
-	endif
-	
-	if(<font color=red><b>1==2 and  非尾款 325行)then(yes)
-		:根据合同号/手机号进行发券\n指定某个批次和数量发券;
-		:绑定合同发券记录\n合同发券记录表新增数据;
-	endif
-	
-	if(如果有用券信息)then(yes)
-		:调用应用层核销卡券\n<font color=red><b>应用层调用微信卡券核销接口;
-		:核销日志\nnew_payment/wechat_cancel_log.php;
-	endif
-	
-	:收款成功打印;
-	if(尾款)then(yes)
-		:打印小票;
-	else(no)
-		if(家装合同)then(yes)
-			:只打小票;
-		else(no)
-			:打印合同;
-			:打印小票;
-		endif
-	endif
+    group db_ljlj库收款事务
+        :新增product_conume表数据\n得到consuemId;
+        fork
+            :新增payform_list表数据;
+            note left
+                现金和电子券支付方式
+                特殊字段说明:
+                payform_cash=现金总额
+                payform_trade=电子券总额
+                <font color=red>payform_trade_fee=电子券商户分摊额
+            end note
+        fork again
+            :新增\n银行卡表\n支票\n福卡\n第三方卡\n电子券收款表数据;
+        fork again
+            :修改微信/支付宝表\n关联的consumeId;
+        end fork
+        :发布事务消息到消息队列;
+	end group
+|消息队列server|
+    :接收consumeId和合同号等消息\n并将其存储到队列服务中;
 end
 @enduml
