@@ -1,9 +1,10 @@
 @startuml
-title 收款大保存--流程图
+title 收款大保存-流程图
 
-|收款服务|
+|收银系统php|
 start
-	:数组形式接收各支付方式\n应付额，实付额等参数;
+    :接收各支付方式\n应付额，实付额等参数;
+|收款服务|
     :去ljyun_share.merchant_online和db_ljlj.\n合同签订和商户信息表\n查询云编号,K代码,展位号,merchant_info主键\n私有库store表的商户电话;
     :去私有库获取订单,付款期数表数据;
     if(订单下单时间是否为当天)then(no)
@@ -52,10 +53,10 @@ start
                 特殊字段说明:
                 payform_cash=现金总额
                 payform_trade=电子券总额
-                <font color=red>payform_trade_fee=电子券商户分摊额
             end note
         fork again
             :新增\n银行卡表\n支票\n福卡\n第三方卡\n电子券收款表数据;
+            note left:<font color=red>电子券收券表有退款标示\n退款保存也需要修改
         fork again
             :修改微信/支付宝表\n关联的consumeId;
         end fork
@@ -63,5 +64,21 @@ start
 	end group
 |消息队列server|
     :接收consumeId和合同号等消息\n并将其存储到队列服务中;
+|收款服务|
+    if(收款逻辑失败?)then(yes)
+        :记录日志并报警;
+        end
+    endif
+|收银系统php|
+	if(尾款)then(yes)
+		:打印小票;
+	else(no)
+		if(家装合同)then(yes)
+			:只打小票;
+		else(no)
+			:打印合同;
+			:打印小票;
+		endif
+	endif
 end
 @enduml

@@ -34,6 +34,7 @@ start
             :新增会员积分表;
             :新增会员等级表;
         end group
+        :<font color=red>给用户发送短信?;
 |收款服务|
         :修改product_conume表\n关联的memberId;
     endif
