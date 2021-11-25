@@ -23,7 +23,7 @@ start
 			    当前为判断爆款商品合同单
 			    关联的门槛合同是否已退款
 			    如果退款则不允许收款
-			    <font color=red>建议在该页面中将爆款商品合同查询部分去掉
+			    <font color=red>该页面中将爆款商品合同查询部分去掉
 			end note
 		end group
 	fork again
