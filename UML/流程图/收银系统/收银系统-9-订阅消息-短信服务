@@ -1,0 +1,21 @@
+@startuml
+title 收款-订阅消息-短信服务-流程图
+
+|消息队列服务|
+start
+:收款成功\nconsumeId+合同号;
+
+|短信服务|
+    :接收合同号/consumeId/是否是新增会员字段;
+    if(消息中字段标示是否是新会员?)then(yes)
+        :通过合同号从redis缓存\n服务中查询会员手机号;
+        :发送成为会员短信;
+    else(no)
+        :不做任何处理;
+    endif
+
+    if(短息服务出错误?)then(yes)
+        :发送消息到异常队列;
+    endif
+end
+@enduml

@@ -12,6 +12,13 @@ start
         :查询当班提交表\n计算拆分号和该表主键;
         :更新product_conume表\n拆分号和当班提交表主键;
     end group
+    group 蓝景装饰合同处理
+        :从redis中查询订单数据;
+        if(是否是蓝景装饰合同单?)then(yes)
+            :通过蓝景装饰展位号\n查询蓝景装饰商户表主键;
+            :修改product_conume表\n关联的商户主键和展位号为蓝景装饰;
+        endif
+    end group
     group 处理银行卡手续费
         :查询普通支付方式表\n获取银行卡类别;
         :针对银行卡类别计算手续费;
@@ -36,6 +43,7 @@ start
         :查询券批次表\n获取<font color=red>卖场分摊比例;
         :计算原卖场分摊额;
 |收款服务|
+        :修改收券表关联的批次主键;
         if(卖场封顶额活动中\n是否存在该批次\n且在活动期限内?)then(yes)
             :通过合同号查询product_conume\n获取展位号;
 |电子券服务|
@@ -70,6 +78,7 @@ start
             :修改合同收券表\n卖场分摊比例\n卖场分摊金额\n是否使用新分摊等字段;
         endif
         :修改payform_list表\npayform_trade_fee字段=商户分摊;
+        :新增商户返款关系表数据;
     end group
 end
 @enduml

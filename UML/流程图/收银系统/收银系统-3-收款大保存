@@ -29,6 +29,10 @@ start
           <font color=red>将蓝景装饰数据修改部分后置;
         :组装product_conume表数据;
         :组装现金表数据;
+        if(通过电子券编码查询收券表\n状态=正常的数据\n是否存在?)then(yes)
+            :该电子券已使用\n终止收款;
+            end;
+        endif
         :<font color=red>组装电子券数据;
         note left:该步骤将电子券收款表从\ndb_tiket移动到db_ljlj中
         :组装银行卡表数据;
