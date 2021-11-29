@@ -19,7 +19,7 @@ end note
 
 :登录成功后跳转到菜单页;
 :receivables_desk.php;
-:该页面还有以旧换新的查询,建议去掉;
+:<font color=red>去掉以旧换新的查询;
 :当班统计页面数据查询;
 note right
     以收银员为单位
@@ -28,8 +28,8 @@ end note
 :外网连通情况监测;
 note right
     实现方式有如下两种供选择:
-    * js 轮训调用后端shell脚本方式
-    * 使用websocket后端实时推送到前端
+    * shell脚本定时检测外网向redis中写入结果
+    * 页面每次加载读取redis缓存中的值
 end note
 stop
 @enduml

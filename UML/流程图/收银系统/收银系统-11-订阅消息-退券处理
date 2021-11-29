@@ -1,0 +1,22 @@
+@startuml
+title 收款-订阅消息-退券处理-流程图
+
+|消息队列服务|
+start
+:退款成功\nconsumeId+合同号;
+
+|收款服务|
+    :接收合同号/consumeId;
+    :通过合同号查询收券记录表;
+    if(是否存电子券退款?)then(yes)
+    :将收券表状态改为已退款;
+    :同时收券记录表新增一条\n状态=冲红的负向数据;
+    note right:注意:负向数据关联负向consumeId
+    else
+        end
+    endif
+    if(存在异常)then(yes)
+        :向异常队列中新增异常记录;
+    endif
+end
+@enduml

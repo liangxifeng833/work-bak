@@ -1,0 +1,12 @@
+@startuml
+title 退款-流程图
+
+|退款大保存前台php页面|
+start
+if(退款全部完成?)then(yes)
+|收款服务|
+    :新增退款状态消息到队列中;
+endif
+|退款大保存前台php页面|
+end
+@enduml
