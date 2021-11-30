@@ -36,11 +36,13 @@ start
         end group
     endif
 |redis缓存服务|
-    :更新redis中会员数据\n有则修改无则新增;
+    :<font color=red>更新redis中会员数据\n有则修改无则新增;
+    note right:该步骤在热数据模块\n订阅会员更新成功状态消息
 |会员服务|
     :处理consumeId;
 |收款服务|
-        :修改product_conume表\n关联的memberId;
+        :<font color=red>修改product_conume表\n关联的memberId;
+        note right:该步骤在收款服务\n订阅会员更新成功状态消息
 |会员服务|
     :异步消息处理;
 |队列服务|

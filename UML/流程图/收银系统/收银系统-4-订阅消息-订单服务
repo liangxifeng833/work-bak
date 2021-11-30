@@ -15,7 +15,8 @@ start
         :修改订单付款期数表consumerId;
     end group
 |redis缓存服务|
-    :修改缓存中付款期数状态和consumerId;
+    :<font color=red>修改缓存中付款期数状态和consumerId;
+    note right:注意:该步骤由热数据模块订阅收款成功消息处理
 |订单服务|
     :异步消息处理;
 |队列服务|
