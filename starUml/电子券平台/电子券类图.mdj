@@ -7591,7 +7591,7 @@
 											"top": 724,
 											"width": 368.0816650390625,
 											"height": 13,
-											"text": "+day_rent: decimal(10,10) 每日租金",
+											"text": "+day_rent: decimal(20,10) 每日租金",
 											"horizontalAlignment": 0
 										},
 										{
@@ -8378,7 +8378,7 @@
 											"top": 465,
 											"width": 324.0162353515625,
 											"height": 13,
-											"text": "+share_ratio: decimal(10,2)卖场分摊比",
+											"text": "+mart_share_ratio: decimal(10,2)卖场分摊比",
 											"horizontalAlignment": 0
 										},
 										{
@@ -8414,13 +8414,30 @@
 											"height": 13,
 											"text": "+mart_share_price: decimal(10,2) 卖场分摊金额",
 											"horizontalAlignment": 0
+										},
+										{
+											"_type": "UMLAttributeView",
+											"_id": "AAAAAAF+hTEeVB7YATQ=",
+											"_parent": {
+												"$ref": "AAAAAAF70/wLEbgQBis="
+											},
+											"model": {
+												"$ref": "AAAAAAF+hTEd2h7JZF4="
+											},
+											"font": "Arial;13;0",
+											"left": 941,
+											"top": 510,
+											"width": 324.0162353515625,
+											"height": 13,
+											"text": "+merchant_share_ratio: decimal(10,2) 商户分摊比",
+											"horizontalAlignment": 0
 										}
 									],
 									"font": "Arial;13;0",
 									"left": 936,
 									"top": 430,
 									"width": 334.0162353515625,
-									"height": 83
+									"height": 98
 								},
 								{
 									"_type": "UMLOperationCompartmentView",
@@ -8433,7 +8450,7 @@
 									},
 									"font": "Arial;13;0",
 									"left": 936,
-									"top": 513,
+									"top": 528,
 									"width": 334.0162353515625,
 									"height": 10
 								},
@@ -8475,7 +8492,7 @@
 							"left": 936,
 							"top": 392,
 							"width": 334.0162353515625,
-							"height": 131,
+							"height": 146,
 							"nameCompartment": {
 								"$ref": "AAAAAAF70/wLELgLYmM="
 							},
@@ -8513,7 +8530,7 @@
 									},
 									"visible": false,
 									"font": "Arial;13;0",
-									"left": 941,
+									"left": 933,
 									"top": 359,
 									"height": 13,
 									"alpha": 1.5707963267948966,
@@ -8534,7 +8551,7 @@
 									},
 									"visible": null,
 									"font": "Arial;13;0",
-									"left": 947,
+									"left": 939,
 									"top": 345,
 									"height": 13,
 									"alpha": 1.5707963267948966,
@@ -8555,7 +8572,7 @@
 									},
 									"visible": false,
 									"font": "Arial;13;0",
-									"left": 928,
+									"left": 920,
 									"top": 386,
 									"height": 13,
 									"alpha": -1.5707963267948966,
@@ -8576,7 +8593,7 @@
 									},
 									"visible": false,
 									"font": "Arial;13;0",
-									"left": 939,
+									"left": 931,
 									"top": 358,
 									"height": 13,
 									"alpha": 0.5235987755982988,
@@ -8597,7 +8614,7 @@
 									},
 									"visible": false,
 									"font": "Arial;13;0",
-									"left": 947,
+									"left": 939,
 									"top": 347,
 									"height": 13,
 									"alpha": 0.7853981633974483,
@@ -8618,7 +8635,7 @@
 									},
 									"visible": false,
 									"font": "Arial;13;0",
-									"left": 924,
+									"left": 916,
 									"top": 381,
 									"height": 13,
 									"alpha": -0.5235987755982988,
@@ -8639,7 +8656,7 @@
 									},
 									"visible": false,
 									"font": "Arial;13;0",
-									"left": 943,
+									"left": 935,
 									"top": 360,
 									"height": 13,
 									"alpha": -0.5235987755982988,
@@ -8659,7 +8676,7 @@
 									},
 									"visible": false,
 									"font": "Arial;13;0",
-									"left": 947,
+									"left": 938,
 									"top": 347,
 									"height": 13,
 									"alpha": -0.7853981633974483,
@@ -8679,8 +8696,8 @@
 									},
 									"visible": false,
 									"font": "Arial;13;0",
-									"left": 936,
-									"top": 387,
+									"left": 927,
+									"top": 386,
 									"height": 13,
 									"alpha": 0.5235987755982988,
 									"distance": 25,
@@ -8725,7 +8742,7 @@
 								"$ref": "AAAAAAF7yW1B9kU+sgk="
 							},
 							"lineStyle": 1,
-							"points": "910:367;961:391",
+							"points": "902:367;952:391",
 							"showVisibility": true,
 							"nameLabel": {
 								"$ref": "AAAAAAF71ARh4r3bejs="
@@ -9085,7 +9102,7 @@
 									},
 									"visible": false,
 									"font": "Arial;13;0",
-									"left": 862,
+									"left": 863,
 									"top": 371,
 									"height": 13,
 									"alpha": 1.5707963267948966,
@@ -9106,8 +9123,8 @@
 									},
 									"visible": null,
 									"font": "Arial;13;0",
-									"left": 866,
-									"top": 356,
+									"left": 867,
+									"top": 357,
 									"height": 13,
 									"alpha": 1.5707963267948966,
 									"distance": 30,
@@ -9127,7 +9144,7 @@
 									},
 									"visible": false,
 									"font": "Arial;13;0",
-									"left": 855,
+									"left": 854,
 									"top": 400,
 									"height": 13,
 									"alpha": -1.5707963267948966,
@@ -9211,8 +9228,8 @@
 									},
 									"visible": false,
 									"font": "Arial;13;0",
-									"left": 913,
-									"top": 384,
+									"left": 914,
+									"top": 387,
 									"height": 13,
 									"alpha": -0.5235987755982988,
 									"distance": 30,
@@ -9231,8 +9248,8 @@
 									},
 									"visible": false,
 									"font": "Arial;13;0",
-									"left": 914,
-									"top": 371,
+									"left": 916,
+									"top": 373,
 									"height": 13,
 									"alpha": -0.7853981633974483,
 									"distance": 40,
@@ -9252,7 +9269,7 @@
 									"visible": false,
 									"font": "Arial;13;0",
 									"left": 910,
-									"top": 412,
+									"top": 414,
 									"height": 13,
 									"alpha": 0.5235987755982988,
 									"distance": 25,
@@ -9297,7 +9314,7 @@
 								"$ref": "AAAAAAF7yG97GkTdtmw="
 							},
 							"lineStyle": 1,
-							"points": "372:414;859:392;935:412",
+							"points": "372:414;859:392;935:415",
 							"showVisibility": true,
 							"nameLabel": {
 								"$ref": "AAAAAAF9MkpEYXydtbc="
@@ -9842,7 +9859,7 @@
 								"$ref": "AAAAAAF7zbyISDtFeYY="
 							},
 							"name": "day_rent",
-							"type": "decimal(10,10) 每日租金"
+							"type": "decimal(20,10) 每日租金"
 						},
 						{
 							"_type": "UMLAttribute",
@@ -9889,7 +9906,7 @@
 							"_parent": {
 								"$ref": "AAAAAAF70/wLELgIUaA="
 							},
-							"name": "share_ratio",
+							"name": "mart_share_ratio",
 							"type": "decimal(10,2)卖场分摊比"
 						},
 						{
@@ -9910,6 +9927,15 @@
 							"name": "mart_share_price",
 							"stereotype": "",
 							"type": "decimal(10,2) 卖场分摊金额"
+						},
+						{
+							"_type": "UMLAttribute",
+							"_id": "AAAAAAF+hTEd2h7JZF4=",
+							"_parent": {
+								"$ref": "AAAAAAF70/wLELgIUaA="
+							},
+							"name": "merchant_share_ratio",
+							"type": "decimal(10,2) 商户分摊比"
 						}
 					]
 				}
