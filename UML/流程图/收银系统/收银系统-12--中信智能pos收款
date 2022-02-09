@@ -1,0 +1,34 @@
+@startuml
+title 收款-中信智能pos微信支付宝收款-流程图
+
+|收银系统view|
+start
+:wechat_scan.php;
+:加载智能pos ocx 控件;
+:生成sessionId(<font color=red>6位数字?);
+|ocx|
+:调用消费接口OcxDoTrade();
+|收银系统view|
+if(消费是否成功？)then(no)
+    :提示交易失败;
+    :重新发起交易;
+    end
+else(yes)
+|ocx|
+    :调用获取交易结果接口;
+|收银系统view|
+    :通过交易结果返回的json\n判断是否真正交易成功;
+    if(返回json中交易是否成功？)then(no)
+        :提示交易失败;
+        :重新发起交易;
+        end
+    endif
+endif
+:调用收款模块接口新增数据库数据;
+|收款模块|
+    :<font color=red>计算手续费？;
+    :新增微信支付宝wechat_annal数据;
+|收银系统view|
+
+end
+@enduml
