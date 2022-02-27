@@ -3,8 +3,13 @@ title 收款-中信智能pos微信支付宝收款-流程图
 
 |收银系统view|
 start
-:wechat_scan.php;
+:微信：paypop_html/wechat_scan.php
+支付宝：paypop_htm/ali_scan.php;
+
+|收银系统view|
+
 :加载智能pos ocx 控件;
+
 :生成sessionId(<font color=red>6位数字?);
 |ocx|
 :调用消费接口OcxDoTrade();
@@ -24,10 +29,28 @@ else(yes)
         end
     endif
 endif
-:调用收款模块接口新增数据库数据;
-|收款模块|
-    :<font color=red>计算手续费？;
-    :新增微信支付宝wechat_annal数据;
+:wechat_pay_ajax.php
+ali_pay_ajax.php;
+
+|BLL|
+:WechatOrAlipayPayAction.php;
+:微信/支付宝支付action中
+去掉请求java接口部分代码
+直接计算手续费后新增数据表
+wechat_annal和alipay_annal数据;
+
+note right
+入库字段:
+    contract_number:销售合同号
+    out_trade_no：商户订单号
+    (这里定为调用ocx消费接口时的sessionId)
+    pay_result：支付结果
+    value：支付金额
+    charge：手续费
+    add_time：记录生成时间
+    modify_time = 记录修改时间
+end note
+
 |收银系统view|
 
 end

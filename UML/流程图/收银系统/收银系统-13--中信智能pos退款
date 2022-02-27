@@ -1,10 +1,10 @@
 @startuml
-title 收款-中信智能pos微信支付宝退款-流程图
+title 中信智能pos微信支付宝退款-流程图
 
 |收银系统view|
 start
-:微信:smarty/refund_wechat.html;
-:支付宝smarty/refund_alipay.html;
+:微信:smarty/refund_wechat.html
+支付宝smarty/refund_alipay.html;
 :加载智能pos ocx 控件;
 |ocx|
 :调用退款接口;
@@ -24,10 +24,22 @@ else(yes)
         end
     endif
 endif
-:调用收款模块接口修改数据库数据;
-|收款模块|
-    :修改微信wechat_annal数据\n修改支付宝表alipay_annal数据;
-|收银系统view|
+
+:微信退款ajax操作：wechat_refund_ajax.php
+支付宝退款ajax操作：ali_pay_ajax.php;
+
+|BLL|
+:WechatOrAlipayRefundAction.php;
+:微信/支付宝退款action中
+去掉请求java接口部分代码
+直接修改数据表
+wechat_annal和alipay_annal数据;
+
+note right
+修改字段:
+    out_refund_no：商户退款单号
+    modify_time = 记录修改时间
+end note
 
 end
 @enduml

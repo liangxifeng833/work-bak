@@ -1,0 +1,40 @@
+@startuml
+title 中信智能pos微信支付宝-异常补录-流程图
+
+|收银系统view|
+start
+:补录异常记录php文件
+exception_record_add.php;
+note right
+    该页面输入框内容说明:
+        1. 合同号
+        2. 收款金额
+        3. 支付方式radio(微信:1, 支付宝:2)
+        4. <font color=red>商户订单号（此处需要结合测试结果，查看小票中该笔交易的唯一标示）
+end note
+
+|BLL|
+:异常补录action
+ExceptionInputAddAction.php
+修改逻辑如下：;
+:获取微信支付宝类型从参数获取;
+:组合新增异常记录表数据;
+note right
+        contract_number：合同号
+        operator_id：操作人员主键
+        add_time:记录新增时间
+        status:1状态写为成功
+        type:交易方式 1:微信,2支付宝
+end note
+:计算微信或支付宝手续费;
+note right: 从libraries.citic_pay/CreateHandleFee计算;
+:组合新增微信或支付宝表数据;
+note right:与微信支付宝收款流程图中描述的新增字段一致;
+
+|DAL|
+:调用DAL事务新增异常记录表和微信或支付表数据
+事务位置 ljmis/tctAddException.php;
+
+|收银系统view|
+end
+@enduml
